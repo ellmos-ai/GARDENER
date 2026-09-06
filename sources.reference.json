@@ -463,18 +463,18 @@
       },
       "tom-lm-avatar": {
         "kind": "markdown_dir",
-        "path": "~/OneDrive/.TOPICS/_control-center/_DECISIONS/_TOM-lm/avatar"
+        "path": "~/OneDrive/.TOPICS/_control-center/_CONTROL/_USER-MIND/avatar"
       },
       "tom-lm-logs": {
         "kind": "markdown_dir",
-        "path": "~/OneDrive/.TOPICS/_control-center/_DECISIONS/_TOM-lm/avatar",
+        "path": "~/OneDrive/.TOPICS/_control-center/_CONTROL/_USER-MIND/avatar",
         "patterns": [
           "*.txt"
         ]
       },
       "tom-lm-root": {
         "kind": "markdown_dir",
-        "path": "~/OneDrive/.TOPICS/_control-center/_DECISIONS/_TOM-lm"
+        "path": "~/OneDrive/.TOPICS/_control-center/_CONTROL/_USER-MIND"
       },
       "user-wiki": {
         "kind": "markdown_dir",
