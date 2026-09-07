@@ -388,7 +388,7 @@ def execute(payload):
             "find(", "recall(", "get(", "put(", "delete(", "list(", "run(",
             "memo(", "lesson(", "session_end(", "consolidate(",
             "task(", "tasks(", "done(", "task_status(",
-            "absorb(", "materialize(", "observe(", "sync(", "status(",
+            "absorb(", "materialize(", "observe(", "sync(", "status(", "clean_workspace(",
             "observe_source_add(", "observe_source_list(", "observe_source_refresh(", "observe_sources(", "observe_source_remove("
         ):
             self.assertIn(method, content)
@@ -396,10 +396,103 @@ def execute(payload):
         for cli_cmd in (
             "find", "recall", "memo", "lesson", "session-end", "consolidate",
             "get", "put", "delete", "list", "run",
-            "absorb", "materialize", "observe", "sync", "status",
+            "absorb", "materialize", "observe", "sync", "status", "clean-workspace",
             "task", "tasks", "done", "observe-source", "gui"
         ):
             self.assertIn(f"python gardener.py {cli_cmd}", content)
+
+    def test_clean_workspace_all_and_by_name(self):
+        # Tools erzeugen und ausführen, um Workspace-Ordner zu generieren
+        self.af.put("tool-a", content="```python\ndef execute(p):\n    return 'output a'\n```", type="tool")
+        self.af.put("tool-b", content="```python\ndef execute(p):\n    return 'output b'\n```", type="tool")
+
+        ok_a, out_a = self.af.run("tool-a")
+        ok_b, out_b = self.af.run("tool-b")
+        self.assertTrue(ok_a)
+        self.assertTrue(ok_b)
+
+        dir_a = self.af.workspace_dir / "tool-a"
+        dir_b = self.af.workspace_dir / "tool-b"
+        self.assertTrue((dir_a / "run.py").exists())
+        self.assertTrue((dir_b / "run.py").exists())
+
+        st = self.af.status()
+        self.assertIn("workspace", st)
+        self.assertGreaterEqual(st["workspace"]["files"], 2)
+
+        # Selektiv nur tool-a aufräumen
+        res_a = self.af.clean_workspace(name="tool-a")
+        self.assertGreaterEqual(res_a["files"], 1)
+        self.assertFalse(dir_a.exists())
+        self.assertTrue(dir_b.exists())
+
+        # Den restlichen Workspace komplett aufräumen
+        res_all = self.af.clean_workspace()
+        self.assertGreaterEqual(res_all["files"], 1)
+        self.assertTrue(self.af.workspace_dir.exists())
+        self.assertFalse(dir_b.exists())
+
+        st_after = self.af.status()
+        self.assertEqual(st_after["workspace"]["files"], 0)
+
+    def test_clean_workspace_max_age_seconds(self):
+        ws_test = self.af.workspace_dir / "tool-age"
+        ws_test.mkdir(parents=True, exist_ok=True)
+        old_file = ws_test / "old.txt"
+        new_file = ws_test / "new.txt"
+        old_file.write_text("old content", encoding="utf-8")
+        new_file.write_text("new content", encoding="utf-8")
+
+        # Modifikationszeit der alten Datei 200 Sekunden in die Vergangenheit setzen
+        past_time = time.time() - 200
+        os.utime(str(old_file), (past_time, past_time))
+
+        # Bereinigung mit Schwellenwert 100 Sekunden
+        res = self.af.clean_workspace(max_age_seconds=100)
+        self.assertEqual(res["files"], 1)
+        self.assertFalse(old_file.exists())
+        self.assertTrue(new_file.exists())
+
+        # Jetzt auch die neuere Datei bereinigen
+        res2 = self.af.clean_workspace(max_age_seconds=0)
+        self.assertEqual(res2["files"], 1)
+        self.assertFalse(new_file.exists())
+
+    def test_clean_workspace_cli(self):
+        # Datei in workspace erzeugen
+        ws_test = self.af.workspace_dir / "tool-cli"
+        ws_test.mkdir(parents=True, exist_ok=True)
+        (ws_test / "run.py").write_text("print('hi')", encoding="utf-8")
+
+        env = os.environ.copy()
+        env["PYTHONIOENCODING"] = "utf-8"
+        env["GARDENER_DATA"] = str(self.af.data_dir)
+        env["GARDENER_HOME"] = str(self.af.home)
+
+        # 1. Bereinigen mit Treffer
+        proc = subprocess.run(
+            [sys.executable, str(ROOT / "gardener.py"), "clean-workspace", "tool-cli"],
+            cwd=ROOT,
+            env=env,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            check=True,
+        )
+        self.assertIn("Workspace für 'tool-cli' bereinigt:", proc.stdout)
+        self.assertIn("Datei(en)", proc.stdout)
+
+        # 2. Zweiter Lauf ohne Treffer
+        proc2 = subprocess.run(
+            [sys.executable, str(ROOT / "gardener.py"), "clean-workspace"],
+            cwd=ROOT,
+            env=env,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            check=True,
+        )
+        self.assertIn("Workspace ist sauber", proc2.stdout)
 
 
 class TestCliI18n(unittest.TestCase):

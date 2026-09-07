@@ -23,6 +23,7 @@ import shutil
 import sqlite3
 import subprocess
 import sys
+import time
 from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
@@ -654,6 +655,62 @@ class Gardener:
         except Exception as e:
             return False, f"Fehler bei Ausführung von '{name}': {e}"
 
+    def clean_workspace(self, name: Optional[str] = None,
+                        max_age_seconds: Optional[int] = None) -> Dict[str, int]:
+        """Räumt temporäre Workspace-Verzeichnisse auf.
+
+        Entfernt erzeugte Runner-Skripte und temporäre Ausführungsverzeichnisse.
+
+        Args:
+            name: Optionaler Tool-Name zur selektiven Bereinigung.
+                Wird name angegeben, wird nur das zugehörige Unterverzeichnis
+                unter workspace/ aufgeräumt. Bei None wird der gesamte
+                Workspace-Ordner aufgeräumt.
+            max_age_seconds: Optionales Mindestalter in Sekunden. Nur Dateien,
+                deren Modifikationszeitpunkt mindestens max_age_seconds zurückliegt,
+                werden gelöscht. Anschließend werden leere Verzeichnisse entfernt.
+
+        Returns:
+            Dict mit Anzahl gelöschter Dateien, Ordner und freigegebener Bytes:
+            {'files': int, 'dirs': int, 'freed_bytes': int}
+        """
+        result = {"files": 0, "dirs": 0, "freed_bytes": 0}
+        if not self.workspace_dir.exists():
+            return result
+
+        target_dir = self.workspace_dir / name.replace("/", "_") if name else self.workspace_dir
+        if not target_dir.exists():
+            return result
+
+        now = time.time()
+
+        for item in sorted(target_dir.rglob("*"), reverse=True):
+            try:
+                if item.is_file() or item.is_symlink():
+                    mtime = item.stat().st_mtime
+                    if max_age_seconds is None or (now - mtime) >= max_age_seconds:
+                        size = item.stat().st_size
+                        item.unlink()
+                        result["files"] += 1
+                        result["freed_bytes"] += size
+                elif item.is_dir() and item != self.workspace_dir:
+                    try:
+                        item.rmdir()
+                        result["dirs"] += 1
+                    except OSError:
+                        pass
+            except OSError:
+                pass
+
+        if name and target_dir.exists() and target_dir != self.workspace_dir:
+            try:
+                target_dir.rmdir()
+                result["dirs"] += 1
+            except OSError:
+                pass
+
+        return result
+
     # ------------------------------------------------------------------
     # Erweiterte Operationen
     # ------------------------------------------------------------------
@@ -1227,6 +1284,11 @@ class Gardener:
         blob_size = sum(f.stat().st_size for f in self.blob_dir.glob("*") if f.is_file())
         info["blobs"] = {"count": blob_count, "size_mb": round(blob_size / 1_000_000, 1)}
 
+        # Workspace
+        ws_files = [f for f in self.workspace_dir.rglob("*") if f.is_file()] if self.workspace_dir.exists() else []
+        ws_size = sum(f.stat().st_size for f in ws_files)
+        info["workspace"] = {"files": len(ws_files), "size_mb": round(ws_size / 1_000_000, 1)}
+
         return info
 
     # ------------------------------------------------------------------
@@ -1722,6 +1784,7 @@ def main():
         print(f"  {t('help.system_db')}: {s['system_entries']} {t('help.entries')}")
         print(f"  {t('help.user_db')}:   {s['user_entries']} {t('help.entries')}")
         print(f"  {t('help.heap')}:     {s['blobs']['count']} {t('help.files')} ({s['blobs']['size_mb']} MB)")
+        print(f"  {t('help.workspace')}: {s['workspace']['files']} {t('help.files')} ({s['workspace']['size_mb']} MB)")
         print()
         print(t("help.commands"))
         commands = [
@@ -1749,6 +1812,7 @@ def main():
             ("gardener list [typ]", "cmd.list"),
             ("gardener delete <name>", "cmd.delete"),
             ("gardener status", "cmd.status"),
+            ("gardener clean-workspace [name]", "cmd.clean_workspace"),
         ]
         for usage, label_key in commands:
             print(f"  {usage:<32} {t(label_key)}")
@@ -2000,6 +2064,37 @@ def main():
             print(f"  [OK] Task '{name}' erledigt")
         else:
             print(f"  Task nicht gefunden: {name}")
+
+    elif cmd == "clean-workspace":
+        tool_name = None
+        older_than = None
+        args = sys.argv[2:]
+        i = 0
+        while i < len(args):
+            arg = args[i]
+            if arg == "--older-than" and i + 1 < len(args):
+                try:
+                    older_than = int(args[i + 1])
+                except ValueError:
+                    print(f"  Ungültiger Wert für --older-than: {args[i + 1]}")
+                    return
+                i += 2
+            elif not arg.startswith("-") and tool_name is None:
+                tool_name = arg
+                i += 1
+            else:
+                print(f"  Unbekannte Option: {arg}")
+                print("  Nutzung: gardener clean-workspace [name] [--older-than <sekunden>]")
+                return
+
+        res = af.clean_workspace(name=tool_name, max_age_seconds=older_than)
+        freed_mb = round(res["freed_bytes"] / 1_000_000, 2)
+        if res["files"] > 0 or res["dirs"] > 0:
+            target_str = f" für '{tool_name}'" if tool_name else ""
+            print(f"  Workspace{target_str} bereinigt: {res['files']} Datei(en), "
+                  f"{res['dirs']} Ordner ({freed_mb} MB freigegeben).")
+        else:
+            print("  Workspace ist sauber (keine zu bereinigenden Dateien gefunden).")
 
     else:
         print(f"  Unbekannter Befehl: {cmd}")

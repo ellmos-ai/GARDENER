@@ -125,6 +125,11 @@ _BUILTIN_TRANSLATIONS: Dict[str, Dict[str, str]] = {
     "cmd.list": {"de": "Alle Einträge auflisten", "en": "List all entries"},
     "cmd.delete": {"de": "Eintrag löschen", "en": "Delete entry"},
     "cmd.status": {"de": "System-Status", "en": "System status"},
+    "cmd.clean_workspace": {
+        "de": "Workspace aufräumen (temporäre Tool-Dateien)",
+        "en": "Clean workspace (temporary tool files)",
+    },
+    "help.workspace": {"de": "Workspace", "en": "Workspace"},
 }
 
 

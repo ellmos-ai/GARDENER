@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- **Workspace Management (`clean_workspace()` & CLI `gardener clean-workspace`)**:
+  - Added `Gardener.clean_workspace(name=None, max_age_seconds=None)` to clean up ephemeral tool run scripts and workspaces under `data_dir/workspace/`.
+  - Added CLI command `gardener clean-workspace [name] [--older-than <seconds>]` with clean German user feedback using proper umlauts.
+  - Added workspace disk usage metrics (`files`, `size_mb`) to `Gardener.status()` and CLI status overview.
+  - Added i18n support for workspace command and help strings in `i18n.py` and `locales/translations.json`.
+- **Test Suite & Parity Updates**:
+  - Expanded test suite to 139 passing tests (100% green).
+  - Synchronized test badges and metadata across `README.md`, `README_de.md`, `llms.txt`, and `tests/test_metadata.py`.
 - Add the existing `_control-center/_PLANS` register as the opt-in system-tier
   `plans-register` observe source. Gardener indexes its three metadata/report
   files read-only and does not become the plan authority or a second plan store.

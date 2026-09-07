@@ -71,7 +71,7 @@ and letting the worse be forgotten.
 - [ ] MCP server (Gardener as MCP: find/get/put/run as tools)
 - [ ] Versioning (change history in DB)
 - [ ] Permissions model (who can change what in gardener.db?)
-- [ ] Workspace management (cleanup, max size)
+- [x] Workspace management (cleanup, max size)
 - [ ] External integrations (MCP, APIs)
 - [ ] Multi-LLM (multiple LLMs share user.db)
 

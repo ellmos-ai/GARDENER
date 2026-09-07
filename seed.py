@@ -85,6 +85,7 @@ af.materialize("datei.pdf")              # DB → Datei
 af.observe()                             # Ordner scannen
 af.sync()                                # Synchronisation gemäß config.json
 af.status()                              # System-Info
+af.clean_workspace()                     # Workspace aufräumen
 
 # Föderierter Cross-Source-Index
 af.observe_source_add("claude", "agent_transcripts", path="~/.claude/projects")
@@ -118,6 +119,7 @@ python gardener.py materialize <name> [--path PATH]
 python gardener.py observe [--path DIR]
 python gardener.py sync
 python gardener.py status
+python gardener.py clean-workspace [name]
 
 # Aufgaben
 python gardener.py task <name> <title> [--priority P]
