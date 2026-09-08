@@ -50,6 +50,7 @@ Repository = "https://github.com/ellmos-ai/gardener"
 Issues = "https://github.com/ellmos-ai/gardener/issues"
 Changelog = "https://github.com/ellmos-ai/gardener/blob/master/CHANGELOG.md"
 Security = "https://github.com/ellmos-ai/gardener/blob/master/SECURITY.md"
+"Parent Organization" = "https://github.com/ellmos-ai"
 Umbrella = "https://github.com/open-bricks"
 
 [project.scripts]

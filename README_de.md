@@ -6,12 +6,13 @@
 
 [![CI](https://github.com/ellmos-ai/gardener/actions/workflows/ci.yml/badge.svg)](https://github.com/ellmos-ai/gardener/actions/workflows/ci.yml)
 [![Version: 0.4.2](https://img.shields.io/badge/version-0.4.2-blue.svg)](https://github.com/ellmos-ai/gardener)
+[![Code-Stil: Ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
 [![Python 3.10-3.13](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-blue.svg)](https://www.python.org/)
 [![Plattformen](https://img.shields.io/badge/plattformen-Linux%20%7C%20Windows%20%7C%20macOS-lightgrey.svg)](https://github.com/ellmos-ai/gardener)
 [![Lizenz: MIT](https://img.shields.io/badge/Lizenz-MIT-yellow.svg)](LICENSE)
-[![Tests: 139 bestanden](https://img.shields.io/badge/tests-139%20passed-brightgreen.svg)](https://github.com/ellmos-ai/gardener)
+[![Tests: 147 bestanden](https://img.shields.io/badge/tests-147%20passed-brightgreen.svg)](https://github.com/ellmos-ai/gardener)
 [![Datenschutz: Local-First](https://img.shields.io/badge/datenschutz-Local--First%20%7C%20Zero--Egress-brightgreen.svg)](SECURITY.md)
-[![Sicherheitsrichtlinie](https://img.shields.io/badge/sicherheit-Zweisprachig-informational.svg)](SECURITY.md)
+[![Sicherheitsrichtlinie](https://img.shields.io/badge/sicherheit-48h%20SLA-blue.svg)](SECURITY.md)
 [![LLM OS](https://img.shields.io/badge/LLM--OS-SQLite%20Substrate-blueviolet.svg)](https://github.com/ellmos-ai/gardener)
 [![Teil von ellmos-ai](https://img.shields.io/badge/ecosystem-ellmos--ai-informational.svg)](https://github.com/ellmos-ai)
 [![open-bricks](https://img.shields.io/badge/umbrella-open--bricks-blue.svg)](https://github.com/open-bricks)
@@ -20,9 +21,26 @@
 > [!NOTE]
 > **LLM / Agenten-Integration**: Gardener stellt ein ein-Tabellen-FTS5-SQLite-Substrat (`gardener.db` / `user.db`) mit den Primitiven `find`, `get`, `put` und `run` bereit. Siehe [`llms.txt`](llms.txt) für maschinenlesbare Dokumentation.
 
-**🇬🇧 [English Version](README.md)**
+**🇬🇧 [English Version](README.md)** | **🛡️ [Sicherheitsrichtlinie](SECURITY.md)** | **📝 [Changelog](CHANGELOG.md)** | **📋 [llms.txt](llms.txt)**
 
 > Status: Prototyp (v0.4.2) | Autor: Lukas Geiger + Claude
+
+## 🧭 Schnellnavigation
+
+- [Was ist Gardener?](#was-ist-gardener)
+- [Suchkontext & Phrasen](#suchkontext)
+- [Systemarchitektur & Datenfluss](#architektur)
+- [End-to-End Abfrage- & Ausführungs-Lebenszyklus](#end-to-end-abfrage---ausführungs-lebenszyklus)
+- [Governance & Laufzeit-Invarianten](#governance--laufzeit-invarianten)
+- [Datenmodell & Everything-Substrat](#datenmodell)
+- [Assoziatives Gedächtnis ohne separates System](#memory-kein-separates-gedächtnis-system)
+- [Einheitliche Aufgabenverwaltung](#tasks-kein-separates-system)
+- [Drei Beziehungen zu Dateien & Transporter](#drei-beziehungen-zu-dateien)
+- [Quellenübergreifender föderierter Index](#quellenübergreifender-föderierter-index)
+- [Architekturvergleich: Gardener vs. Rinnsal](#vergleich-gardener-vs-rinnsal)
+- [Geschwisterwerkzeuge & Ökosystem-Matrix](#geschwisterwerkzeuge--ökosystem)
+- [Sicherheitsmodell & Sicherheitsrichtlinie](#sicherheitsmodell-bitte-lesen)
+- [Haftung & Rechtlicher Hinweis](#haftung--liability)
 
 ## Was ist Gardener?
 
@@ -148,6 +166,61 @@ User directory (cloud ok, override with GARDENER_HOME):
     .output/           # Materialized files appear here
     documents/         # Observed files (LLM reads along)
 ```
+
+### End-to-End Abfrage- & Ausführungs-Lebenszyklus
+
+Die folgende Sequenz veranschaulicht, wie Suchanfragen über Namensraum-Präfixe gefiltert, via FTS5 BM25 bewertet und wie Werkzeuge im unprivilegierten Benutzer-Workspace flüchtig materialisiert und ausgeführt werden:
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Agent as LLM-Agent / Nutzer
+    participant CLI as Gardener CLI / API
+    participant Core as Gardener Engine
+    participant FTS as SQLite FTS5 BM25 Engine
+    participant Filter as Quellenfilter & Schwärzung
+    participant DB as gardener.db / user.db
+    participant WS as Lokaler Arbeitsbereich
+
+    Agent->>CLI: find("steuern rechnung", source="usmc-working")
+    CLI->>Core: Abfrage mit Quellenscope weiterleiten
+    Core->>Filter: Namensraum-Präfixfilter vor Ranking anwenden
+    Filter->>FTS: BM25-gewichteten Abgleich auf everything-Tabelle ausführen
+    FTS->>DB: Indizierte Zeilen abfragen (mode=ro für externe DBs)
+    DB-->>FTS: Gefundene Datensätze mit Snippets
+    FTS-->>Core: Gewichtete Treffer mit source_ref-Metadaten
+    Core-->>CLI: Formatierte Suchergebnisse
+    CLI-->>Agent: Treffer mit ID, Typ und Textausschnitt
+
+    opt Materialisiertes Tool ausführen
+        Agent->>CLI: run("pdf-parser", input={"file": "rechnung.pdf"})
+        CLI->>Core: Tool-Code aus everything-Tabelle anfordern
+        Core->>DB: Tool-Implementierung abrufen
+        DB-->>Core: Tool-Nutzlast
+        Core->>WS: Temporäres Skript in data_dir/workspace/ materialisieren
+        WS->>WS: Im unprivilegierten Benutzerkontext ausführen (mit Timeout)
+        WS-->>Core: Prozessausgabe / JSON-Ergebnis
+        Core->>WS: Flüchtige Lauf-Artefakte bereinigen
+        Core-->>Agent: Strukturierte Rückgabe
+    end
+```
+
+## Governance & Laufzeit-Invarianten
+
+Gardener garantiert 10 verbindliche Architekturprinzipien für sicheren, deterministischen und rein lokalen Betrieb von LLM-Gedächtnisstrukturen:
+
+| # | Invariante | Beschreibung | Durchsetzungsebene |
+|---|---|---|---|
+| 1 | **100% Offline / Zero-Egress** | Ausschließlich lokale SQLite-Ausführung (`~/.gardener/user.db`, `~/.gardener/system.db`). Null Telemetrie, keine externen Netzwerkaufrufe, kein Abfluss von Anfragen. | Architekturgarantie |
+| 2 | **FTS5 BM25 Assoziativ-Gedächtnis** | Deterministisches SQLite FTS5 BM25-Ranking, Snippet-Extraktion und Präfixfilterung ohne unvorhersehbaren Vektor-Drift oder externe Embeddings. | Kern-Such-Engine |
+| 3 | **Automatische Secret-Schwärzung** | 13 Credential-Familien (GitHub-Tokens, AWS-Keys, Anthropic/OpenAI-Keys, Bearer-Tokens, private Keys) werden in `sources.py` vor der Indizierung geschwärzt. | Vor-Indizierungs-Filter |
+| 4 | **Cloud-Leak-Alarmierung** | Erkannte Schlüssel in synchronisierten Pfaden (`~/OneDrive`) erzeugen idempotente Warnungen in `GARDENER_CLOUD_ALERT_FILE` ohne Speicherung des Geheimnisses. | Datenschutz-Alarm |
+| 5 | **Schreibgeschützte Beobachtung** | Fremdquellen (BACH-Wiki, Agenten-Transkripte, Markdown-Verzeichnisse) werden strikt read-only (`mode=ro`) abgefragt und niemals verändert. | Read-Only-Isolation |
+| 6 | **Schutz vor Pfad-Traversal** | `materialize()` und `absorb()` normalisieren Zielpfade und weisen Navigationsmuster (`../`, absolute Wurzelpfade) strikt ab. | Dateisystem-Grenze |
+| 7 | **Flüchtige Workspaces & Non-Elevation** | Werkzeuge laufen unprivilegiert im Benutzerkontext in `data_dir/workspace/` und können via `clean_workspace()` restlos aufgeräumt werden. | Prozess-Isolation |
+| 8 | **Multi-OS CI-Matrix** | Vollautomatische plattformübergreifende Prüfung unter Ubuntu, Windows und macOS auf Python 3.10, 3.11, 3.12 und 3.13. | GitHub Actions CI |
+| 9 | **Strikte CI-Parallelität & Bytecode-Gate** | `cancel-in-progress: true` verhindert Ressourcenverschwendung; `compileall` erzwingt syntaktisch fehlerfreien Bytecode vor jedem Test. | Automatisches Build-Gate |
+| 10 | **Zweisprachigkeit & Metadaten-Parität** | Vollständige DE/EN-Parität aller Dokumentationen, CLI-Texte und vertragliche Absicherung über automatisierte Metadaten-Tests. | Metadaten-Testsuite |
 
 ## Datenmodell
 

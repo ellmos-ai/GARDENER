@@ -10,6 +10,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
     name: Test (${{ matrix.os }}, Python ${{ matrix.python-version }})
@@ -38,7 +42,7 @@ jobs:
         run: ruff check .
 
       - name: Compile sources
-        run: python -m compileall -q gardener.py seed.py i18n.py sources.py search_gui.py tests
+        run: python -m compileall -q .
 
       - name: Run test suite
         env:

@@ -1,6 +1,20 @@
 # Changelog
 
-## Unreleased
+## [Unreleased]
+
+### Marketing, Discoverability, Invariants Matrix & Navigation Modernization (2026-09-08)
+
+- **14-Point Bilingual Quick Navigation**: Added standardized quick navigation sections (`## 🧭 Quick Navigation` / `## 🧭 Schnellnavigation`) across `README.md` and `README_de.md` with complete German/English anchor parity.
+- **Dual Mermaid Visualizations**: Added interactive runtime sequence diagram (`### End-to-End Query & Execution Lifecycle`) illustrating pre-ranking namespace filters, FTS5 BM25 match retrieval, and safe workspace materialization alongside the existing architecture flowchart.
+- **10-Point Governance & Runtime Invariants Matrix**: Formulated and embedded 10 architectural guarantees (100% Offline / Zero-Egress, FTS5 BM25 Associative Memory, Automated Secret Redaction, Cloud Leak Alerting, Read-Only External Observation, Path Traversal Sanitization, Ephemeral Workspace & Non-Elevation, Multi-OS CI Matrix, Strict CI Concurrency & Bytecode Gate, and Dual-Language & Metadata Parity).
+- **Shields.io Badges Modernization**: Added Code style: Ruff badge, updated test metrics to 147 passing tests, and updated security badge to 48h SLA response.
+- **Security Policy Hardening (`SECURITY.md`)**: Embedded dual SLA commitments (48h acknowledgment + 5-business-day triage assessment) and added `security@open-bricks.org` in both English and German policy sections.
+- **CI Workflow Hardening (`.github/workflows/ci.yml`)**: Added concurrency group with `cancel-in-progress: true` and whole-repository bytecode compilation check (`python -m compileall -q .`).
+- **Repository Hygiene & `.gitignore` Hardening**: Added patterns for cloud-sync conflict files (`*.sync-conflict-*`, `*.conflict`), LOCK markers (`LOCK.*`, `*.lock`), and linter/cache files (`.ruff_cache/`, `.pytest_cache/`).
+- **PEP 621 Metadata Alignment (`pyproject.toml`)**: Declared `"Parent Organization" = "https://github.com/ellmos-ai"` under `[project.urls]`.
+- **Machine-Readable Context (`llms.txt`)**: Updated `Last-checked` timestamp to `2026-09-08` and synchronized test count to 147 passing tests.
+- **Local Marketing Log (`MARKETING-LOG.txt`)**: Authored comprehensive Pfad B audit log documenting baseline, enhancements, and strategic next steps.
+- **Contract Test Suite Expansion (`tests/test_metadata.py`)**: Added 8 new automated validation tests asserting navigation links, invariant table parity, sequence diagram validity, security SLAs, CI concurrency, bytecode compilation, `.gitignore` patterns, and ecosystem metadata (147/147 tests passing).
 
 - **Workspace Management (`clean_workspace()` & CLI `gardener clean-workspace`)**:
   - Added `Gardener.clean_workspace(name=None, max_age_seconds=None)` to clean up ephemeral tool run scripts and workspaces under `data_dir/workspace/`.

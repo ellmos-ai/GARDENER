@@ -49,3 +49,19 @@ _after-care/
 
 # Interne Multi-Agenten-Koordination (LOCK-System)
 LOCK*.txt
+LOCK.*
+*.lock
+
+# Multi-Host-Synchronisationskonflikte
+*.sync-conflict-*
+*.conflict
+*-CONFLIT-*
+*-conflict-*
+
+# Cache- und temporäre Artefakte
+.ruff_cache/
+.pytest_cache/
+.coverage
+htmlcov/
+*.tmp
+*.bak

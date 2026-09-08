@@ -42,10 +42,11 @@ If you discover a security issue or vulnerability in Gardener OS:
 2. Report via **GitHub Private Vulnerability Reporting** at [github.com/ellmos-ai/gardener/security/advisories](https://github.com/ellmos-ai/gardener/security/advisories).
 3. Or email the maintainers directly:
    - `security@ellmos.ai`
+   - `security@open-bricks.org`
    - `support@lukasgeiger.com`
    - `lukas@open-bricks.org`
 
-**Response SLA:** We acknowledge vulnerability reports within 48 hours and coordinate fixes prior to public disclosure.
+**Response SLA:** We acknowledge vulnerability reports within 48 hours and provide an initial triage assessment within 5 business days, coordinating fixes prior to public disclosure.
 
 ---
 
@@ -87,7 +88,8 @@ Wenn Sie eine Sicherheitslücke oder ein Datenschutzproblem in Gardener OS entde
 2. Nutzen Sie das **GitHub Private Vulnerability Reporting** unter [github.com/ellmos-ai/gardener/security/advisories](https://github.com/ellmos-ai/gardener/security/advisories).
 3. Oder schreiben Sie direkt an die Maintainer:
    - `security@ellmos.ai`
+   - `security@open-bricks.org`
    - `support@lukasgeiger.com`
    - `lukas@open-bricks.org`
 
-**Reaktionszeit (SLA):** Wir bestätigen Meldungen innerhalb von 48 Stunden und koordinieren die Behebung vor der Veröffentlichung.
+**Reaktionszeit (SLA):** Wir bestätigen Meldungen innerhalb von 48 Stunden, liefern innerhalb von 5 Werktagen eine erste Einschätzung (Triage) und koordinieren die Behebung vor der Veröffentlichung.

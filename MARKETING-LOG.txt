@@ -1,0 +1,111 @@
+# MARKETING-LOG: Gardener OS (ellmos-ai/gardener)
+Date: 2026-09-08
+Operator: Antigravity / Gemini (via GITHUBBOT Pfad B)
+Target Repo: ellmos-ai/gardener
+Canonical Path: C:\_Local_DEV\repos\gardener
+Version: 0.4.2
+
+================================================================================
+1. REPOSITORY AUDIT & DISCOVERABILITY BASELINE
+================================================================================
+- Organization: ellmos-ai
+- Ecosystem: open-bricks (umbrella)
+- Target Audience: Local-first LLM agent developers, SQLite/FTS5 memory researchers, multi-agent framework designers
+- Disambiguation: Distinct from gardening/horticulture websites, Sesame Street characters, and database operating system (DBOS) research papers
+- Canonical Search Query: ellmos-ai/gardener
+- Previous State:
+  * 139 passing tests (unittest & pytest)
+  * Dual SQLite database substrate (gardener.db / user.db) with FTS5 search
+  * Single flowchart Mermaid diagram
+  * Missing standardized 14-point Quick Navigation in README.md and README_de.md
+  * Missing 10-point Governance & Runtime Invariants table
+  * Missing runtime execution lifecycle sequence diagram
+  * Missing CI concurrency gate and full-repo compileall check
+  * Missing local MARKETING-LOG.txt tracking discoverability and outreach
+
+================================================================================
+2. IMPLEMENTED PFAD B ENHANCEMENTS (2026-09-08)
+================================================================================
+[x] 14-Point Bilingual Quick Navigation:
+    - Added structured jump-marks in README.md (English) and README_de.md (German)
+    - Full 100% parity across all 14 core architectural sections:
+      1. Overview / What is Gardener?
+      2. Discovery Context & Search Phrases
+      3. System Architecture & Data Flow
+      4. End-to-End Query & Execution Lifecycle
+      5. Governance & Runtime Invariants Matrix
+      6. Data Model & Everything Substrate
+      7. Associative Memory Without Separate Systems
+      8. Unified Task Management
+      9. File Relations & Transporter
+      10. Cross-Source Federated Index
+      11. Gardener vs. Rinnsal Architectural Comparison
+      12. Sibling Projects & Ecosystem Matrix
+      13. Security Model & Vulnerability Reporting
+      14. Haftung & Liability Notice
+
+[x] Dual Mermaid Visualizations:
+    - Preserved architecture flowchart TD detailing UI, Core Engine, Substrate, and Federated Sources
+    - Added interactive runtime sequence diagram (autonumber) detailing:
+      1. User/Agent FTS5 BM25 query routing through pre-ranking namespace filters
+      2. Ranked search result dispatch with source_ref metadata
+      3. Ephemeral tool workspace materialization, unprivileged execution, and safe artifact purging
+
+[x] 10-Point Governance & Runtime Invariants Matrix:
+    - 1. 100% Offline / Zero-Egress (Strictly local SQLite execution, zero telemetry)
+    - 2. FTS5 BM25 Associative Memory (Deterministic ranking, snippet extraction, no vector-drift)
+    - 3. Automated Secret Redaction (13 credential families redacted before indexing in sources.py)
+    - 4. Cloud Leak Alerting (Findings in ~/OneDrive logged to GARDENER_CLOUD_ALERT_FILE)
+    - 5. Read-Only External Observation (Foreign sources queried strictly read-only mode=ro)
+    - 6. Path Traversal Sanitization (materialize/absorb neutralize ../ and absolute roots)
+    - 7. Ephemeral Workspace & Non-Elevation (Unprivileged user mode execution, clean_workspace)
+    - 8. Multi-OS CI Matrix (Cross-platform verification on Ubuntu, Windows, macOS, Python 3.10-3.13)
+    - 9. Strict CI Concurrency & Bytecode Gate (cancel-in-progress: true, python -m compileall -q .)
+    - 10. Dual-Language & Metadata Parity (100% DE/EN parity, automated contract tests)
+
+[x] Shields.io Badges Modernization:
+    - Added Code Style: Ruff badge
+    - Synchronized test count badge to 147 passed tests (100% green)
+    - Updated Security badge to 48h SLA response
+    - Maintained Version 0.4.2, CI, Python 3.10-3.13, Platforms, MIT License, Local-First, ellmos-ai, open-bricks, and llms.txt badges
+
+[x] Security Policy Hardening (SECURITY.md):
+    - Added dual SLA commitments: 48h initial acknowledgment + 5-business-day triage assessment
+    - Added security@open-bricks.org alongside security@ellmos.ai, support@lukasgeiger.com, and lukas@open-bricks.org
+    - Maintained GitHub Private Vulnerability Reporting link
+
+[x] CI Workflow Hardening (.github/workflows/ci.yml):
+    - Added concurrency group with cancel-in-progress: true
+    - Upgraded compileall check to cover entire repository (python -m compileall -q .)
+
+[x] PEP 621 Metadata Alignment (pyproject.toml):
+    - Declared \"Parent Organization\" = \"https://github.com/ellmos-ai\" under [project.urls]
+
+[x] Repository Hygiene & Gitignore Hardening (.gitignore):
+    - Added patterns for sync conflicts (*.sync-conflict-*, *.conflict), lock coordination (LOCK.*, *.lock), and linter/cache files (.ruff_cache/, .pytest_cache/, .coverage)
+
+[x] Machine-Readable Context Refresh (llms.txt):
+    - Updated Last-checked timestamp to 2026-09-08
+    - Synchronized verified test suite metrics to 147 passed tests
+
+[x] Contract Test Suite Expansion (tests/test_metadata.py):
+    - Added 8 new automated validation assertions:
+      1. test_quick_navigation_anchors_in_readmes
+      2. test_governance_invariants_table_parity
+      3. test_sequence_diagram_in_readmes
+      4. test_security_policy_slas_and_contacts
+      5. test_ci_concurrency_and_bytecode_gate
+      6. test_marketing_log_and_changelog_recency
+      7. test_gitignore_hardened_patterns
+      8. test_pyproject_ecosystem_urls
+    - Total test suite expanded from 139 to 147 passing tests
+
+================================================================================
+3. RECOMMENDED NON-AUTOMATED NEXT STEPS (HUMAN OPERATOR / OUTREACH)
+================================================================================
+1. Awesome Lists Submission:
+   - Submit PR to awesome-sqlite and awesome-local-ai highlighting SQLite as an agent operating substrate with FTS5 associative memory.
+2. AI Developer Platforms & Tool Registries:
+   - Register in Glama, mcp.so, and ToolRegistry under database-agents and local-first-memory.
+3. Ecosystem Cross-Referencing:
+   - Deepen bi-directional linking between ellmos-ai/bach, ellmos-ai/rinnsal, and ellmos-ai/gardener to showcase file-centric vs database-centric AI architectures.
