@@ -681,6 +681,65 @@ class TestAgentTranscriptSource(ObserveSourceTestCase):
             {hit["meta"]["source_ref"]["session"] for hit in current},
             {"codex-s2"})
 
+    def test_codex_parser_revision_rewinds_legacy_eof_state(self):
+        """An old EOF offset must not hide newly supported record types."""
+        import sources
+
+        session_path = self.foreign / "rollout-complete.jsonl"
+        self._write_jsonl(session_path, [
+            {"type": "event_msg", "payload": {
+                "type": "item_completed", "thread_id": "codex-legacy-eof",
+                "item": {"type": "UserMessage", "id": "user-legacy-eof",
+                         "content": [{"type": "text",
+                                      "text": "Unveränderte Session finden."}]}}},
+        ])
+        self.af.observe_source_add(
+            "codex-sessions", "agent_transcripts",
+            path=str(session_path), format="codex", key_by="name",
+        )
+
+        # The former parser advanced offsets for every valid JSONL line even
+        # when it did not recognise item_completed. Reproduce that persisted
+        # EOF state without changing the now-complete source file.
+        stat = session_path.stat()
+        self.af._save_observe_source_state({
+            "codex-sessions": {
+                session_path.name: {
+                    "offset": stat.st_size,
+                    "mtime": stat.st_mtime,
+                    "size": stat.st_size,
+                    "line_no": 1,
+                }
+            }
+        })
+        before = self.af._load_observe_source_state()
+        self.assertEqual(
+            before["codex-sessions"][session_path.name]["offset"],
+            stat.st_size,
+        )
+        self.assertNotIn(
+            "parser_revision", before["codex-sessions"][session_path.name]
+        )
+
+        refreshed = self.af.observe_sources("codex-sessions")
+        self.assertEqual(refreshed["codex-sessions"]["indexed"], 1)
+        hits = self.af.find("codex-legacy-eof", source="codex-sessions")
+        self.assertEqual(len(hits), 1)
+        self.assertEqual(
+            hits[0]["meta"]["source_ref"]["path"], str(session_path)
+        )
+
+        after = self.af._load_observe_source_state()
+        self.assertEqual(
+            after["codex-sessions"][session_path.name]["parser_revision"],
+            sources.AGENT_TRANSCRIPT_PARSER_REVISIONS["codex"],
+        )
+        second = self.af.observe_sources("codex-sessions")
+        self.assertEqual(
+            second["codex-sessions"],
+            {"kind": "agent_transcripts", "indexed": 0, "skipped": 0},
+        )
+
     def test_kimi_format_preset(self):
         """Kimi wire.jsonl is an event stream, not a message list."""
         wire_path = self.foreign / "wire.jsonl"

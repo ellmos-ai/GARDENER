@@ -11,6 +11,10 @@
   `event_msg/item_completed` user and agent view items, records their
   `thread_id` as session provenance, and keeps command/tool items excluded.
   This makes a current Codex session ID searchable after its source refresh.
+- Codex transcript offset state now carries a parser revision. The first
+  refresh after this parser upgrade rewinds only Codex transcript files with
+  legacy state, recovering newly supported records from completed, unchanged
+  rollouts; subsequent refreshes return to incremental EOF processing.
 
 ### Pinning Management API & CLI (`pin()`, `unpin()`, `list --pinned`, `status`) (2026-09-09)
 

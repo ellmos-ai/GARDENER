@@ -671,6 +671,12 @@ def _extract_gemini_antigravity_text(entry: Dict):
 
 _CODEX_EVENT_ROLES = {"user_message": "user", "agent_message": "assistant"}
 
+# Increment this only when a transcript parser learns to recognise records
+# that an older version would have consumed without indexing. The persisted
+# byte offset must then be rewound once; otherwise unchanged, completed files
+# remain permanently invisible after the parser upgrade.
+AGENT_TRANSCRIPT_PARSER_REVISIONS = {"codex": 2}
+
 # When Codex delegates to a sub-agent it wraps that sub-agent's tool
 # traffic into ordinary 'agent_message' events, prefixed like
 # '[external_agent_tool_call: Read]' / '[external_agent_tool_result]'.
@@ -848,9 +854,11 @@ def scan_agent_transcripts(source_id: str, config: Dict,
               `roles` to be indexed.
 
     `state` is a mutable dict (file_key -> {offset, mtime, size,
-    line_no}) that this function reads AND updates in place so the
-    caller can persist it: refreshing a multi-GB transcript only reads
-    the bytes appended since the last refresh, never the whole file.
+    line_no, parser_revision?}) that this function reads AND updates in
+    place so the caller can persist it: refreshing a multi-GB transcript
+    normally reads only bytes appended since the last refresh. A parser
+    revision rewinds affected files exactly once so previously ignored
+    records can be recovered.
     """
     if state is None:
         state = {}
@@ -868,6 +876,7 @@ def scan_agent_transcripts(source_id: str, config: Dict,
         "default_role": config.get("default_role"),
         "zip_inner": config.get("zip_inner"),
     }
+    parser_revision = AGENT_TRANSCRIPT_PARSER_REVISIONS.get(opts["fmt"])
 
     seen_files = set()
     candidates = []
@@ -895,13 +904,18 @@ def scan_agent_transcripts(source_id: str, config: Dict,
 
         file_key = file_path.name if key_by == "name" else _path_key(file_path)
         prev = state.get(file_key, {})
-        start_offset = prev.get("offset", 0)
+        parser_changed = (
+            parser_revision is not None
+            and prev.get("parser_revision") != parser_revision
+        )
+        start_offset = 0 if parser_changed else prev.get("offset", 0)
         if stat.st_size < start_offset:
             start_offset = 0  # file was rotated/truncated -- start over
-        if start_offset == stat.st_size and prev.get("mtime") == stat.st_mtime:
+        if (not parser_changed and start_offset == stat.st_size
+                and prev.get("mtime") == stat.st_mtime):
             continue  # unchanged since last refresh
 
-        line_no = prev.get("line_no", 0)
+        line_no = 0 if parser_changed else prev.get("line_no", 0)
         last_good_offset = start_offset
         try:
             with open(file_path, "r", encoding="utf-8", errors="replace") as f:
@@ -937,12 +951,15 @@ def scan_agent_transcripts(source_id: str, config: Dict,
         except OSError:
             continue
 
-        state[file_key] = {
+        next_state = {
             "offset": last_good_offset,
             "mtime": stat.st_mtime,
             "size": stat.st_size,
             "line_no": line_no,
         }
+        if parser_revision is not None:
+            next_state["parser_revision"] = parser_revision
+        state[file_key] = next_state
 
 
 def _transcript_item(entry: Dict, source_id: str, opts: Dict, file_key: str,
@@ -1037,8 +1054,11 @@ def _scan_zip_transcripts(source_id: str, zip_path: Path, stat, opts: Dict,
     """
     zip_key = f"zip:{zip_path.name}"
     prev = state.get(zip_key, {})
+    parser_revision = AGENT_TRANSCRIPT_PARSER_REVISIONS.get(opts["fmt"])
     if (prev.get("mtime") == stat.st_mtime
-            and prev.get("size") == stat.st_size):
+            and prev.get("size") == stat.st_size
+            and (parser_revision is None
+                 or prev.get("parser_revision") == parser_revision)):
         return
 
     inner_pattern = opts.get("zip_inner") or "*.jsonl"
@@ -1083,11 +1103,14 @@ def _scan_zip_transcripts(source_id: str, zip_path: Path, stat, opts: Dict,
     except (OSError, zipfile.BadZipFile):
         return
 
-    state[zip_key] = {
+    next_state = {
         "mtime": stat.st_mtime,
         "size": stat.st_size,
         "members": members_seen,
     }
+    if parser_revision is not None:
+        next_state["parser_revision"] = parser_revision
+    state[zip_key] = next_state
 
 
 # ---------------------------------------------------------------------------

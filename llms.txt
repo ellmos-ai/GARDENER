@@ -13,7 +13,7 @@ Cross-source observe adapters put every coding agent on a machine into one searc
 
 The opt-in `system` reference tier includes `plans-register`, a read-only observe source over `_control-center/_PLANS/{README.md,PLANS-REPORT.md,plans-register.json}`. Gardener indexes plan metadata for discovery but does not own or rewrite plans.
 
-Testing: run `python -m unittest discover -s tests -v` or `pytest`. CI uses a multi-OS matrix (Ubuntu, Windows, macOS) on Python 3.10, 3.11, 3.12, and 3.13 with Ruff linting. Current local suite: 151 passing tests (100% green).
+Testing: run `python -m unittest discover -s tests -v` or `pytest`. CI uses a multi-OS matrix (Ubuntu, Windows, macOS) on Python 3.10, 3.11, 3.12, and 3.13 with Ruff linting. Current local suite: 153 passing tests (100% green).
 
 ## Audience
 
