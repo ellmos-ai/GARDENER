@@ -101,6 +101,14 @@
     "ja": "",
     "ru": ""
   },
+  "help.find_refresh_source": {
+    "de": "diese Quelle(n) vor der Suche inkrementell aktualisieren",
+    "en": "incrementally refresh these source(s) before searching",
+    "es": "",
+    "zh": "",
+    "ja": "",
+    "ru": ""
+  },
   "help.find_type": {
     "de": "nur diesen Typ (observed, knowledge, memory, ...)",
     "en": "restrict to this type (observed, knowledge, memory, ...)",

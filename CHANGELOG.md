@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+### Targeted freshness for provenance lookup (2026-09-09)
+
+- `gardener find --refresh-source <id>[,<id>] <query>` updates only the
+  named observe sources before searching and reports indexed/skipped counts.
+  Ordinary `find` remains a read of the existing local index.
+- The Codex transcript adapter also reads the current clean
+  `event_msg/item_completed` user and agent view items, records their
+  `thread_id` as session provenance, and keeps command/tool items excluded.
+  This makes a current Codex session ID searchable after its source refresh.
+
 ### Marketing, Discoverability, Invariants Matrix & Navigation Modernization (2026-09-08)
 
 - **14-Point Bilingual Quick Navigation**: Added standardized quick navigation sections (`## 🧭 Quick Navigation` / `## 🧭 Schnellnavigation`) across `README.md` and `README_de.md` with complete German/English anchor parity.

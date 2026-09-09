@@ -91,6 +91,7 @@ python gardener.py observe-source add <id> <kind> [key=value ...]
 python gardener.py observe-source list
 python gardener.py observe-source remove <id>
 python gardener.py observe-source refresh [id]
+python gardener.py find --refresh-source <id>[,<id>] <query>
 python gardener.py status
 ```
 
@@ -345,6 +346,19 @@ af.find("taxes")                              # own entries + observed hits, one
 af.observe_source_add("mixed-notes", "markdown_dir",
                        path="~/notes", patterns=["*.md", "*.txt"])
 ```
+
+Eine Suche liest den Index und startet absichtlich keinen globalen Scan. Wenn
+ein frisch erzeugtes Transkript oder Ticket sofort auffindbar sein muss, kann
+die Abfrage genau die betroffenen Quellen zuerst inkrementell aktualisieren:
+
+```bash
+gardener find --refresh-source claude-transcripts,control-tickets <session-id>
+```
+
+Der Refresh liest die Originalquellen nur, schreibt ausschließlich in den
+lokalen Gardener-Index und nutzt für große JSONL-Dateien den gespeicherten
+Byte-Offset. Damit ist ein alter Indexstand sichtbar und gezielt reparierbar,
+ohne alle Quellen neu zu scannen.
 
 Das `columns`-Mapping des `sqlite_table`-Adapters erlaubt es, auf jede
 fremde Tabelle zu zeigen, ohne dass Gardener ihr Schema vorher kennt —

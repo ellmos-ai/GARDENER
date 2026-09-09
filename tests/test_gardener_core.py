@@ -867,6 +867,16 @@ class TestFindArgParsing(unittest.TestCase):
         self.assertEqual(words, ["store"])
         self.assertEqual(opts["source"], "usmc-working")
 
+    def test_refresh_source_is_parsed_separately_from_query(self):
+        opts, words, err = self.parse([
+            "--refresh-source", "claude-transcripts,control-tickets",
+            "aecf581b-951d-4f7d-ba13-16fdbfe459cb",
+        ])
+        self.assertIsNone(err)
+        self.assertEqual(
+            opts["refresh-source"], "claude-transcripts,control-tickets")
+        self.assertEqual(words, ["aecf581b-951d-4f7d-ba13-16fdbfe459cb"])
+
 
 if __name__ == "__main__":
     unittest.main()

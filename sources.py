@@ -687,10 +687,12 @@ def _extract_codex_text(entry: Dict):
 
     A Codex rollout carries the same conversation on two channels:
 
-      - ``type='event_msg'`` with ``payload.type`` 'user_message' /
-        'agent_message' and the text as a flat ``payload.message``
-        string -- what the user actually typed and what the agent
-        actually answered.
+      - Older rollouts: ``type='event_msg'`` with ``payload.type``
+        'user_message' / 'agent_message' and flat ``payload.message``.
+      - Current rollouts: ``type='event_msg'`` with ``payload.type``
+        'item_completed'. Only its clean ``UserMessage`` / ``AgentMessage``
+        view items are indexed; command, tool, reasoning, injected-context,
+        and inter-agent transport items are skipped.
       - ``type='response_item'`` with ``payload.type='message'`` and a
         ``payload.role`` -- the raw model exchange. Its assistant turns
         duplicate 'agent_message' verbatim, its user turns additionally
@@ -717,6 +719,30 @@ def _extract_codex_text(entry: Dict):
     if entry.get("type") == "event_msg":
         payload = entry.get("payload")
         if isinstance(payload, dict):
+            if payload.get("type") == "item_completed":
+                item = payload.get("item")
+                if not isinstance(item, dict):
+                    return None, None
+                role = {
+                    "UserMessage": "user",
+                    "AgentMessage": "assistant",
+                }.get(item.get("type"))
+                if not role:
+                    return None, None
+                content = item.get("content")
+                if not isinstance(content, list):
+                    return None, None
+                parts = [
+                    block.get("text", "")
+                    for block in content
+                    if isinstance(block, dict)
+                    and str(block.get("type", "")).lower() == "text"
+                    and isinstance(block.get("text"), str)
+                ]
+                text = "\n".join(part for part in parts if part.strip()).strip()
+                if not text or text.startswith(_CODEX_TOOL_TRAFFIC_PREFIXES):
+                    return None, None
+                return role, text
             role = _CODEX_EVENT_ROLES.get(payload.get("type"))
             if role:
                 message = payload.get("message")
@@ -948,7 +974,10 @@ def _transcript_item(entry: Dict, source_id: str, opts: Dict, file_key: str,
 
     uuid_val = entry.get("uuid") or entry.get("turn_id")
     if not uuid_val and isinstance(entry.get("payload"), dict):
-        uuid_val = entry["payload"].get("id") or entry["payload"].get("turn_id")
+        payload = entry["payload"]
+        item = payload.get("item")
+        uuid_val = item.get("id") if isinstance(item, dict) else None
+        uuid_val = uuid_val or payload.get("id") or payload.get("turn_id")
     item_key = uuid_val if uuid_val else (
         f"step_{entry['step_index']}"
         if isinstance(entry, dict) and "step_index" in entry
@@ -956,14 +985,17 @@ def _transcript_item(entry: Dict, source_id: str, opts: Dict, file_key: str,
 
     session_val = entry.get("sessionId") or entry.get("session_id")
     if not session_val and isinstance(entry.get("payload"), dict):
-        session_val = entry["payload"].get("id")
+        session_val = (entry["payload"].get("thread_id")
+                       or entry["payload"].get("id"))
     session = str(session_val) if session_val else fallback_session
 
     ts_val = (entry.get("timestamp") or entry.get("created_at")
               or entry.get("ts"))
     if not ts_val and isinstance(entry.get("payload"), dict):
         ts_val = (entry["payload"].get("timestamp")
-                  or entry["payload"].get("started_at"))
+                  or entry["payload"].get("started_at")
+                  or entry["payload"].get("started_at_ms")
+                  or entry["payload"].get("completed_at_ms"))
     timestamp = str(ts_val) if ts_val is not None else ""
 
     return SourceItem(
@@ -971,7 +1003,7 @@ def _transcript_item(entry: Dict, source_id: str, opts: Dict, file_key: str,
         name=(f"observed/{source_id}/"
               f"{_safe_key(file_key)}/{_safe_key(item_key)}"),
         content=text,
-        tags=f"agent_transcript,{source_id},{role}",
+        tags=f"agent_transcript,{source_id},{role},{session}",
         meta={
             "source_ref": {
                 "kind": "agent_transcripts",

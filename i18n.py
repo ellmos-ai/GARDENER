@@ -34,6 +34,10 @@ _BUILTIN_TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "de": "nur diese observe-Quelle(n), Namensraum observed/<id>/...",
         "en": "restrict to these observe-source(s), namespace observed/<id>/...",
     },
+    "help.find_refresh_source": {
+        "de": "diese Quelle(n) vor der Suche inkrementell aktualisieren",
+        "en": "incrementally refresh these source(s) before searching",
+    },
     "help.find_type": {
         "de": "nur diesen Typ (observed, knowledge, memory, ...)",
         "en": "restrict to this type (observed, knowledge, memory, ...)",

@@ -601,9 +601,10 @@ class TestAgentTranscriptSource(ObserveSourceTestCase):
     def test_codex_format_preset(self):
         """Codex: flat history plus the clean event_msg channel.
 
-        response_item/message is deliberately NOT indexed -- its
-        assistant turns duplicate agent_message and its user turns
-        carry injected AGENTS.md/skill boilerplate.
+        response_item/message is deliberately NOT indexed -- its assistant
+        turns duplicate clean event messages and its user turns carry
+        injected AGENTS.md/skill boilerplate. Both the older flat event_msg
+        channel and current item_completed display channel stay supported.
         """
         history_path = self.foreign / "codex-history.jsonl"
         session_path = self.foreign / "rollout-session.jsonl"
@@ -640,6 +641,24 @@ class TestAgentTranscriptSource(ObserveSourceTestCase):
                 "type": "agent_message",
                 "message": "[external_agent_tool_result]\n"
                            "Refactoring DeprecationWarning ..."}},
+            # Current Codex schema: clean display items arrive through
+            # event_msg/item_completed. Command/tool items stay excluded.
+            {"type": "event_msg", "payload": {
+                "type": "item_completed", "thread_id": "codex-s2",
+                "turn_id": "turn-s2", "started_at_ms": 1780794419000,
+                "item": {"type": "UserMessage", "id": "user-s2",
+                         "content": [{"type": "text",
+                                      "text": "Sessionformat pruefen."}]}}},
+            {"type": "event_msg", "payload": {
+                "type": "item_completed", "thread_id": "codex-s2",
+                "turn_id": "turn-s2", "completed_at_ms": 1780794420000,
+                "item": {"type": "AgentMessage", "id": "agent-s2",
+                         "content": [{"type": "Text",
+                                      "text": "Sessionformat ist lesbar."}]}}},
+            {"type": "event_msg", "payload": {
+                "type": "item_completed", "thread_id": "codex-s2",
+                "item": {"type": "CommandExecution", "id": "cmd-s2",
+                         "stdout": "Sessionformat Geheimtext"}}},
         ])
 
         self.af.observe_source_add(
@@ -653,9 +672,14 @@ class TestAgentTranscriptSource(ObserveSourceTestCase):
         res1 = self.af.observe_sources("codex-history")
         res2 = self.af.observe_sources("codex-sessions")
         self.assertEqual(res1["codex-history"]["indexed"], 1)
-        self.assertEqual(res2["codex-sessions"]["indexed"], 2)
+        self.assertEqual(res2["codex-sessions"]["indexed"], 4)
         # 1 history + 1 user_message + 1 agent_message, no duplicate.
         self.assertEqual(len(self.af.find("Refactoring")), 3)
+        current = self.af.find("codex-s2", source="codex-sessions")
+        self.assertEqual(len(current), 2)
+        self.assertEqual(
+            {hit["meta"]["source_ref"]["session"] for hit in current},
+            {"codex-s2"})
 
     def test_kimi_format_preset(self):
         """Kimi wire.jsonl is an event stream, not a message list."""

@@ -1734,7 +1734,7 @@ def _parse_find_args(args: List[str]):
     Returns:
         (opts, words, error) -- error ist None, wenn alles verstanden wurde
     """
-    opts = {"source": None, "type": None, "limit": 20}
+    opts = {"source": None, "refresh-source": None, "type": None, "limit": 20}
     words: List[str] = []
     i = 0
     while i < len(args):
@@ -1820,6 +1820,7 @@ def main():
         print(f"  {t('help.find_filters')}")
         for flag, label_key in [
             ("--source <id>[,<id>]", "help.find_source"),
+            ("--refresh-source <id>[,<id>]", "help.find_refresh_source"),
             ("--type <typ>", "help.find_type"),
             ("--limit <n>", "help.find_limit"),
         ]:
@@ -1845,6 +1846,23 @@ def main():
                   "(dann wird die Quelle aufgelistet).")
             return
 
+        if opts["refresh-source"]:
+            for source_id in opts["refresh-source"].split(","):
+                source_id = source_id.strip()
+                if not source_id:
+                    continue
+                refreshed = af.observe_sources(source_id)
+                if "error" in refreshed:
+                    print(f"  [FEHLER] Refresh {source_id}: {refreshed['error']}")
+                    return
+                details = refreshed.get(source_id, {})
+                if "error" in details:
+                    print(f"  [FEHLER] Refresh {source_id}: {details['error']}")
+                    return
+                print(
+                    f"  [REFRESH] {source_id}: "
+                    f"{details.get('indexed', 0)} indexiert, "
+                    f"{details.get('skipped', 0)} unverändert")
         results = af.find(query, type=opts["type"], limit=opts["limit"],
                           source=opts["source"])
         for r in results:
