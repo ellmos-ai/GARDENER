@@ -1225,8 +1225,45 @@ class Gardener:
                 conn.close()
         return False
 
-    def list(self, type: Optional[str] = None, limit: int = 50) -> List[Dict]:
-        """Listet alle Einträge. Optional nach Typ filtern.
+    def pin(self, name: str) -> bool:
+        """Pinnt einen Eintrag an (schützt vor Decay/Vergessen in consolidate() und sortiert in find() nach oben).
+
+        Sucht in user.db, dann in system.db.
+        Returns: True wenn erfolgreich gepinnt, False wenn nicht gefunden.
+        """
+        return self._set_pinned(name, True)
+
+    def unpin(self, name: str) -> bool:
+        """Entfernt die Pinnadel eines Eintrags.
+
+        Sucht in user.db, dann in system.db.
+        Returns: True wenn erfolgreich entpinnt, False wenn nicht gefunden.
+        """
+        return self._set_pinned(name, False)
+
+    def _set_pinned(self, name: str, pinned: bool) -> bool:
+        """Setzt den Pinned-Status eines Eintrags in user.db oder system.db."""
+        now = self._now()
+        for target in ("user", "system"):
+            conn = self._conn(target)
+            try:
+                row = conn.execute(
+                    "SELECT id FROM main.everything WHERE name = ?", (name,)
+                ).fetchone()
+                if row:
+                    conn.execute(
+                        "UPDATE main.everything SET pinned = ?, updated = ? WHERE id = ?",
+                        (1 if pinned else 0, now, row["id"]),
+                    )
+                    conn.commit()
+                    return True
+            finally:
+                conn.close()
+        return False
+
+    def list(self, type: Optional[str] = None, limit: int = 50,
+             pinned: Optional[bool] = None) -> List[Dict]:
+        """Listet alle Einträge. Optional nach Typ oder Pinned-Status filtern.
 
         Ohne Suchbegriff -- einfach alles zeigen.
         """
@@ -1236,11 +1273,18 @@ class Gardener:
         try:
             for db_prefix, db_label in [("main", "user"), ("other", "system")]:
                 sql = f"SELECT *, '{db_label}' as source FROM {db_prefix}.everything"
+                conditions = []
                 params = []
 
                 if type:
-                    sql += " WHERE type = ?"
+                    conditions.append("type = ?")
                     params.append(type)
+                if pinned is not None:
+                    conditions.append("pinned = ?")
+                    params.append(1 if pinned else 0)
+
+                if conditions:
+                    sql += " WHERE " + " AND ".join(conditions)
 
                 sql += " ORDER BY updated DESC LIMIT ?"
                 params.append(limit)
@@ -1265,17 +1309,24 @@ class Gardener:
         # Counts
         conn = self._conn("user")
         try:
+            pinned_count = 0
             for db_prefix, db_label in [("main", "user"), ("other", "system")]:
                 count = conn.execute(
                     f"SELECT COUNT(*) FROM {db_prefix}.everything"
                 ).fetchone()[0]
                 info[f"{db_label}_entries"] = count
 
+                p_count = conn.execute(
+                    f"SELECT COUNT(*) FROM {db_prefix}.everything WHERE pinned = 1"
+                ).fetchone()[0]
+                pinned_count += p_count
+
                 # Nach Typ
                 rows = conn.execute(
                     f"SELECT type, COUNT(*) as cnt FROM {db_prefix}.everything GROUP BY type"
                 ).fetchall()
                 info[f"{db_label}_types"] = {row["type"]: row["cnt"] for row in rows}
+            info["pinned_entries"] = pinned_count
         finally:
             conn.close()
 
@@ -1783,6 +1834,7 @@ def main():
         print(f"  {t('help.data')}:     {s['data_dir']}")
         print(f"  {t('help.system_db')}: {s['system_entries']} {t('help.entries')}")
         print(f"  {t('help.user_db')}:   {s['user_entries']} {t('help.entries')}")
+        print(f"  {t('help.pinned')}:    {s['pinned_entries']} {t('help.entries')}")
         print(f"  {t('help.heap')}:     {s['blobs']['count']} {t('help.files')} ({s['blobs']['size_mb']} MB)")
         print(f"  {t('help.workspace')}: {s['workspace']['files']} {t('help.files')} ({s['workspace']['size_mb']} MB)")
         print()
@@ -1809,7 +1861,9 @@ def main():
             ("gardener tasks [status]", "cmd.tasks"),
             ("gardener task <name> [text]", "cmd.task"),
             ("gardener done <name>", "cmd.done"),
-            ("gardener list [typ]", "cmd.list"),
+            ("gardener list [typ] [--pinned]", "cmd.list"),
+            ("gardener pin <name>", "cmd.pin"),
+            ("gardener unpin <name>", "cmd.unpin"),
             ("gardener delete <name>", "cmd.delete"),
             ("gardener status", "cmd.status"),
             ("gardener clean-workspace [name]", "cmd.clean_workspace"),
@@ -1987,13 +2041,37 @@ def main():
             print("  Nutzung: gardener observe-source <add|list|remove|refresh> ...")
 
     elif cmd == "list":
-        type_filter = sys.argv[2] if len(sys.argv) > 2 else None
-        entries = af.list(type=type_filter)
+        args = sys.argv[2:]
+        only_pinned = "--pinned" in args
+        remaining = [a for a in args if a != "--pinned"]
+        type_filter = remaining[0] if remaining else None
+        entries = af.list(type=type_filter, pinned=True if only_pinned else None)
         for e in entries:
             src = e.get("source", "?")
-            print(f"  [{e['type']:10s}] {e['name']:40s} ({src})")
+            pin_badge = " [PIN]" if e.get("pinned") else ""
+            print(f"  [{e['type']:10s}] {e['name']:40s} ({src}){pin_badge}")
         if not entries:
             print("  Keine Einträge.")
+
+    elif cmd == "pin":
+        name = sys.argv[2] if len(sys.argv) > 2 else ""
+        if not name:
+            print("  Nutzung: gardener pin <name>")
+            return
+        if af.pin(name):
+            print(f"  [OK] '{name}' angepinnt (dauerhaft geschützt)")
+        else:
+            print(f"  Nicht gefunden: {name}")
+
+    elif cmd == "unpin":
+        name = sys.argv[2] if len(sys.argv) > 2 else ""
+        if not name:
+            print("  Nutzung: gardener unpin <name>")
+            return
+        if af.unpin(name):
+            print(f"  [OK] Pinnadel von '{name}' entfernt")
+        else:
+            print(f"  Nicht gefunden: {name}")
 
     elif cmd == "delete":
         name = sys.argv[2] if len(sys.argv) > 2 else ""

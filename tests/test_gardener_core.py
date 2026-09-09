@@ -386,6 +386,7 @@ def execute(payload):
 
         for method in (
             "find(", "recall(", "get(", "put(", "delete(", "list(", "run(",
+            "pin(", "unpin(",
             "memo(", "lesson(", "session_end(", "consolidate(",
             "task(", "tasks(", "done(", "task_status(",
             "absorb(", "materialize(", "observe(", "sync(", "status(", "clean_workspace(",
@@ -395,7 +396,7 @@ def execute(payload):
 
         for cli_cmd in (
             "find", "recall", "memo", "lesson", "session-end", "consolidate",
-            "get", "put", "delete", "list", "run",
+            "get", "put", "pin", "unpin", "delete", "list", "run",
             "absorb", "materialize", "observe", "sync", "status", "clean-workspace",
             "task", "tasks", "done", "observe-source", "gui"
         ):
@@ -493,6 +494,123 @@ def execute(payload):
             check=True,
         )
         self.assertIn("Workspace ist sauber", proc2.stdout)
+
+    def test_pin_and_unpin_api_and_persistence(self):
+        # 1. Eintrag erstellen (standardmäßig unpinned)
+        self.af.put("regel-1", content="Regel-Inhalt", type="knowledge")
+        entry = self.af.get("regel-1")
+        self.assertIsNotNone(entry)
+        self.assertEqual(entry["pinned"], 0)
+
+        # 2. pin() aufrufen
+        ok = self.af.pin("regel-1")
+        self.assertTrue(ok)
+        entry_pinned = self.af.get("regel-1")
+        self.assertEqual(entry_pinned["pinned"], 1)
+
+        # 3. unpin() aufrufen
+        ok_unpin = self.af.unpin("regel-1")
+        self.assertTrue(ok_unpin)
+        entry_unpinned = self.af.get("regel-1")
+        self.assertEqual(entry_unpinned["pinned"], 0)
+
+        # 4. Nicht-existierende Einträge
+        self.assertFalse(self.af.pin("nicht-existent"))
+        self.assertFalse(self.af.unpin("nicht-existent"))
+
+    def test_list_with_pinned_filter(self):
+        self.af.put("p-memo-1", content="Memo 1", type="memory", pinned=True)
+        self.af.put("u-memo-2", content="Memo 2", type="memory", pinned=False)
+        self.af.put("p-tool-1", content="Tool 1", type="tool", pinned=True)
+
+        # Nur gepinnte Einträge
+        pinned_entries = self.af.list(pinned=True)
+        pinned_names = [e["name"] for e in pinned_entries]
+        self.assertIn("p-memo-1", pinned_names)
+        self.assertIn("p-tool-1", pinned_names)
+        self.assertNotIn("u-memo-2", pinned_names)
+
+        # Nur ungepinnte Einträge
+        unpinned_entries = self.af.list(pinned=False)
+        unpinned_names = [e["name"] for e in unpinned_entries]
+        self.assertIn("u-memo-2", unpinned_names)
+        self.assertNotIn("p-memo-1", unpinned_names)
+
+        # Typ + Pinned Filter kombiniert
+        pinned_tools = self.af.list(type="tool", pinned=True)
+        pinned_tool_names = [e["name"] for e in pinned_tools]
+        self.assertEqual(pinned_tool_names, ["p-tool-1"])
+
+    def test_status_reports_pinned_entries(self):
+        st_before = self.af.status()
+        self.assertIn("pinned_entries", st_before)
+        count_before = st_before["pinned_entries"]
+
+        self.af.put("status-pin-test", content="content", type="knowledge", pinned=False)
+        self.assertEqual(self.af.status()["pinned_entries"], count_before)
+
+        self.af.pin("status-pin-test")
+        self.assertEqual(self.af.status()["pinned_entries"], count_before + 1)
+
+        self.af.unpin("status-pin-test")
+        self.assertEqual(self.af.status()["pinned_entries"], count_before)
+
+    def test_pin_and_unpin_cli(self):
+        self.af.put("cli-pin-target", content="CLI Content", type="knowledge")
+
+        env = os.environ.copy()
+        env["PYTHONIOENCODING"] = "utf-8"
+        env["GARDENER_DATA"] = str(self.af.data_dir)
+        env["GARDENER_HOME"] = str(self.af.home)
+
+        # 1. gardener pin
+        proc_pin = subprocess.run(
+            [sys.executable, str(ROOT / "gardener.py"), "pin", "cli-pin-target"],
+            cwd=ROOT,
+            env=env,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            check=True,
+        )
+        self.assertIn("[OK] 'cli-pin-target' angepinnt (dauerhaft geschützt)", proc_pin.stdout)
+
+        # 2. gardener list --pinned
+        proc_list = subprocess.run(
+            [sys.executable, str(ROOT / "gardener.py"), "list", "--pinned"],
+            cwd=ROOT,
+            env=env,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            check=True,
+        )
+        self.assertIn("cli-pin-target", proc_list.stdout)
+        self.assertIn("[PIN]", proc_list.stdout)
+
+        # 3. gardener unpin
+        proc_unpin = subprocess.run(
+            [sys.executable, str(ROOT / "gardener.py"), "unpin", "cli-pin-target"],
+            cwd=ROOT,
+            env=env,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            check=True,
+        )
+        self.assertIn("[OK] Pinnadel von 'cli-pin-target' entfernt", proc_unpin.stdout)
+
+        # 4. gardener pin auf nicht existierenden Eintrag
+        proc_missing = subprocess.run(
+            [sys.executable, str(ROOT / "gardener.py"), "pin", "nicht-vorhanden"],
+            cwd=ROOT,
+            env=env,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            check=True,
+        )
+        self.assertIn("Nicht gefunden: nicht-vorhanden", proc_missing.stdout)
 
 
 class TestCliI18n(unittest.TestCase):

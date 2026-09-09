@@ -123,6 +123,14 @@ _BUILTIN_TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "en": "Mark task done",
     },
     "cmd.list": {"de": "Alle Einträge auflisten", "en": "List all entries"},
+    "cmd.pin": {
+        "de": "Eintrag anpinnen (dauerhafter Schutz)",
+        "en": "Pin entry (permanent protection)",
+    },
+    "cmd.unpin": {
+        "de": "Pinnadel von Eintrag entfernen",
+        "en": "Unpin entry",
+    },
     "cmd.delete": {"de": "Eintrag löschen", "en": "Delete entry"},
     "cmd.status": {"de": "System-Status", "en": "System status"},
     "cmd.clean_workspace": {
@@ -130,6 +138,7 @@ _BUILTIN_TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "en": "Clean workspace (temporary tool files)",
     },
     "help.workspace": {"de": "Workspace", "en": "Workspace"},
+    "help.pinned": {"de": "Gepinnt", "en": "Pinned"},
 }
 
 

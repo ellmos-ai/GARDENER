@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+### Pinning Management API & CLI (`pin()`, `unpin()`, `list --pinned`, `status`) (2026-09-09)
+
+- **Dedicated Pinning API (`pin()`, `unpin()`)**: Added `Gardener.pin(name: str) -> bool` and `Gardener.unpin(name: str) -> bool` to explicitly toggle an entry's `pinned` state (persisting across `user.db` and `system.db`), protecting entries from decay and automatic forgetting in `consolidate()` and boosting relevance in `find()`.
+- **CLI Commands (`gardener pin`, `gardener unpin`)**: Added CLI subcommands `gardener pin <name>` and `gardener unpin <name>` with proper German umlauts and i18n support.
+- **Filterable Entry Listing (`list(pinned=...)` & `gardener list --pinned`)**: Added optional `pinned: Optional[bool] = None` parameter to `Gardener.list()` and `--pinned` CLI flag to filter by pinned/unpinned entries, with visual `[PIN]` badges displayed next to pinned items.
+- **Status Metrics**: Integrated total count of pinned entries (`pinned_entries`) into `Gardener.status()` dictionary and the CLI help header.
+- **Contract & Core Test Suite Expansion**: Added 4 unit tests (`test_pin_and_unpin_api_and_persistence`, `test_list_with_pinned_filter`, `test_status_reports_pinned_entries`, `test_pin_and_unpin_cli`), raising the test suite to 151 passing tests (100% green).
+- **Metadata & Seed Documentation Parity**: Synchronized test badges, `llms.txt`, `seed.py`, `tests/test_metadata.py`, `ROADMAP.md`, and `ROADMAP_de.md`.
+
 ### Marketing, Discoverability, Invariants Matrix & Navigation Modernization (2026-09-08)
 
 - **14-Point Bilingual Quick Navigation**: Added standardized quick navigation sections (`## 🧭 Quick Navigation` / `## 🧭 Schnellnavigation`) across `README.md` and `README_de.md` with complete German/English anchor parity.

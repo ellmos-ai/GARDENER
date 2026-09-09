@@ -61,6 +61,8 @@ memories = af.recall("entscheidung")
 entry = af.get("beleg-scanner")
 af.put("notiz", content="Wichtig!", type="memory", tags="todo")
 af.put("mein-tool", content="...", type="tool", target="system")
+af.pin("wichtige-regel")                     # Vor Decay schützen & oben ranken
+af.unpin("alte-regel")                       # Schutz aufheben
 af.delete("alte-notiz")
 items = af.list(type="tool", limit=50)
 
@@ -109,8 +111,10 @@ python gardener.py consolidate
 # Lesen, Schreiben & Verwalten
 python gardener.py get <name>
 python gardener.py put <name> <text> [--type T] [--tags TAGS] [--system]
+python gardener.py pin <name>
+python gardener.py unpin <name>
 python gardener.py delete <name>
-python gardener.py list [--type T] [--limit N]
+python gardener.py list [--type T] [--pinned] [--limit N]
 python gardener.py run <name> [--input JSON]
 
 # Transporter & System

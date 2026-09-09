@@ -309,6 +309,22 @@
     "ja": "",
     "ru": ""
   },
+  "cmd.pin": {
+    "de": "Eintrag anpinnen (dauerhafter Schutz)",
+    "en": "Pin entry (permanent protection)",
+    "es": "",
+    "zh": "",
+    "ja": "",
+    "ru": ""
+  },
+  "cmd.unpin": {
+    "de": "Pinnadel von Eintrag entfernen",
+    "en": "Unpin entry",
+    "es": "",
+    "zh": "",
+    "ja": "",
+    "ru": ""
+  },
   "cmd.status": {
     "de": "System-Status",
     "en": "System status",
@@ -328,6 +344,14 @@
   "help.workspace": {
     "de": "Workspace",
     "en": "Workspace",
+    "es": "",
+    "zh": "",
+    "ja": "",
+    "ru": ""
+  },
+  "help.pinned": {
+    "de": "Gepinnt",
+    "en": "Pinned",
     "es": "",
     "zh": "",
     "ja": "",

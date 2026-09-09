@@ -58,7 +58,7 @@ and letting the worse be forgotten.
 
 ### Further Topics v0.2
 
-- [ ] Use pinning meaningfully (pinned=1 prevents decay)
+- [x] Use pinning meaningfully (pinned=1 prevents decay; pin/unpin API & CLI commands, list --pinned filter, status reporting)
 - [ ] Specialized tables as needed (shelves registry is prepared)
 - [ ] Port more bridge tools as needed (from BACH)
 
