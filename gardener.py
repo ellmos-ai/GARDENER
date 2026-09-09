@@ -688,11 +688,7 @@ class Gardener:
             try:
                 if item.is_file() or item.is_symlink():
                     mtime = item.stat().st_mtime
-                    # ``0`` means "no minimum age".  Treat it explicitly so
-                    # filesystem timestamp rounding or a slightly future-dated
-                    # mtime cannot make an unconditional cleanup skip a file.
-                    if (max_age_seconds is None or max_age_seconds == 0
-                            or (now - mtime) >= max_age_seconds):
+                    if max_age_seconds is None or (now - mtime) >= max_age_seconds:
                         size = item.stat().st_size
                         item.unlink()
                         result["files"] += 1

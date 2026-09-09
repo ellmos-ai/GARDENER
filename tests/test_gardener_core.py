@@ -454,11 +454,18 @@ def execute(payload):
         self.assertFalse(old_file.exists())
         self.assertTrue(new_file.exists())
 
-        # Jetzt auch die neuere Datei bereinigen. Windows-Dateisysteme können
-        # einen mtime knapp vor die Python-Uhr setzen; 0 bedeutet trotzdem
-        # ausdrücklich "kein Mindestalter".
+        # Ein zukünftiger Zeitstempel erfüllt auch die Schwelle 0 nicht.
         future_time = time.time() + 5
         os.utime(str(new_file), (future_time, future_time))
+        res_future = self.af.clean_workspace(max_age_seconds=0)
+        self.assertEqual(res_future["files"], 0)
+        self.assertTrue(new_file.exists())
+
+        # Für die beabsichtigte Schwelle 0 die Datei deterministisch in die
+        # Vergangenheit setzen, statt auf die Auflösung der Dateisystemuhr zu
+        # vertrauen.
+        recent_past_time = time.time() - 5
+        os.utime(str(new_file), (recent_past_time, recent_past_time))
         res2 = self.af.clean_workspace(max_age_seconds=0)
         self.assertEqual(res2["files"], 1)
         self.assertFalse(new_file.exists())
