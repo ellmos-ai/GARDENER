@@ -58,7 +58,7 @@ und das Schlechtere vergessen lassen.
 
 ### Weitere Themen v0.2
 
-- [ ] Pinning sinnvoll nutzen (pinned=1 verhindert Decay)
+- [x] Pinning sinnvoll nutzen (pinned=1 verhindert Decay; pin/unpin API & CLI-Befehle, list --pinned-Filter, Status-Reporting)
 - [ ] Fachtabellen bei Bedarf (shelves-Registry ist vorbereitet)
 - [ ] Mehr Bridge-Tools nach Bedarf portieren (aus BACH)
 
