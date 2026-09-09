@@ -10,7 +10,7 @@
 [![Python 3.10-3.13](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-blue.svg)](https://www.python.org/)
 [![Plattformen](https://img.shields.io/badge/plattformen-Linux%20%7C%20Windows%20%7C%20macOS-lightgrey.svg)](https://github.com/ellmos-ai/gardener)
 [![Lizenz: MIT](https://img.shields.io/badge/Lizenz-MIT-yellow.svg)](LICENSE)
-[![Tests: 151 bestanden](https://img.shields.io/badge/tests-151%20passed-brightgreen.svg)](https://github.com/ellmos-ai/gardener)
+[![Tests: 153 bestanden](https://img.shields.io/badge/tests-153%20passed-brightgreen.svg)](https://github.com/ellmos-ai/gardener)
 [![Datenschutz: Local-First](https://img.shields.io/badge/datenschutz-Local--First%20%7C%20Zero--Egress-brightgreen.svg)](SECURITY.md)
 [![Sicherheitsrichtlinie](https://img.shields.io/badge/sicherheit-48h%20SLA-blue.svg)](SECURITY.md)
 [![LLM OS](https://img.shields.io/badge/LLM--OS-SQLite%20Substrate-blueviolet.svg)](https://github.com/ellmos-ai/gardener)
@@ -91,6 +91,7 @@ python gardener.py observe-source add <id> <kind> [key=value ...]
 python gardener.py observe-source list
 python gardener.py observe-source remove <id>
 python gardener.py observe-source refresh [id]
+python gardener.py find --refresh-source <id>[,<id>] <query>
 python gardener.py status
 ```
 
@@ -345,6 +346,19 @@ af.find("taxes")                              # own entries + observed hits, one
 af.observe_source_add("mixed-notes", "markdown_dir",
                        path="~/notes", patterns=["*.md", "*.txt"])
 ```
+
+Eine Suche liest den Index und startet absichtlich keinen globalen Scan. Wenn
+ein frisch erzeugtes Transkript oder Ticket sofort auffindbar sein muss, kann
+die Abfrage genau die betroffenen Quellen zuerst inkrementell aktualisieren:
+
+```bash
+gardener find --refresh-source claude-transcripts,control-tickets <session-id>
+```
+
+Der Refresh liest die Originalquellen nur, schreibt ausschließlich in den
+lokalen Gardener-Index und nutzt für große JSONL-Dateien den gespeicherten
+Byte-Offset. Damit ist ein alter Indexstand sichtbar und gezielt reparierbar,
+ohne alle Quellen neu zu scannen.
 
 Das `columns`-Mapping des `sqlite_table`-Adapters erlaubt es, auf jede
 fremde Tabelle zu zeigen, ohne dass Gardener ihr Schema vorher kennt —

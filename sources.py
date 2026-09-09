@@ -671,6 +671,12 @@ def _extract_gemini_antigravity_text(entry: Dict):
 
 _CODEX_EVENT_ROLES = {"user_message": "user", "agent_message": "assistant"}
 
+# Increment this only when a transcript parser learns to recognise records
+# that an older version would have consumed without indexing. The persisted
+# byte offset must then be rewound once; otherwise unchanged, completed files
+# remain permanently invisible after the parser upgrade.
+AGENT_TRANSCRIPT_PARSER_REVISIONS = {"codex": 2}
+
 # When Codex delegates to a sub-agent it wraps that sub-agent's tool
 # traffic into ordinary 'agent_message' events, prefixed like
 # '[external_agent_tool_call: Read]' / '[external_agent_tool_result]'.
@@ -687,10 +693,12 @@ def _extract_codex_text(entry: Dict):
 
     A Codex rollout carries the same conversation on two channels:
 
-      - ``type='event_msg'`` with ``payload.type`` 'user_message' /
-        'agent_message' and the text as a flat ``payload.message``
-        string -- what the user actually typed and what the agent
-        actually answered.
+      - Older rollouts: ``type='event_msg'`` with ``payload.type``
+        'user_message' / 'agent_message' and flat ``payload.message``.
+      - Current rollouts: ``type='event_msg'`` with ``payload.type``
+        'item_completed'. Only its clean ``UserMessage`` / ``AgentMessage``
+        view items are indexed; command, tool, reasoning, injected-context,
+        and inter-agent transport items are skipped.
       - ``type='response_item'`` with ``payload.type='message'`` and a
         ``payload.role`` -- the raw model exchange. Its assistant turns
         duplicate 'agent_message' verbatim, its user turns additionally
@@ -717,6 +725,30 @@ def _extract_codex_text(entry: Dict):
     if entry.get("type") == "event_msg":
         payload = entry.get("payload")
         if isinstance(payload, dict):
+            if payload.get("type") == "item_completed":
+                item = payload.get("item")
+                if not isinstance(item, dict):
+                    return None, None
+                role = {
+                    "UserMessage": "user",
+                    "AgentMessage": "assistant",
+                }.get(item.get("type"))
+                if not role:
+                    return None, None
+                content = item.get("content")
+                if not isinstance(content, list):
+                    return None, None
+                parts = [
+                    block.get("text", "")
+                    for block in content
+                    if isinstance(block, dict)
+                    and str(block.get("type", "")).lower() == "text"
+                    and isinstance(block.get("text"), str)
+                ]
+                text = "\n".join(part for part in parts if part.strip()).strip()
+                if not text or text.startswith(_CODEX_TOOL_TRAFFIC_PREFIXES):
+                    return None, None
+                return role, text
             role = _CODEX_EVENT_ROLES.get(payload.get("type"))
             if role:
                 message = payload.get("message")
@@ -822,9 +854,11 @@ def scan_agent_transcripts(source_id: str, config: Dict,
               `roles` to be indexed.
 
     `state` is a mutable dict (file_key -> {offset, mtime, size,
-    line_no}) that this function reads AND updates in place so the
-    caller can persist it: refreshing a multi-GB transcript only reads
-    the bytes appended since the last refresh, never the whole file.
+    line_no, parser_revision?}) that this function reads AND updates in
+    place so the caller can persist it: refreshing a multi-GB transcript
+    normally reads only bytes appended since the last refresh. A parser
+    revision rewinds affected files exactly once so previously ignored
+    records can be recovered.
     """
     if state is None:
         state = {}
@@ -842,6 +876,7 @@ def scan_agent_transcripts(source_id: str, config: Dict,
         "default_role": config.get("default_role"),
         "zip_inner": config.get("zip_inner"),
     }
+    parser_revision = AGENT_TRANSCRIPT_PARSER_REVISIONS.get(opts["fmt"])
 
     seen_files = set()
     candidates = []
@@ -869,13 +904,18 @@ def scan_agent_transcripts(source_id: str, config: Dict,
 
         file_key = file_path.name if key_by == "name" else _path_key(file_path)
         prev = state.get(file_key, {})
-        start_offset = prev.get("offset", 0)
+        parser_changed = (
+            parser_revision is not None
+            and prev.get("parser_revision") != parser_revision
+        )
+        start_offset = 0 if parser_changed else prev.get("offset", 0)
         if stat.st_size < start_offset:
             start_offset = 0  # file was rotated/truncated -- start over
-        if start_offset == stat.st_size and prev.get("mtime") == stat.st_mtime:
+        if (not parser_changed and start_offset == stat.st_size
+                and prev.get("mtime") == stat.st_mtime):
             continue  # unchanged since last refresh
 
-        line_no = prev.get("line_no", 0)
+        line_no = 0 if parser_changed else prev.get("line_no", 0)
         last_good_offset = start_offset
         try:
             with open(file_path, "r", encoding="utf-8", errors="replace") as f:
@@ -911,12 +951,15 @@ def scan_agent_transcripts(source_id: str, config: Dict,
         except OSError:
             continue
 
-        state[file_key] = {
+        next_state = {
             "offset": last_good_offset,
             "mtime": stat.st_mtime,
             "size": stat.st_size,
             "line_no": line_no,
         }
+        if parser_revision is not None:
+            next_state["parser_revision"] = parser_revision
+        state[file_key] = next_state
 
 
 def _transcript_item(entry: Dict, source_id: str, opts: Dict, file_key: str,
@@ -948,7 +991,10 @@ def _transcript_item(entry: Dict, source_id: str, opts: Dict, file_key: str,
 
     uuid_val = entry.get("uuid") or entry.get("turn_id")
     if not uuid_val and isinstance(entry.get("payload"), dict):
-        uuid_val = entry["payload"].get("id") or entry["payload"].get("turn_id")
+        payload = entry["payload"]
+        item = payload.get("item")
+        uuid_val = item.get("id") if isinstance(item, dict) else None
+        uuid_val = uuid_val or payload.get("id") or payload.get("turn_id")
     item_key = uuid_val if uuid_val else (
         f"step_{entry['step_index']}"
         if isinstance(entry, dict) and "step_index" in entry
@@ -956,14 +1002,17 @@ def _transcript_item(entry: Dict, source_id: str, opts: Dict, file_key: str,
 
     session_val = entry.get("sessionId") or entry.get("session_id")
     if not session_val and isinstance(entry.get("payload"), dict):
-        session_val = entry["payload"].get("id")
+        session_val = (entry["payload"].get("thread_id")
+                       or entry["payload"].get("id"))
     session = str(session_val) if session_val else fallback_session
 
     ts_val = (entry.get("timestamp") or entry.get("created_at")
               or entry.get("ts"))
     if not ts_val and isinstance(entry.get("payload"), dict):
         ts_val = (entry["payload"].get("timestamp")
-                  or entry["payload"].get("started_at"))
+                  or entry["payload"].get("started_at")
+                  or entry["payload"].get("started_at_ms")
+                  or entry["payload"].get("completed_at_ms"))
     timestamp = str(ts_val) if ts_val is not None else ""
 
     return SourceItem(
@@ -971,7 +1020,7 @@ def _transcript_item(entry: Dict, source_id: str, opts: Dict, file_key: str,
         name=(f"observed/{source_id}/"
               f"{_safe_key(file_key)}/{_safe_key(item_key)}"),
         content=text,
-        tags=f"agent_transcript,{source_id},{role}",
+        tags=f"agent_transcript,{source_id},{role},{session}",
         meta={
             "source_ref": {
                 "kind": "agent_transcripts",
@@ -1005,8 +1054,11 @@ def _scan_zip_transcripts(source_id: str, zip_path: Path, stat, opts: Dict,
     """
     zip_key = f"zip:{zip_path.name}"
     prev = state.get(zip_key, {})
+    parser_revision = AGENT_TRANSCRIPT_PARSER_REVISIONS.get(opts["fmt"])
     if (prev.get("mtime") == stat.st_mtime
-            and prev.get("size") == stat.st_size):
+            and prev.get("size") == stat.st_size
+            and (parser_revision is None
+                 or prev.get("parser_revision") == parser_revision)):
         return
 
     inner_pattern = opts.get("zip_inner") or "*.jsonl"
@@ -1051,11 +1103,14 @@ def _scan_zip_transcripts(source_id: str, zip_path: Path, stat, opts: Dict,
     except (OSError, zipfile.BadZipFile):
         return
 
-    state[zip_key] = {
+    next_state = {
         "mtime": stat.st_mtime,
         "size": stat.st_size,
         "members": members_seen,
     }
+    if parser_revision is not None:
+        next_state["parser_revision"] = parser_revision
+    state[zip_key] = next_state
 
 
 # ---------------------------------------------------------------------------

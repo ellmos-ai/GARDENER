@@ -454,7 +454,18 @@ def execute(payload):
         self.assertFalse(old_file.exists())
         self.assertTrue(new_file.exists())
 
-        # Jetzt auch die neuere Datei bereinigen
+        # Ein zukünftiger Zeitstempel erfüllt auch die Schwelle 0 nicht.
+        future_time = time.time() + 5
+        os.utime(str(new_file), (future_time, future_time))
+        res_future = self.af.clean_workspace(max_age_seconds=0)
+        self.assertEqual(res_future["files"], 0)
+        self.assertTrue(new_file.exists())
+
+        # Für die beabsichtigte Schwelle 0 die Datei deterministisch in die
+        # Vergangenheit setzen, statt auf die Auflösung der Dateisystemuhr zu
+        # vertrauen.
+        recent_past_time = time.time() - 5
+        os.utime(str(new_file), (recent_past_time, recent_past_time))
         res2 = self.af.clean_workspace(max_age_seconds=0)
         self.assertEqual(res2["files"], 1)
         self.assertFalse(new_file.exists())
@@ -984,6 +995,16 @@ class TestFindArgParsing(unittest.TestCase):
         self.assertIsNone(err)
         self.assertEqual(words, ["store"])
         self.assertEqual(opts["source"], "usmc-working")
+
+    def test_refresh_source_is_parsed_separately_from_query(self):
+        opts, words, err = self.parse([
+            "--refresh-source", "claude-transcripts,control-tickets",
+            "aecf581b-951d-4f7d-ba13-16fdbfe459cb",
+        ])
+        self.assertIsNone(err)
+        self.assertEqual(
+            opts["refresh-source"], "claude-transcripts,control-tickets")
+        self.assertEqual(words, ["aecf581b-951d-4f7d-ba13-16fdbfe459cb"])
 
 
 if __name__ == "__main__":

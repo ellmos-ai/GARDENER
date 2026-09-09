@@ -2,6 +2,20 @@
 
 ## [Unreleased]
 
+### Targeted freshness for provenance lookup (2026-09-09)
+
+- `gardener find --refresh-source <id>[,<id>] <query>` updates only the
+  named observe sources before searching and reports indexed/skipped counts.
+  Ordinary `find` remains a read of the existing local index.
+- The Codex transcript adapter also reads the current clean
+  `event_msg/item_completed` user and agent view items, records their
+  `thread_id` as session provenance, and keeps command/tool items excluded.
+  This makes a current Codex session ID searchable after its source refresh.
+- Codex transcript offset state now carries a parser revision. The first
+  refresh after this parser upgrade rewinds only Codex transcript files with
+  legacy state, recovering newly supported records from completed, unchanged
+  rollouts; subsequent refreshes return to incremental EOF processing.
+
 ### Pinning Management API & CLI (`pin()`, `unpin()`, `list --pinned`, `status`) (2026-09-09)
 
 - **Dedicated Pinning API (`pin()`, `unpin()`)**: Added `Gardener.pin(name: str) -> bool` and `Gardener.unpin(name: str) -> bool` to explicitly toggle an entry's `pinned` state (persisting across `user.db` and `system.db`), protecting entries from decay and automatic forgetting in `consolidate()` and boosting relevance in `find()`.
