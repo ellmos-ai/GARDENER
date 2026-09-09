@@ -454,7 +454,11 @@ def execute(payload):
         self.assertFalse(old_file.exists())
         self.assertTrue(new_file.exists())
 
-        # Jetzt auch die neuere Datei bereinigen
+        # Jetzt auch die neuere Datei bereinigen. Windows-Dateisysteme können
+        # einen mtime knapp vor die Python-Uhr setzen; 0 bedeutet trotzdem
+        # ausdrücklich "kein Mindestalter".
+        future_time = time.time() + 5
+        os.utime(str(new_file), (future_time, future_time))
         res2 = self.af.clean_workspace(max_age_seconds=0)
         self.assertEqual(res2["files"], 1)
         self.assertFalse(new_file.exists())
