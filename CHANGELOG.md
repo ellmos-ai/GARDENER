@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+### Multi-Word UX in `recall()` & Observed-Awareness CLI Hint (2026-09-10)
+
+- **Multi-Word Query UX in `recall()`**: Brought `recall()` to full parity with `find()` by implementing automatic FTS5 OR-decomposition (`_build_fts_or_query`) when exact AND queries yield 0 memory hits, complete with FTS5 BM25 ranking. Added multi-token LIKE fallback when FTS syntax is bypassed or yields no results.
+- **Connection Safety**: Wrapped `recall()` DB access within the `@contextmanager connection("user")` block for guaranteed closure and exception safety.
+- **Scoped Weight Boost**: Refined `recall()` to only apply `_boost()` on actually returned memory entries within `limit` (rather than inflating all intermediate rows across disjoint queries).
+- **Observed-Awareness CLI Hint & API Parameter**:
+  - `recall()` now accepts an optional `include_observed: bool = False` parameter (also reachable via CLI flags `--include-observed` / `-o`).
+  - When `gardener recall <query>` yields no memory entries, it checks `af.find(query, limit=3)` and presents an informative German guidance hint with authentic umlauts: `(Hinweis: <N> Treffer in anderen Quellen/Typen vorhanden — nutze 'gardener find')`.
+- **Contract & Test Suite Expansion**: Added 3 unit tests in `test_gardener_core.py` (`test_recall_multi_word_query_ux_or_fallback_and_ranking`, `test_recall_include_observed_parameter`, `test_cli_recall_observed_awareness_hint`), raising the test suite to 156 passing tests (100% green). Updated badges and references in `README.md`, `README_de.md`, `llms.txt`, and `tests/test_metadata.py`.
+
 ### Targeted freshness for provenance lookup (2026-09-09)
 
 - `gardener find --refresh-source <id>[,<id>] <query>` updates only the

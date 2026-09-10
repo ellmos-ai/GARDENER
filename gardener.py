@@ -1069,52 +1069,108 @@ class Gardener:
                               "decay_rate": 0.97},
                         target="user")
 
-    def recall(self, query: str, limit: int = 5) -> List[Dict]:
-        """Erinnert sich -- sucht in Memory, Lessons und Sessions.
+    def recall(self, query: str, limit: int = 5,
+               include_observed: bool = False) -> List[Dict]:
+        """Erinnert sich -- sucht in Memory, Lessons und Sessions (und optional Observed).
 
         Wie find(), aber auf Gedächtnis-Typen beschränkt und
         erhöht das Gewicht abgerufener Einträge (Boost).
-        """
-        conn = self._conn("user")
-        results = []
 
-        try:
-            for mem_type in ("memory", "lesson", "session"):
+        Bei Mehrwort-Suchanfragen (z. B. 'Registry Mitgliedschaft') wird zunächst
+        eine exakte FTS5-Suche ausgeführt. Führt diese zu 0 Treffern, erfolgt
+        automatisch ein Fallback auf eine OR-Verknüpfung der Einzelbegriffe mit
+        FTS5-BM25-Ranking (Treffer mit allen/mehreren Begriffen stehen höher),
+        gefolgt von einem LIKE-Fallback.
+        """
+        if not query or not query.strip():
+            return []
+
+        results = []
+        target_types = (
+            ("memory", "lesson", "session", "observed")
+            if include_observed
+            else ("memory", "lesson", "session")
+        )
+        placeholders = ",".join("?" for _ in target_types)
+
+        with self.connection("user") as conn:
+            # 1. Exakte / Standard-FTS5-Suche
+            sql_fts = f"""
+                SELECT e.*, fts.rank AS rank, 'user' as source
+                FROM main.everything e
+                JOIN main.everything_fts fts ON e.id = fts.rowid
+                WHERE everything_fts MATCH ? AND e.type IN ({placeholders})
+                ORDER BY rank LIMIT ?
+            """
+            try:
+                rows = conn.execute(sql_fts, [query, *target_types, limit]).fetchall()
+                for row in rows:
+                    results.append(self._row_to_dict(row))
+            except Exception:
+                results = []
+
+            # 2. Mehrwort-Fallback: Wenn 0 Treffer und Mehrwort-Query, OR-Verknüpfung in FTS5
+            if not results:
+                or_query = self._build_fts_or_query(query)
+                if or_query:
+                    try:
+                        rows = conn.execute(sql_fts, [or_query, *target_types, limit]).fetchall()
+                        for row in rows:
+                            results.append(self._row_to_dict(row))
+                    except Exception:
+                        results = []
+
+            # 3. Fallback auf LIKE-Suche, falls FTS (auch OR) fehlschlug oder 0 Treffer ergab
+            if not results:
                 try:
-                    sql = """
-                        SELECT *, 'user' as source
+                    sql_like = f"""
+                        SELECT e.*, 'user' as source
                         FROM main.everything e
-                        JOIN main.everything_fts fts ON e.id = fts.rowid
-                        WHERE everything_fts MATCH ? AND e.type = ?
-                        ORDER BY rank LIMIT ?
-                    """
-                    rows = conn.execute(sql, (query, mem_type, limit)).fetchall()
-                    for row in rows:
-                        d = self._row_to_dict(row)
-                        results.append(d)
-                        # Boost: Gewicht erhoehen bei Abruf
-                        self._boost(conn, row["id"])
-                except Exception:
-                    sql = """
-                        SELECT *, 'user' as source
-                        FROM main.everything e
-                        WHERE (e.name LIKE ? OR e.content LIKE ?) AND e.type = ?
+                        WHERE (e.name LIKE ? OR e.content LIKE ? OR e.tags LIKE ?)
+                          AND e.type IN ({placeholders})
                         LIMIT ?
                     """
                     like = f"%{query}%"
-                    rows = conn.execute(sql, (like, like, mem_type, limit)).fetchall()
+                    rows = conn.execute(sql_like, [like, like, like, *target_types, limit]).fetchall()
                     for row in rows:
-                        d = self._row_to_dict(row)
-                        results.append(d)
-                        self._boost(conn, row["id"])
+                        results.append(self._row_to_dict(row))
+                except Exception:
+                    results = []
 
+                tokens = [t.strip() for t in query.split() if t.strip()]
+                if not results and len(tokens) > 1:
+                    conditions = []
+                    params = []
+                    for t in tokens:
+                        like_p = f"%{t}%"
+                        conditions.append("(e.name LIKE ? OR e.content LIKE ? OR e.tags LIKE ?)")
+                        params.extend([like_p, like_p, like_p])
+                    sql_tokens = f"""
+                        SELECT e.*, 'user' as source
+                        FROM main.everything e
+                        WHERE ({' OR '.join(conditions)}) AND e.type IN ({placeholders})
+                        LIMIT ?
+                    """
+                    params.extend(target_types)
+                    params.append(limit)
+                    try:
+                        rows = conn.execute(sql_tokens, params).fetchall()
+                        for row in rows:
+                            results.append(self._row_to_dict(row))
+                    except Exception:
+                        pass
+
+            # Nach Gewicht sortieren (höchstes Gewicht zuerst)
+            results.sort(key=lambda x: x.get("meta", {}).get("weight", 0.5), reverse=True)
+            final_results = results[:limit]
+
+            # Boost: Gewicht erhöhen bei tatsächlichem Abruf (nur für Gedächtnis-Typen)
+            for item in final_results:
+                if item.get("type") in ("memory", "lesson", "session"):
+                    self._boost(conn, item["id"])
             conn.commit()
-        finally:
-            conn.close()
 
-        # Nach Gewicht sortieren
-        results.sort(key=lambda x: x.get("meta", {}).get("weight", 0.5), reverse=True)
-        return results[:limit]
+        return final_results
 
     def consolidate(self) -> Dict:
         """Konsolidiert das Gedächtnis (= Schlaf).
@@ -2114,14 +2170,29 @@ def main():
         print(f"  [OK] Lesson: {entry['name']}")
 
     elif cmd == "recall":
-        query = " ".join(sys.argv[2:]) if len(sys.argv) > 2 else ""
-        results = af.recall(query)
+        include_obs = False
+        args = [a for a in sys.argv[2:]]
+        if "--include-observed" in args:
+            include_obs = True
+            args.remove("--include-observed")
+        elif "-o" in args:
+            include_obs = True
+            args.remove("-o")
+        query = " ".join(args).strip()
+        results = af.recall(query, include_observed=include_obs)
         for r in results:
             w = r.get("meta", {}).get("weight", 0)
             bar = "*" * int(w * 5) + " " * (5 - int(w * 5))
             print(f"  [{bar}] {r['name']:40s} ({r['type']})")
         if not results:
-            print("  Keine Erinnerungen gefunden.")
+            if query:
+                other_hits = af.find(query, limit=3)
+                if other_hits:
+                    print(f"  Keine Erinnerungen gefunden. (Hinweis: {len(other_hits)} Treffer in anderen Quellen/Typen vorhanden — nutze 'gardener find')")
+                else:
+                    print("  Keine Erinnerungen gefunden.")
+            else:
+                print("  Keine Erinnerungen gefunden.")
 
     elif cmd == "consolidate":
         stats = af.consolidate()
