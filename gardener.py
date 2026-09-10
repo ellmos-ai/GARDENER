@@ -207,13 +207,79 @@ class Gardener:
     # ------------------------------------------------------------------
 
     @staticmethod
+    def _tokenize_query(query: str) -> List[Tuple[str, bool, bool]]:
+        """Tokenisiert eine Query in (text, is_phrase, is_prefix).
+
+        Erkennt:
+        - Phrasen in Anführungszeichen: "hallo welt" -> ("hallo welt", True, False)
+        - Präfix-Tokens: scan* -> ("scan", False, True)
+        - Quotierte Präfixe: "beleg-scan"* -> ("beleg-scan", True, True)
+        - Unvollständige Anführungszeichen: "hallo welt -> ("hallo welt", True, False)
+        - Einzelwörter/Sonderzeichen: beleg-scanner -> ("beleg-scanner", False, False)
+        """
+        query = query.strip()
+        if not query:
+            return []
+
+        # Unbalancierte Anführungszeichen am Ende schließen
+        if query.count('"') % 2 != 0:
+            query += '"'
+
+        pattern = re.compile(r'"([^"]*)"(\*)?|(\S+)')
+        tokens: List[Tuple[str, bool, bool]] = []
+
+        for match in pattern.finditer(query):
+            quoted_text, quoted_star, bare_text = match.groups()
+            if quoted_text is not None:
+                q_clean = quoted_text.strip()
+                if q_clean:
+                    tokens.append((q_clean, True, bool(quoted_star)))
+            elif bare_text:
+                is_prefix = bare_text.endswith('*') and len(bare_text) > 1
+                text = bare_text[:-1] if is_prefix else bare_text
+                if text == '*' or not text:
+                    continue
+                tokens.append((text, False, is_prefix))
+
+        return tokens
+
+    @classmethod
+    def _build_fts_and_query(cls, query: str) -> Optional[str]:
+        """Baut aus einer Query eine abgesicherte FTS5-AND-Query.
+
+        Maskiert/quotiert Tokens, um FTS5-Syntaxfehler (z. B. '-' als Spaltensubtraktion,
+        ':' als Spaltenfilter, unescapte Sonderzeichen wie '/', '\\', '()') abzusichern.
+        Gibt None zurück, wenn explizite FTS-Operatoren (AND, OR, NOT, NEAR) vorliegen
+        oder die Query leer ist.
+        """
+        q_upper = query.upper()
+        if "NEAR(" in q_upper or any(op in q_upper.split() for op in ["OR", "AND", "NOT", "NEAR"]):
+            return None
+
+        tokens = cls._tokenize_query(query)
+        if not tokens:
+            return None
+
+        fts_tokens = []
+        for text, is_phrase, is_prefix in tokens:
+            t_clean = text.replace('"', '""')
+            star = '*' if is_prefix else ''
+            fts_tokens.append(f'"{t_clean}"{star}')
+
+        if not fts_tokens:
+            return None
+
+        return " ".join(fts_tokens)
+
+    @staticmethod
     def _build_fts_or_query(query: str) -> Optional[str]:
         """Baut aus einer Mehrwort-Query eine FTS5-OR-Query mit Anführungszeichen.
 
         Gibt None zurück, wenn die Query bereits explizite FTS-Operatoren oder
         Anführungszeichen enthält oder aus nur einem Wort besteht.
         """
-        if '"' in query or any(op in query.upper().split() for op in ["OR", "AND", "NOT", "NEAR"]):
+        q_upper = query.upper()
+        if '"' in query or "NEAR(" in q_upper or any(op in q_upper.split() for op in ["OR", "AND", "NOT", "NEAR"]):
             return None
 
         tokens = [t.strip() for t in query.split() if t.strip()]
@@ -222,9 +288,11 @@ class Gardener:
 
         cleaned = []
         for t in tokens:
-            t_clean = t.replace('"', '""')
+            is_prefix = t.endswith('*') and len(t) > 1
+            t_clean = (t[:-1] if is_prefix else t).replace('"', '""')
+            star = '*' if is_prefix else ''
             if t_clean:
-                cleaned.append(f'"{t_clean}"')
+                cleaned.append(f'"{t_clean}"{star}')
 
         if len(cleaned) <= 1:
             return None
@@ -456,13 +524,28 @@ class Gardener:
             if source_only:
                 results = self._source_listing(conn, source, type=type, limit=limit)
             else:
-                # 1. Exakte / Standard-FTS5-Suche
+                # 1. Exakte / Standard-FTS5-Suche:
+                #    Versuche zuerst die Roh-Query (erlaubt FTS-Operatoren wie AND, OR, NOT, NEAR
+                #    sowie Spaltenfilter wie name: oder tags:).
                 try:
                     results = self._fts_query(conn, query, type=type, limit=limit,
                                               with_snippets=with_snippets,
                                               source=source)
                 except Exception:
                     results = []
+
+                # 1b. Abgesicherte AND-Query: Falls Roh-Query fehlschlug oder keine Treffer ergab
+                #     (z. B. wegen Bindestrichen wie 'beleg-scanner', Pfaden, Doppelpunkten
+                #     oder Sonderzeichen, die FTS5 als Spaltensubtraktion/Syntaxfehler abweist).
+                if not results:
+                    and_query = self._build_fts_and_query(query)
+                    if and_query and and_query != query:
+                        try:
+                            results = self._fts_query(conn, and_query, type=type, limit=limit,
+                                                      with_snippets=with_snippets,
+                                                      source=source)
+                        except Exception:
+                            results = []
 
                 # 2. Mehrwort-Fallback: Wenn 0 Treffer und Mehrwort-Query, OR-Verknüpfung in FTS5 versuchen
                 if not results:
@@ -475,7 +558,7 @@ class Gardener:
                         except Exception:
                             results = []
 
-                # 3. Fallback auf LIKE-Suche, falls FTS (auch OR) fehlschlug oder 0 Treffer ergab
+                # 3. Fallback auf LIKE-Suche, falls FTS (auch AND/OR) fehlschlug oder 0 Treffer ergab
                 if not results:
                     try:
                         results = self._like_query(conn, query, type=type, limit=limit,

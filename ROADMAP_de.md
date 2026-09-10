@@ -91,6 +91,7 @@ und das Schlechtere vergessen lassen.
 | 2026-03-12 | DB-Viewer aus BACH | Nicht neu bauen, portieren |
 | 2026-03-12 | Sketchboard-Modell | LLM IST das Haus (Kontext), DB ist Fotoalbum (Gedächtnis) |
 | 2026-03-12 | Decay für alles (geplant) | Tools/Knowledge sollen auch altern können |
+| 2026-09-10 | FTS5-Query-Tokenisierung & abgesichertes AND | Quotiert/maskiert Sonderzeichen (-, :, /, \, ()), verhindert FTS5-Syntaxfehler, sichert Mehrwort-AND, Präfixe und Snippets |
 
 ---
 

@@ -91,6 +91,7 @@ and letting the worse be forgotten.
 | 2026-03-12 | DB viewer from BACH | Don't rebuild, port |
 | 2026-03-12 | Sketchboard model | LLM IS the house (context), DB is photo album (memory) |
 | 2026-03-12 | Decay for everything (planned) | Tools/knowledge should also age |
+| 2026-09-10 | FTS5 Query Tokenization & Sanitized AND | Quotes/escapes special chars (-, :, /, \, ()) to prevent FTS5 syntax errors and preserve exact multi-word AND precision, prefixes, and snippets |
 
 
 ---

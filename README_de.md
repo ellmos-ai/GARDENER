@@ -10,7 +10,7 @@
 [![Python 3.10-3.13](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-blue.svg)](https://www.python.org/)
 [![Plattformen](https://img.shields.io/badge/plattformen-Linux%20%7C%20Windows%20%7C%20macOS-lightgrey.svg)](https://github.com/ellmos-ai/gardener)
 [![Lizenz: MIT](https://img.shields.io/badge/Lizenz-MIT-yellow.svg)](LICENSE)
-[![Tests: 153 bestanden](https://img.shields.io/badge/tests-153%20passed-brightgreen.svg)](https://github.com/ellmos-ai/gardener)
+[![Tests: 157 bestanden](https://img.shields.io/badge/tests-157%20passed-brightgreen.svg)](https://github.com/ellmos-ai/gardener)
 [![Datenschutz: Local-First](https://img.shields.io/badge/datenschutz-Local--First%20%7C%20Zero--Egress-brightgreen.svg)](SECURITY.md)
 [![Sicherheitsrichtlinie](https://img.shields.io/badge/sicherheit-48h%20SLA-blue.svg)](SECURITY.md)
 [![LLM OS](https://img.shields.io/badge/LLM--OS-SQLite%20Substrate-blueviolet.svg)](https://github.com/ellmos-ai/gardener)

@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+### FTS5 Multi-Word, Special Character & Prefix Search UX Enhancement (2026-09-10)
+
+- **FTS5 Tokenizer & Sanitization (`_tokenize_query`, `_build_fts_and_query`)**: Added query tokenization and safe quoting for special characters (hyphens `-`, colons `:`, slashes `/`, backslashes `\`, parentheses `()`) and unclosed quotes. This prevents SQLite FTS5 syntax errors (such as `OperationalError: no such column: ...` caused by hyphens being interpreted as column operations or column subtractions).
+- **Exact Multi-Word AND Matching**: Multi-word queries with hyphens (e.g. `beleg-scanner rechnung`) now reliably evaluate as an FTS5 AND search first, returning precise matches containing all query tokens before falling back to OR search.
+- **Prefix Matching with Hyphens (`beleg-scan*`)**: Implemented safe prefix query quoting (`"beleg-scan"*`), allowing wildcard prefix searches on hyphenated names and tools in FTS5 that previously yielded zero results or syntax errors.
+- **Highlighted Snippets & BM25 Relevance Retention**: Retained full FTS5 snippet generation (`with_snippets=True`, e.g. for `search_gui.py`) and BM25 ranking on hyphenated queries and file paths (e.g. `C:\Users\lukas`), which previously fell back to LIKE without snippets.
+- **Test Suite & Metadata Expansion**: Added 4 unit tests (`test_tokenize_query_and_build_fts_and_query_helpers`, `test_find_with_hyphens_special_chars_and_snippets`, `test_multi_word_and_priority_with_hyphenated_terms`, `test_find_unclosed_quote_tolerance`). Synchronized test badges and metadata across `README.md`, `README_de.md`, `llms.txt`, and `tests/test_metadata.py`.
+
 ### Targeted freshness for provenance lookup (2026-09-09)
 
 - `gardener find --refresh-source <id>[,<id>] <query>` updates only the

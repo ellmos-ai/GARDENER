@@ -180,6 +180,118 @@ class TestGardenerCore(GardenerTempCase):
         self.assertIsNone(build_or("Registry OR Mitgliedschaft"))
         self.assertIsNone(build_or("Registry NOT Mitgliedschaft"))
 
+    def test_tokenize_query_and_build_fts_and_query_helpers(self):
+        tokenize = self.gardener.Gardener._tokenize_query
+        build_and = self.gardener.Gardener._build_fts_and_query
+
+        # Tokenization of plain words and hyphens
+        tokens = tokenize("beleg-scanner rechnung")
+        self.assertEqual(tokens, [("beleg-scanner", False, False), ("rechnung", False, False)])
+
+        # Quoted phrase and prefix
+        tokens = tokenize('"beleg scanner" scan*')
+        self.assertEqual(tokens, [("beleg scanner", True, False), ("scan", False, True)])
+
+        # Unclosed quote recovery
+        tokens = tokenize('"offenes zitat')
+        self.assertEqual(tokens, [("offenes zitat", True, False)])
+
+        # AND query building with token quoting for FTS5 safety
+        self.assertEqual(build_and("beleg-scanner"), '"beleg-scanner"')
+        self.assertEqual(build_and("beleg-scanner rechnung"), '"beleg-scanner" "rechnung"')
+        self.assertEqual(build_and("beleg-scan*"), '"beleg-scan"*')
+        self.assertEqual(build_and('C:\\Users\\lukas\\file.txt'), '"C:\\Users\\lukas\\file.txt"')
+
+        # Preserves boolean operators by returning None (allowing native FTS evaluation)
+        self.assertIsNone(build_and("beleg AND rechnung"))
+        self.assertIsNone(build_and("beleg OR rechnung"))
+        self.assertIsNone(build_and("beleg NOT archiv"))
+        self.assertIsNone(build_and("NEAR(beleg, rechnung)"))
+        self.assertIsNone(build_and(""))
+        self.assertIsNone(build_and("   "))
+
+    def test_find_with_hyphens_special_chars_and_snippets(self):
+        self.af.put(
+            "tool-beleg-scanner",
+            content="Der beleg-scanner verarbeitet Rechnungen und Quittungen zuverlässig.",
+            type="tool",
+        )
+        self.af.put(
+            "config-path",
+            content="Die Konfiguration liegt unter C:\\Users\\lukas\\config.json für das Backup.",
+            type="config",
+        )
+        self.af.put(
+            "meeting-parens",
+            content="Notiz zum Projektabschluss (2026) mit dem Team.",
+            type="memory",
+        )
+
+        # 1. Hyphenated term produces highlighted snippets (previously crashed FTS5 to LIKE without snippets)
+        hits = self.af.find("beleg-scanner", with_snippets=True)
+        self.assertTrue(len(hits) >= 1)
+        self.assertEqual(hits[0]["name"], "tool-beleg-scanner")
+        self.assertIn("snippet", hits[0])
+        self.assertIn(">>>beleg-scanner<<<", hits[0]["snippet"])
+
+        # 2. Prefix query with hyphen
+        hits = self.af.find("beleg-scan*", with_snippets=True)
+        self.assertTrue(len(hits) >= 1)
+        self.assertEqual(hits[0]["name"], "tool-beleg-scanner")
+        self.assertIn(">>>beleg-scanner<<<", hits[0]["snippet"])
+
+        # 3. Windows path with backslashes
+        hits = self.af.find("C:\\Users\\lukas", with_snippets=True)
+        self.assertTrue(len(hits) >= 1)
+        self.assertEqual(hits[0]["name"], "config-path")
+        self.assertIn("snippet", hits[0])
+        self.assertIn(">>>C:\\Users\\lukas<<<", hits[0]["snippet"])
+
+        # 4. Parentheses
+        hits = self.af.find("(2026)", with_snippets=True)
+        self.assertTrue(len(hits) >= 1)
+        self.assertEqual(hits[0]["name"], "meeting-parens")
+        self.assertIn("snippet", hits[0])
+        self.assertIn(">>>2026<<<", hits[0]["snippet"])
+
+    def test_multi_word_and_priority_with_hyphenated_terms(self):
+        # Entry 1 matches both terms
+        self.af.put(
+            "doc-both-hyphen",
+            content="Spezifikation für den beleg-scanner im Bereich Steuern und Finanzen.",
+            type="knowledge",
+        )
+        # Entry 2 matches only "Steuern"
+        self.af.put(
+            "doc-steuern-only",
+            content="Allgemeines Dokument über Steuern und Abgaben.",
+            type="knowledge",
+        )
+        # Entry 3 matches only "beleg-scanner"
+        self.af.put(
+            "doc-scanner-only",
+            content="Technisches Handbuch zum beleg-scanner Gerät.",
+            type="knowledge",
+        )
+
+        # Multi-word AND search must return ONLY the document matching both terms first
+        hits = self.af.find("beleg-scanner Steuern")
+        self.assertEqual(len(hits), 1)
+        self.assertEqual(hits[0]["name"], "doc-both-hyphen")
+
+    def test_find_unclosed_quote_tolerance(self):
+        self.af.put(
+            "quote-doc",
+            content="Wichtige Phrase fuer den Projektabschluss 2026 im Team.",
+            type="memory",
+        )
+        # Unclosed quote must not raise FTS5 syntax error and should match the phrase
+        hits = self.af.find('"Projektabschluss 2026', with_snippets=True)
+        self.assertTrue(len(hits) >= 1)
+        self.assertEqual(hits[0]["name"], "quote-doc")
+        self.assertIn("snippet", hits[0])
+        self.assertIn("Projektabschluss 2026", hits[0]["snippet"])
+
     def test_recall_tolerates_invalid_meta_json(self):
         conn = sqlite3.connect(Path(os.environ["GARDENER_DATA"]) / "user.db")
         try:
