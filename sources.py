@@ -468,9 +468,13 @@ def scan_sqlite_table(source_id: str, config: Dict) -> Iterator[SourceItem]:
         return
 
     uri = f"file:{db_file.as_posix()}?mode=ro"
-    conn = sqlite3.connect(uri, uri=True)
+    try:
+        conn = sqlite3.connect(uri, uri=True, timeout=30.0)
+    except (sqlite3.Error, OSError):
+        return
     conn.row_factory = sqlite3.Row
     try:
+        conn.execute("PRAGMA busy_timeout = 30000")
         valid_tables = {row["name"] for row in conn.execute(
             "SELECT name FROM sqlite_master WHERE type='table'"
         )}
@@ -495,6 +499,8 @@ def scan_sqlite_table(source_id: str, config: Dict) -> Iterator[SourceItem]:
         quoted = ", ".join('"{}"'.format(c) for c in select_cols)
         sql = 'SELECT {} FROM "{}"'.format(quoted, table)
         rows = conn.execute(sql).fetchall()
+    except (sqlite3.Error, OSError):
+        return
     finally:
         conn.close()
 

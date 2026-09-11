@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+### SQLite Connection Lifecycle, Context Manager Hardening & Concurrency Protection (2026-09-11)
+
+- **Connection Context Manager (`Gardener.connection()`)**: Implemented `@contextlib.contextmanager` yielding managed SQLite connections with guaranteed cleanup (`conn.close()`) in `finally` blocks, preventing resource leaks even under unhandled exceptions.
+- **Class-Level Lifecycle (`__enter__`, `__exit__`, `close()`)**: Added full context manager support to `Gardener`, allowing clean usage via `with Gardener() as g:`.
+- **Configurable `db_timeout` & `PRAGMA busy_timeout`**: Added configurable connection timeout (`db_timeout` / `sqlite_timeout`, default 30.0s) and enforced `PRAGMA busy_timeout = {db_timeout * 1000}` on both system and user database connections to prevent `database is locked` errors during concurrent multi-agent access.
+- **Fail-Safe Cross-Database ATTACH**: Hardened cross-database attachment in `_conn()` with proactive `try...except` handling, ensuring connections are closed and not leaked when `ATTACH DATABASE` or initial pragmas fail.
+- **Adapter SQLite Hardening (`scan_sqlite_table`)**: Hardened external SQLite table observation adapter with 30s connection timeout, `busy_timeout` pragma, and exception-safe connection termination.
+- **Core Refactoring**: Migrated internal database operations across `find()`, `get()`, `put()`, `tasks()`, `recall()`, `consolidate()`, `delete()`, `_set_pinned()`, `list()`, `status()`, and `observe_sources()` to `with self.connection(...) as conn:`.
+- **Test Suite Expansion**: Added `TestSQLiteHardeningAndLifecycle` with 6 automated tests, expanding the test suite to 163 passing tests (100% green).
+
 ### FTS5 Multi-Word, Special Character & Prefix Search UX Enhancement (2026-09-10)
 
 - **FTS5 Tokenizer & Sanitization (`_tokenize_query`, `_build_fts_and_query`)**: Added query tokenization and safe quoting for special characters (hyphens `-`, colons `:`, slashes `/`, backslashes `\`, parentheses `()`) and unclosed quotes. This prevents SQLite FTS5 syntax errors (such as `OperationalError: no such column: ...` caused by hyphens being interpreted as column operations or column subtractions).

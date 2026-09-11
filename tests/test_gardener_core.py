@@ -1119,5 +1119,68 @@ class TestFindArgParsing(unittest.TestCase):
         self.assertEqual(words, ["aecf581b-951d-4f7d-ba13-16fdbfe459cb"])
 
 
+class TestSQLiteHardeningAndLifecycle(GardenerTempCase):
+    """Prüfungen für Connection-Lifecycle, Timeout-Absicherung und Context-Manager."""
+
+    def test_connection_context_manager_closes_after_block(self):
+        with self.af.connection("user") as conn:
+            self.assertIsNotNone(conn)
+            row = conn.execute("SELECT 1").fetchone()
+            self.assertEqual(row[0], 1)
+            c = conn
+        with self.assertRaises(sqlite3.ProgrammingError):
+            c.execute("SELECT 1")
+
+    def test_connection_context_manager_closes_on_exception(self):
+        c = None
+        with self.assertRaises(ValueError):
+            with self.af.connection("user") as conn:
+                c = conn
+                raise ValueError("test error")
+        self.assertIsNotNone(c)
+        with self.assertRaises(sqlite3.ProgrammingError):
+            c.execute("SELECT 1")
+
+    def test_connection_context_manager_system_target(self):
+        with self.af.connection("system") as conn:
+            c = conn
+            row = conn.execute("SELECT 1").fetchone()
+            self.assertEqual(row[0], 1)
+        with self.assertRaises(sqlite3.ProgrammingError):
+            c.execute("SELECT 1")
+
+    def test_gardener_class_as_context_manager(self):
+        home_path = Path(self.temp.name) / "cm_home"
+        data_path = Path(self.temp.name) / "cm_data"
+        with self.gardener.Gardener(home=home_path, data_dir=data_path) as g:
+            g.put("cm_test_entry", content="lifecycle works", type="memory")
+            res = g.get("cm_test_entry")
+            self.assertIsNotNone(res)
+            self.assertEqual(res["content"], "lifecycle works")
+
+    def test_db_timeout_default_and_custom(self):
+        self.assertEqual(self.af.db_timeout, 30.0)
+
+        custom_home = Path(self.temp.name) / "custom_home"
+        custom_data = Path(self.temp.name) / "custom_data"
+        custom_home.mkdir(parents=True, exist_ok=True)
+        with open(custom_home / "config.json", "w", encoding="utf-8") as f:
+            json.dump({"db_timeout": 12.5}, f)
+
+        g_custom = self.gardener.Gardener(home=custom_home, data_dir=custom_data)
+        self.assertEqual(g_custom.db_timeout, 12.5)
+
+    def test_conn_cleanup_on_attach_failure(self):
+        # Wenn der zu attachende Pfad ein Verzeichnis statt einer Datei ist,
+        # schlägt ATTACH fehl. _conn() muss die Connection schließen und die Exception re-raisen.
+        original_system_db = self.af.system_db_path
+        try:
+            self.af.system_db_path = Path(self.temp.name)  # directory
+            with self.assertRaises(sqlite3.OperationalError):
+                self.af._conn("user")
+        finally:
+            self.af.system_db_path = original_system_db
+
+
 if __name__ == "__main__":
     unittest.main()

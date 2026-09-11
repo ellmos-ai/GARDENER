@@ -154,6 +154,7 @@ class Gardener:
 
         # Config laden
         self.config = self._load_config()
+        self.db_timeout = float(self.config.get("db_timeout", self.config.get("sqlite_timeout", 30.0)))
 
         # Datenbanken initialisieren
         self.system_db_path = self.data_dir / "gardener.db"
@@ -163,15 +164,16 @@ class Gardener:
         self._init_db(self.user_db_path)
 
     # ------------------------------------------------------------------
-    # DB Setup
+    # DB Setup & Lifecycle
     # ------------------------------------------------------------------
 
     def _init_db(self, db_path: Path):
         """Initialisiert eine Datenbank mit dem Schema."""
-        conn = sqlite3.connect(str(db_path))
+        conn = sqlite3.connect(str(db_path), timeout=self.db_timeout)
         try:
             conn.execute("PRAGMA journal_mode=WAL")
             conn.execute("PRAGMA foreign_keys=ON")
+            conn.execute(f"PRAGMA busy_timeout = {int(self.db_timeout * 1000)}")
             conn.executescript(SCHEMA_SYSTEM)
             conn.commit()
         finally:
@@ -180,15 +182,20 @@ class Gardener:
     def _conn(self, target: str = "user") -> sqlite3.Connection:
         """Gibt eine Connection zurück. 'user' oder 'system'."""
         path = self.user_db_path if target == "user" else self.system_db_path
-        conn = sqlite3.connect(str(path))
-        conn.row_factory = sqlite3.Row
-        conn.execute("PRAGMA journal_mode=WAL")
-        conn.execute("PRAGMA foreign_keys=ON")
+        conn = sqlite3.connect(str(path), timeout=self.db_timeout)
+        try:
+            conn.row_factory = sqlite3.Row
+            conn.execute("PRAGMA journal_mode=WAL")
+            conn.execute("PRAGMA foreign_keys=ON")
+            conn.execute(f"PRAGMA busy_timeout = {int(self.db_timeout * 1000)}")
 
-        # Andere DB attachen für übergreifende Suche
-        other = self.system_db_path if target == "user" else self.user_db_path
-        conn.execute("ATTACH DATABASE ? AS other", (str(other),))
-        return conn
+            # Andere DB attachen für übergreifende Suche
+            other = self.system_db_path if target == "user" else self.user_db_path
+            conn.execute("ATTACH DATABASE ? AS other", (str(other),))
+            return conn
+        except Exception:
+            conn.close()
+            raise
 
     @contextmanager
     def connection(self, target: str = "user"):
@@ -198,6 +205,16 @@ class Gardener:
             yield conn
         finally:
             conn.close()
+
+    def close(self):
+        """Schließt etwaige Ressourcen und Bereinigungen ab."""
+        pass
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
 
     def _now(self) -> str:
         return datetime.now().isoformat(timespec="seconds")
@@ -514,13 +531,12 @@ class Gardener:
         Returns:
             Liste von Einträgen als Dicts
         """
-        conn = self._conn("user")
         results = []
         # Nur-Quelle-Auflistung: leere Query UND gesetzte Quelle. Ohne Quelle
         # bleibt die leere Query wie bisher der LIKE-Stufe überlassen (dort
         # matcht '%%' alles) -- das ist bestehendes Verhalten und ändert sich hier nicht.
         source_only = (not query or not query.strip()) and bool(self._normalize_sources(source))
-        try:
+        with self.connection("user") as conn:
             if source_only:
                 results = self._source_listing(conn, source, type=type, limit=limit)
             else:
@@ -565,8 +581,6 @@ class Gardener:
                                                    source=source)
                     except Exception:
                         results = []
-        finally:
-            conn.close()
 
         # Deduplizieren nach (id, source)
         seen = set()
@@ -600,8 +614,7 @@ class Gardener:
 
         Sucht zuerst in user.db, dann in gardener.db.
         """
-        conn = self._conn("user")
-        try:
+        with self.connection("user") as conn:
             for db_prefix, db_label in [("main", "user"), ("other", "system")]:
                 row = conn.execute(
                     f"SELECT *, '{db_label}' as source FROM {db_prefix}.everything WHERE name = ?",
@@ -610,8 +623,6 @@ class Gardener:
                 if row:
                     return self._row_to_dict(row)
             return None
-        finally:
-            conn.close()
 
     # ------------------------------------------------------------------
     # API: put()
@@ -641,10 +652,9 @@ class Gardener:
         if target == "auto":
             target = "system" if type in ("knowledge", "tool") else "user"
 
-        conn = self._conn(target)
-        db = "main"  # Immer in die primäre DB schreiben
+        with self.connection(target) as conn:
+            db = "main"  # Immer in die primäre DB schreiben
 
-        try:
             # Upsert
             existing = conn.execute(
                 f"SELECT id FROM {db}.everything WHERE name = ?", (name,)
@@ -665,8 +675,6 @@ class Gardener:
                 """, (name, content, type, tags, meta_json, int(pinned), now, now))
 
             conn.commit()
-        finally:
-            conn.close()
 
         return self.get(name)
 
@@ -1038,29 +1046,26 @@ class Gardener:
 
         Status-Werte: open, doing, done, blocked, waiting
         """
-        conn = self._conn("user")
-        try:
-            sql = "SELECT *, 'user' as source FROM main.everything WHERE type = 'task'"
-            params = []
+        sql = "SELECT *, 'user' as source FROM main.everything WHERE type = 'task'"
+        params = []
 
-            if status:
-                sql += " AND json_extract(meta, '$.status') = ?"
-                params.append(status)
+        if status:
+            sql += " AND json_extract(meta, '$.status') = ?"
+            params.append(status)
 
-            # Semantic priority order (critical > high > normal > low),
-            # not alphabetical string order
-            sql += """
-                ORDER BY CASE json_extract(meta, '$.priority')
-                    WHEN 'critical' THEN 4
-                    WHEN 'high' THEN 3
-                    WHEN 'normal' THEN 2
-                    WHEN 'low' THEN 1
-                    ELSE 2
-                END DESC, updated DESC
-            """
+        # Semantic priority order (critical > high > normal > low),
+        # not alphabetical string order
+        sql += """
+            ORDER BY CASE json_extract(meta, '$.priority')
+                WHEN 'critical' THEN 4
+                WHEN 'high' THEN 3
+                WHEN 'normal' THEN 2
+                WHEN 'low' THEN 1
+                ELSE 2
+            END DESC, updated DESC
+        """
+        with self.connection("user") as conn:
             rows = conn.execute(sql, params).fetchall()
-        finally:
-            conn.close()
         return [self._row_to_dict(row) for row in rows]
 
     def task(self, name: str, content: str = "", priority: str = "normal",
@@ -1158,10 +1163,9 @@ class Gardener:
         Wie find(), aber auf Gedächtnis-Typen beschränkt und
         erhöht das Gewicht abgerufener Einträge (Boost).
         """
-        conn = self._conn("user")
         results = []
 
-        try:
+        with self.connection("user") as conn:
             for mem_type in ("memory", "lesson", "session"):
                 try:
                     sql = """
@@ -1192,8 +1196,6 @@ class Gardener:
                         self._boost(conn, row["id"])
 
             conn.commit()
-        finally:
-            conn.close()
 
         # Nach Gewicht sortieren
         results.sort(key=lambda x: x.get("meta", {}).get("weight", 0.5), reverse=True)
@@ -1209,11 +1211,10 @@ class Gardener:
         Einfacher als BACHs 6-Stufen-Pipeline, aber gleicher Effekt:
         Wichtiges bleibt, Unwichtiges verblasst.
         """
-        conn = self._conn("user")
         now = self._now()
         stats = {"decayed": 0, "forgotten": 0, "kept": 0}
 
-        try:
+        with self.connection("user") as conn:
             # Alle Memory-artigen Einträge mit Gewicht.
             # Gepinnte Einträge sind von Decay und Forget ausgenommen.
             rows = conn.execute("""
@@ -1254,8 +1255,6 @@ class Gardener:
                         stats["kept"] += 1
 
             conn.commit()
-        finally:
-            conn.close()
         return stats
 
     def _boost(self, conn: sqlite3.Connection, entry_id: int, amount: float = 0.1):
@@ -1295,8 +1294,7 @@ class Gardener:
         Returns: True wenn gelöscht, False wenn nicht gefunden.
         """
         for target in ("user", "system"):
-            conn = self._conn(target)
-            try:
+            with self.connection(target) as conn:
                 row = conn.execute(
                     "SELECT id FROM main.everything WHERE name = ?", (name,)
                 ).fetchone()
@@ -1304,8 +1302,6 @@ class Gardener:
                     conn.execute("DELETE FROM main.everything WHERE id = ?", (row["id"],))
                     conn.commit()
                     return True
-            finally:
-                conn.close()
         return False
 
     def pin(self, name: str) -> bool:
@@ -1328,8 +1324,7 @@ class Gardener:
         """Setzt den Pinned-Status eines Eintrags in user.db oder system.db."""
         now = self._now()
         for target in ("user", "system"):
-            conn = self._conn(target)
-            try:
+            with self.connection(target) as conn:
                 row = conn.execute(
                     "SELECT id FROM main.everything WHERE name = ?", (name,)
                 ).fetchone()
@@ -1340,8 +1335,6 @@ class Gardener:
                     )
                     conn.commit()
                     return True
-            finally:
-                conn.close()
         return False
 
     def list(self, type: Optional[str] = None, limit: int = 50,
@@ -1350,10 +1343,9 @@ class Gardener:
 
         Ohne Suchbegriff -- einfach alles zeigen.
         """
-        conn = self._conn("user")
         results = []
 
-        try:
+        with self.connection("user") as conn:
             for db_prefix, db_label in [("main", "user"), ("other", "system")]:
                 sql = f"SELECT *, '{db_label}' as source FROM {db_prefix}.everything"
                 conditions = []
@@ -1375,8 +1367,6 @@ class Gardener:
                 rows = conn.execute(sql, params).fetchall()
                 for row in rows:
                     results.append(self._row_to_dict(row))
-        finally:
-            conn.close()
 
         return results[:limit]
 
@@ -1390,8 +1380,7 @@ class Gardener:
         }
 
         # Counts
-        conn = self._conn("user")
-        try:
+        with self.connection("user") as conn:
             pinned_count = 0
             for db_prefix, db_label in [("main", "user"), ("other", "system")]:
                 count = conn.execute(
@@ -1410,8 +1399,6 @@ class Gardener:
                 ).fetchall()
                 info[f"{db_label}_types"] = {row["type"]: row["cnt"] for row in rows}
             info["pinned_entries"] = pinned_count
-        finally:
-            conn.close()
 
         # Blob-Halde
         blob_count = len(list(self.blob_dir.glob("*")))
@@ -1643,88 +1630,86 @@ class Gardener:
             # than main-then-other, as get() does -- is safe here: an observed
             # entry is always written with target='user', so it can only ever
             # live in user.db.
-            conn = self._conn("user")
             cloud_findings = []
-            try:
-                for item in sources.scan(sid, cfg, state=file_state):
-                    if item.redacted:
-                        src = (item.meta.get("source_ref") or {}).get("path")
-                        if self._is_cloud_path(src):
-                            cloud_findings.append((src, item.redacted))
-                    row = conn.execute(
-                        "SELECT id, meta FROM main.everything WHERE name = ?",
-                        (item.name,)).fetchone()
-                    if row is not None:
-                        try:
-                            prev_meta = json.loads(row["meta"] or "{}")
-                        except (json.JSONDecodeError, TypeError):
-                            prev_meta = {}
-                        if prev_meta.get("source_fingerprint") == item.fingerprint:
-                            skipped += 1
-                            continue
-
-                    meta = dict(item.meta)
-                    meta.update({
-                        "source_id": sid,
-                        "source_kind": kind,
-                        "source_fingerprint": item.fingerprint,
-                        "observed": True,
-                    })
-                    meta_json = json.dumps(meta, ensure_ascii=False)
-                    now = self._now()
-                    if row is not None:
-                        conn.execute("""
-                            UPDATE main.everything
-                            SET content = ?, type = ?, tags = ?, meta = ?,
-                                pinned = ?, updated = ?
-                            WHERE name = ?
-                        """, (item.content, "observed", item.tags, meta_json,
-                              0, now, item.name))
-                    else:
-                        conn.execute("""
-                            INSERT INTO main.everything
-                                (name, content, type, tags, meta, pinned,
-                                 created, updated)
-                            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                        """, (item.name, item.content, "observed", item.tags,
-                              meta_json, 0, now, now))
-                    indexed += 1
-                    # Bounded transactions: a crash mid-scan keeps what was
-                    # already committed, and the offset state is only saved
-                    # after the source finishes, so the rest is simply
-                    # re-read next time.
-                    if indexed % 2000 == 0:
-                        conn.commit()
-                conn.commit()
-                stats[sid] = {"kind": kind, "indexed": indexed, "skipped": skipped}
-                if cloud_findings:
-                    written = self.record_cloud_alerts(cloud_findings)
-                    stats[sid]["cloud_alerts"] = len(cloud_findings)
-                    stats[sid]["cloud_alerts_new"] = written
-                    # Console warning: this is a security finding, not a
-                    # statistic. stderr so it stays visible even when a
-                    # sync run's stdout is piped into a log.
-                    print(f"WARNUNG [{sid}]: Token-Signatur in "
-                          f"{len(cloud_findings)} Cloud-Dokument(en) gefunden "
-                          f"-- {written} neu in {CLOUD_ALERT_FILE}",
-                          file=sys.stderr)
-            except Exception as e:
-                # Eine kaputte Quellen-Konfiguration darf den Refresh der
-                # anderen Quellen nicht abreissen (gleiches Prinzip wie
-                # sync()'s Fehlerbehandlung pro Datei).
+            with self.connection("user") as conn:
                 try:
-                    # Keep what was already scanned; the per-file offset
-                    # state only advances for files that finished, so the
-                    # unread remainder is picked up on the next refresh.
+                    for item in sources.scan(sid, cfg, state=file_state):
+                        if item.redacted:
+                            src = (item.meta.get("source_ref") or {}).get("path")
+                            if self._is_cloud_path(src):
+                                cloud_findings.append((src, item.redacted))
+                        row = conn.execute(
+                            "SELECT id, meta FROM main.everything WHERE name = ?",
+                            (item.name,)).fetchone()
+                        if row is not None:
+                            try:
+                                prev_meta = json.loads(row["meta"] or "{}")
+                            except (json.JSONDecodeError, TypeError):
+                                prev_meta = {}
+                            if prev_meta.get("source_fingerprint") == item.fingerprint:
+                                skipped += 1
+                                continue
+
+                        meta = dict(item.meta)
+                        meta.update({
+                            "source_id": sid,
+                            "source_kind": kind,
+                            "source_fingerprint": item.fingerprint,
+                            "observed": True,
+                        })
+                        meta_json = json.dumps(meta, ensure_ascii=False)
+                        now = self._now()
+                        if row is not None:
+                            conn.execute("""
+                                UPDATE main.everything
+                                SET content = ?, type = ?, tags = ?, meta = ?,
+                                    pinned = ?, updated = ?
+                                WHERE name = ?
+                            """, (item.content, "observed", item.tags, meta_json,
+                                  0, now, item.name))
+                        else:
+                            conn.execute("""
+                                INSERT INTO main.everything
+                                    (name, content, type, tags, meta, pinned,
+                                     created, updated)
+                                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                            """, (item.name, item.content, "observed", item.tags,
+                                  meta_json, 0, now, now))
+                        indexed += 1
+                        # Bounded transactions: a crash mid-scan keeps what was
+                        # already committed, and the offset state is only saved
+                        # after the source finishes, so the rest is simply
+                        # re-read next time.
+                        if indexed % 2000 == 0:
+                            conn.commit()
                     conn.commit()
-                except sqlite3.Error:
-                    pass
-                stats[sid] = {
-                    "error": f"{e.__class__.__name__}: {e}",
-                    "indexed": indexed, "skipped": skipped,
-                }
-            finally:
-                conn.close()
+                    stats[sid] = {"kind": kind, "indexed": indexed, "skipped": skipped}
+                    if cloud_findings:
+                        written = self.record_cloud_alerts(cloud_findings)
+                        stats[sid]["cloud_alerts"] = len(cloud_findings)
+                        stats[sid]["cloud_alerts_new"] = written
+                        # Console warning: this is a security finding, not a
+                        # statistic. stderr so it stays visible even when a
+                        # sync run's stdout is piped into a log.
+                        print(f"WARNUNG [{sid}]: Token-Signatur in "
+                              f"{len(cloud_findings)} Cloud-Dokument(en) gefunden "
+                              f"-- {written} neu in {CLOUD_ALERT_FILE}",
+                              file=sys.stderr)
+                except Exception as e:
+                    # Eine kaputte Quellen-Konfiguration darf den Refresh der
+                    # anderen Quellen nicht abreissen (gleiches Prinzip wie
+                    # sync()'s Fehlerbehandlung pro Datei).
+                    try:
+                        # Keep what was already scanned; the per-file offset
+                        # state only advances for files that finished, so the
+                        # unread remainder is picked up on the next refresh.
+                        conn.commit()
+                    except sqlite3.Error:
+                        pass
+                    stats[sid] = {
+                        "error": f"{e.__class__.__name__}: {e}",
+                        "indexed": indexed, "skipped": skipped,
+                    }
 
         self._save_observe_source_state(all_state)
         return stats

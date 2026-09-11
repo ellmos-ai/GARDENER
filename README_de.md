@@ -10,7 +10,7 @@
 [![Python 3.10-3.13](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-blue.svg)](https://www.python.org/)
 [![Plattformen](https://img.shields.io/badge/plattformen-Linux%20%7C%20Windows%20%7C%20macOS-lightgrey.svg)](https://github.com/ellmos-ai/gardener)
 [![Lizenz: MIT](https://img.shields.io/badge/Lizenz-MIT-yellow.svg)](LICENSE)
-[![Tests: 157 bestanden](https://img.shields.io/badge/tests-157%20passed-brightgreen.svg)](https://github.com/ellmos-ai/gardener)
+[![Tests: 163 bestanden](https://img.shields.io/badge/tests-163%20passed-brightgreen.svg)](https://github.com/ellmos-ai/gardener)
 [![Datenschutz: Local-First](https://img.shields.io/badge/datenschutz-Local--First%20%7C%20Zero--Egress-brightgreen.svg)](SECURITY.md)
 [![Sicherheitsrichtlinie](https://img.shields.io/badge/sicherheit-48h%20SLA-blue.svg)](SECURITY.md)
 [![LLM OS](https://img.shields.io/badge/LLM--OS-SQLite%20Substrate-blueviolet.svg)](https://github.com/ellmos-ai/gardener)
@@ -60,19 +60,20 @@ LLM-Agenten: eine `everything`-Tabelle, FTS5-Suche und die vier Primitive
 
 ```python
 from gardener import Gardener
-af = Gardener()
 
-# Search
-af.find("taxes")
+# Empfohlen: Nutzung als Context Manager für garantiertes Aufräumen von Verbindungen
+with Gardener() as af:
+    # Suchen
+    af.find("taxes")
 
-# Read
-af.get("receipt-scanner")
+    # Lesen
+    af.get("receipt-scanner")
 
-# Write
-af.put("note", content="Important!", type="memory", tags="todo")
+    # Schreiben
+    af.put("note", content="Wichtig!", type="memory", tags="todo")
 
-# Execute
-af.run("file-info", input={"path": "/path/to/file"})
+    # Ausführen
+    af.run("file-info", input={"path": "/pfad/zur/datei"})
 ```
 
 ## CLI
