@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+### Multi-Agent Prompt History & Transcript Noise Reduction (2026-09-12)
+
+- **Claude Code Prompt History Support (`_extract_claude_code_text`)**: Extended Claude Code transcript adapter to recognize and index flat prompt history (`~/.claude/history.jsonl` with `display`, `sessionId`, `project`, `timestamp`), indexing human inputs as user turns with session and line provenance.
+- **Gemini Antigravity CLI Prompt History (`_extract_gemini_antigravity_text`)**: Added native recognition for Antigravity CLI prompt history (`~/.gemini/antigravity-cli/history.jsonl` with `display`, `workspace`, `conversationId`, `timestamp`), indexing CLI prompts under role `user` and mapping `conversationId` to session ID.
+- **Antigravity Transcript Noise Filtering**: Hardened `PLANNER_RESPONSE` turn extraction to index assistant turns only when user-facing prose (`content`) is present. Tool execution action logs, intermediate steps, and internal chain-of-thought reasoning (`thinking`) are cleanly skipped, maintaining strict noise parity with Claude Code and Kimi adapters.
+- **Session ID Extraction Hardening (`_transcript_item`)**: Added `conversationId` resolution in `_transcript_item` session extraction (`entry.get("sessionId") or entry.get("session_id") or entry.get("conversationId")`), ensuring correct session provenance for Gemini Antigravity sessions and history lines.
+- **Reference Catalog Extension (`sources.reference.json`)**: Added `claude-history` (`~/.claude/history.jsonl`) and `gemini-history` (`~/.gemini/antigravity-cli/history.jsonl`) to `tiers.base`, making prompt histories standard discoverable observe sources across all systems.
+- **Test Suite & Metadata Expansion**: Added 3 unit tests (`test_claude_code_history_format`, `test_gemini_antigravity_history_format`, `test_gemini_antigravity_skips_intermediate_thinking_and_tool_steps`), bringing total test coverage to 166 passing tests (100% green).
+
 ### SQLite Connection Lifecycle, Context Manager Hardening & Concurrency Protection (2026-09-11)
 
 - **Connection Context Manager (`Gardener.connection()`)**: Implemented `@contextlib.contextmanager` yielding managed SQLite connections with guaranteed cleanup (`conn.close()`) in `finally` blocks, preventing resource leaks even under unhandled exceptions.

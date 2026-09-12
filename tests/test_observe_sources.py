@@ -598,6 +598,80 @@ class TestAgentTranscriptSource(ObserveSourceTestCase):
         hits = self.af.find("Kennzahl")
         self.assertEqual(len(hits), 2)
 
+    def test_claude_code_history_format(self):
+        """Claude Code flat prompt history (~/.claude/history.jsonl) carries
+        display/timestamp/sessionId/project. Must be indexed as user turns.
+        """
+        history_path = self.foreign / "claude-history.jsonl"
+        self._write_jsonl(history_path, [
+            {"display": "Erstelle bitte die neue API-Dokumentation.",
+             "timestamp": 1771170475931, "project": "C:\\repo", "sessionId": "claude-s1"},
+            {"display": "Und starte den Testlauf danach.",
+             "timestamp": 1771170531284, "project": "C:\\repo", "sessionId": "claude-s1"},
+        ])
+        self.af.observe_source_add(
+            "claude-history", "agent_transcripts",
+            path=str(history_path), format="claude_code",
+        )
+        result = self.af.observe_sources("claude-history")
+        self.assertEqual(result["claude-history"]["indexed"], 2)
+        hits = self.af.find("API-Dokumentation")
+        self.assertEqual(len(hits), 1)
+        self.assertEqual(hits[0]["meta"]["source_ref"]["role"], "user")
+        self.assertEqual(hits[0]["meta"]["source_ref"]["session"], "claude-s1")
+
+    def test_gemini_antigravity_history_format(self):
+        """Antigravity CLI flat prompt history (~/.gemini/antigravity-cli/history.jsonl)
+        carries display/timestamp/workspace/conversationId. Must be indexed as
+        user turns with conversationId mapped to session.
+        """
+        history_path = self.foreign / "gemini-history.jsonl"
+        self._write_jsonl(history_path, [
+            {"display": "Plane die Wartung fuer das Modul.",
+             "timestamp": 1785207256664, "workspace": "C:\\Users\\lukas",
+             "conversationId": "conv-agy-1"},
+            {"display": "/skills",
+             "timestamp": 1785207269753, "workspace": "C:\\Users\\lukas",
+             "conversationId": "conv-agy-1", "type": "slash_command"},
+        ])
+        self.af.observe_source_add(
+            "gemini-history", "agent_transcripts",
+            path=str(history_path), format="gemini_antigravity",
+        )
+        result = self.af.observe_sources("gemini-history")
+        self.assertEqual(result["gemini-history"]["indexed"], 2)
+        hits = self.af.find("Wartung")
+        self.assertEqual(len(hits), 1)
+        self.assertEqual(hits[0]["meta"]["source_ref"]["role"], "user")
+        self.assertEqual(hits[0]["meta"]["source_ref"]["session"], "conv-agy-1")
+
+    def test_gemini_antigravity_skips_intermediate_thinking_and_tool_steps(self):
+        """Intermediate PLANNER_RESPONSE steps with tool_calls and internal
+        'thinking' (no user content) are scratchpad reasoning and must be skipped.
+        Only genuine assistant prose (content) and user input are indexed.
+        """
+        jsonl_path = self.foreign / "gemini-clean.jsonl"
+        self._write_jsonl(jsonl_path, [
+            {"step_index": 0, "source": "USER_EXPLICIT", "type": "USER_INPUT",
+             "content": "Recherchiere die Speicherarchitektur."},
+            {"step_index": 1, "source": "MODEL", "type": "PLANNER_RESPONSE",
+             "thinking": "Ich pruefe zuerst das Schema und rufe die Tools auf.",
+             "tool_calls": [{"name": "run_command"}], "content": None},
+            {"step_index": 2, "source": "MODEL", "type": "GENERIC",
+             "content": "Tool-Ausgabe: Speicher ist SQLite."},
+            {"step_index": 3, "source": "MODEL", "type": "PLANNER_RESPONSE",
+             "content": "Die Recherche zur Speicherarchitektur ist abgeschlossen."},
+        ])
+        self.af.observe_source_add(
+            "gemini-clean", "agent_transcripts",
+            path=str(jsonl_path), format="gemini_antigravity",
+        )
+        result = self.af.observe_sources("gemini-clean")
+        self.assertEqual(result["gemini-clean"]["indexed"], 2)
+        self.assertEqual(self.af.find("Recherche")[0]["content"],
+                         "Die Recherche zur Speicherarchitektur ist abgeschlossen.")
+        self.assertEqual(self.af.find("Schema"), [])
+
     def test_codex_format_preset(self):
         """Codex: flat history plus the clean event_msg channel.
 

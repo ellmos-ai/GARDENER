@@ -571,7 +571,20 @@ def _extract_claude_code_text(entry: Dict):
     calls/results, "thinking" blocks, and isMeta wrapper messages are
     all skipped -- only text actually typed/written by user or
     assistant is indexed).
+
+    Also extracts user prompt history entries (~/.claude/history.jsonl)
+    where entries carry 'display' with 'sessionId', 'project', or 'timestamp'.
     """
+    if not isinstance(entry, dict):
+        return None, None
+
+    # 1. Flat prompt history (~/.claude/history.jsonl)
+    if "display" in entry and isinstance(entry["display"], str):
+        if any(k in entry for k in ("sessionId", "project", "pastedContents", "timestamp")):
+            text = entry["display"].strip()
+            return ("user", text) if text else (None, None)
+
+    # 2. Conversation transcript turn
     if entry.get("type") not in _CLAUDE_CODE_TURN_TYPES:
         return None, None
     if entry.get("isMeta"):
@@ -598,6 +611,7 @@ def _extract_claude_code_text(entry: Dict):
     if not text:
         return None, None
     return role, text
+
 
 
 def _extract_generic_text(entry: Dict, role_field: str, text_field: str,
@@ -636,13 +650,22 @@ def _extract_generic_text(entry: Dict, role_field: str, text_field: str,
 
 
 def _extract_gemini_antigravity_text(entry: Dict):
-    """Extracts (role, text) from a Gemini Antigravity transcript JSONL line."""
+    """Extracts (role, text) from a Gemini Antigravity transcript JSONL line
+    or CLI prompt history (~/.gemini/antigravity-cli/history.jsonl).
+    """
     if not isinstance(entry, dict):
         return None, None
+
+    # 1. Flat CLI prompt history (~/.gemini/antigravity-cli/history.jsonl)
+    if "display" in entry and isinstance(entry["display"], str):
+        if any(k in entry for k in ("conversationId", "workspace", "sessionId", "timestamp")):
+            text = entry["display"].strip()
+            return ("user", text) if text else (None, None)
+
     tp = entry.get("type")
     src = entry.get("source")
 
-    # User input turn
+    # 2. User input turn
     if tp == "USER_INPUT" or src == "USER_EXPLICIT":
         role = "user"
         content = entry.get("content")
@@ -652,25 +675,21 @@ def _extract_gemini_antigravity_text(entry: Dict):
             text = ""
         return (role, text) if text else (None, None)
 
-    # Planner / assistant turn.
+    # 3. Planner / assistant turn.
     #
     # Deliberately NOT `or src == "MODEL"`: that also matches VIEW_FILE,
-    # LIST_DIRECTORY, RUN_COMMAND, GREP_SEARCH and CODE_ACTION steps,
+    # LIST_DIRECTORY, RUN_COMMAND, GREP_SEARCH, GENERIC and CODE_ACTION steps,
     # which are tool action logs (file dumps, command output, diffs) --
     # not prose the assistant wrote. Indexing those is exactly the noise
     # the Claude Code extractor above skips on purpose.
+    # Intermediate steps (tool_calls without user content) and internal
+    # "thinking" blocks are skipped so no machine chatter enters the index.
     if tp == "PLANNER_RESPONSE":
         role = "assistant"
         content = entry.get("content")
         if isinstance(content, str) and content.strip():
-            text = content.strip()
-        else:
-            thinking = entry.get("thinking")
-            if isinstance(thinking, str) and thinking.strip():
-                text = thinking.strip()
-            else:
-                text = ""
-        return (role, text) if text else (None, None)
+            return (role, content.strip())
+        return None, None
 
     return None, None
 
@@ -1006,7 +1025,7 @@ def _transcript_item(entry: Dict, source_id: str, opts: Dict, file_key: str,
         if isinstance(entry, dict) and "step_index" in entry
         else f"L{line_no}")
 
-    session_val = entry.get("sessionId") or entry.get("session_id")
+    session_val = entry.get("sessionId") or entry.get("session_id") or entry.get("conversationId")
     if not session_val and isinstance(entry.get("payload"), dict):
         session_val = (entry["payload"].get("thread_id")
                        or entry["payload"].get("id"))

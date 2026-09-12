@@ -114,10 +114,9 @@ README.md / README_de.md, and the 2026-07-23 entry in CHANGELOG.md.
   notes table without hardcoding its schema. Sources stay **where they are**
   (SQLite opened strictly `mode=ro`); Gardener only indexes, it never copies
   them in. `agent_transcripts` reads GB-sized JSONL transcripts incrementally
-  from a stored byte offset, so an unchanged file is never re-read.
-  **Open:** dedicated `format` presets for transcript formats other than
-  Claude Code (currently: the built-in `claude_code` mapping plus a generic
-  dotted-path role/text mapping for everything else).
+  from a stored byte offset, so an unchanged file is never re-read. Dedicated `format` presets shipped: Claude Code (`claude_code` with history support),
+  Codex (`codex` event_msg/item_completed + history), Gemini Antigravity (`gemini_antigravity`
+  + CLI history with noise filtering), Kimi (`kimi`), plus generic dotted-path role/text mapping.
 - [x] Hits cite their way back to the source: every observed entry carries
   `meta.source_ref` (file path, DB table + row, or transcript line + uuid).
 - [x] Federated FTS search over own and observed sources in a single query:

@@ -9,6 +9,11 @@
         "kind": "markdown_dir",
         "path": "~/.claude/commands"
       },
+      "claude-history": {
+        "kind": "agent_transcripts",
+        "path": "~/.claude/history.jsonl",
+        "format": "claude_code"
+      },
       "claude-memories": {
         "kind": "markdown_dir",
         "path": "~/.claude/projects/*/memory"
@@ -71,6 +76,11 @@
         "patterns": [
           "automation.toml"
         ]
+      },
+      "gemini-history": {
+        "kind": "agent_transcripts",
+        "path": "~/.gemini/antigravity-cli/history.jsonl",
+        "format": "gemini_antigravity"
       },
       "gemini-rules": {
         "kind": "markdown_dir",

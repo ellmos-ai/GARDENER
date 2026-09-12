@@ -110,9 +110,10 @@ add/list/remove/refresh`, 17 Tests). Details: README_de.md Abschnitt
   `sqlite_table` (generisch: Pfad+Tabelle+Spalten-Mapping aus config.json,
   deckt rinnsal-/bach.db-artige Tabellen ab ohne deren Schema fest zu
   verdrahten), `agent_transcripts` (JSONL, inkrementell ab gespeichertem
-  Byte-Offset, kein GB-Reread). Offen: eigene `format`-Presets für
-  Codex-/Gemini-/Kimi-Transkriptformate (bislang `claude_code` + generisches
-  Role/Text-Mapping).
+  Byte-Offset, kein GB-Reread). Eigene `format`-Presets für Claude Code (`claude_code` inkl.
+  Prompt-Historie), Codex (`codex` event_msg/item_completed + Historie), Gemini Antigravity
+  (`gemini_antigravity` inkl. CLI-Historie & Rauschfilterung), Kimi (`kimi`) sowie generisches
+  Role/Text-Mapping umgesetzt.
 - [x] Treffer zitieren zurück zur Quelle via `meta.source_ref`.
 - [x] Föderierte FTS-Suche über eigene + beobachtete Quellen in einem Query
   (bestehendes `find()` durchsuchte bereits beide DBs gemeinsam).
