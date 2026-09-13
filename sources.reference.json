@@ -66,7 +66,10 @@
       },
       "gemini-archive": {
         "kind": "agent_transcripts",
-        "path": "~/.gemini/antigravity/conversations_archive/*.zip",
+        "path": [
+          "~/.gemini/antigravity/conversations_archive/*.zip",
+          "~/.gemini/antigravity/brain_history_older_than_*.zip"
+        ],
         "format": "gemini_antigravity",
         "zip_inner": "*/.system_generated/logs/transcript.jsonl"
       },
@@ -94,7 +97,10 @@
       },
       "gemini-transcripts": {
         "kind": "agent_transcripts",
-        "path": "~/.gemini/antigravity/brain/*/.system_generated/logs/transcript.jsonl",
+        "path": [
+          "~/.gemini/antigravity/brain/*/.system_generated/logs/transcript.jsonl",
+          "~/.gemini/antigravity-cli/brain/*/.system_generated/logs/transcript.jsonl"
+        ],
         "format": "gemini_antigravity"
       },
       "kimi-prompts": {

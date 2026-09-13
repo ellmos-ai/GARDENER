@@ -2,6 +2,17 @@
 
 ## [Unreleased]
 
+### Phrase-Aware Multi-Word FTS5/LIKE Fallback & Multi-Path Source Seeding (2026-09-13)
+
+- **Phrase-Aware Multi-Word FTS5 OR Query (`Gardener._build_fts_or_query`)**: Upgraded `_build_fts_or_query` from a naive whitespace split to `cls._tokenize_query()`. Mixed queries combining quoted phrases and terms (e.g. `'"beleg-scanner" rechnung'`), prefix wildcards, and hyphenated terms now preserve quoted phrases intact and correctly fall back to FTS5 BM25-ranked OR searches when exact AND matches yield 0 results. Single phrases (e.g. `'"Registry Mitgliedschaft"'`) continue to be preserved as exact units rather than split into OR terms.
+- **LIKE Fallback Token Hygiene (`Gardener._like_query`)**: Cleaned token extraction for secondary LIKE fallback using `_tokenize_query()` instead of raw string splitting, ensuring stripped keywords without surrounding double quotes are queried against `name`, `content`, and `tags`.
+- **Multi-Path Observe Source Seeding (`seed._seed_observe_sources`)**: Fixed a path resolution bug where multi-path observe sources configured with a list/tuple of patterns (such as `codex-sessions`) were incorrectly converted into string representations (`"['path1', 'path2']"`). Added safe unpacking and `any()` existence checks so multi-location sources are properly registered when at least one candidate directory exists on the host.
+- **Transcript Reference Catalog Parity (`sources.reference.json`)**:
+  - `gemini-transcripts`: Added multi-path support covering both IDE brain sessions (`~/.gemini/antigravity/brain/*/.../transcript.jsonl`) and CLI brain sessions (`~/.gemini/antigravity-cli/brain/*/.../transcript.jsonl`).
+  - `gemini-archive`: Added support for Antigravity's archive naming pattern (`~/.gemini/antigravity/brain_history_older_than_*.zip`) alongside legacy `conversations_archive/*.zip`.
+- **Test Suite & Metadata Expansion**: Added 2 unit tests (`test_multiword_phrase_or_fallback_and_like_clean_tokens` in `test_gardener_core.py`, `test_unterstuetzt_listen_in_pfaden` in `test_seed_observe_sources.py`), expanding test coverage to 168 passing tests (100% green).
+
+
 ### Multi-Agent Prompt History & Transcript Noise Reduction (2026-09-12)
 
 - **Claude Code Prompt History Support (`_extract_claude_code_text`)**: Extended Claude Code transcript adapter to recognize and index flat prompt history (`~/.claude/history.jsonl` with `display`, `sessionId`, `project`, `timestamp`), indexing human inputs as user turns with session and line provenance.

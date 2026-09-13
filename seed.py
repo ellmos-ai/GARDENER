@@ -551,9 +551,15 @@ def _seed_observe_sources(af, tiers=None):
         for sid, cfg in (ref.get("tiers", {}).get(tier) or {}).items():
             if sid in have:
                 continue
-            paths = [str(cfg[f]).split("*")[0].rstrip("/\\")
-                     for f in ("path", "db_path") if cfg.get(f)]
-            if paths and not all(Path(os.path.expanduser(p)).exists() for p in paths):
+            raw_paths = []
+            for f in ("path", "db_path"):
+                val = cfg.get(f)
+                if isinstance(val, (list, tuple)):
+                    raw_paths.extend(val)
+                elif val:
+                    raw_paths.append(val)
+            paths = [str(p).split("*")[0].rstrip("/\\") for p in raw_paths if p]
+            if paths and not any(Path(os.path.expanduser(p)).exists() for p in paths):
                 skipped += 1
                 continue
             params = {k: v for k, v in cfg.items() if k != "kind"}

@@ -288,33 +288,32 @@ class Gardener:
 
         return " ".join(fts_tokens)
 
-    @staticmethod
-    def _build_fts_or_query(query: str) -> Optional[str]:
+    @classmethod
+    def _build_fts_or_query(cls, query: str) -> Optional[str]:
         """Baut aus einer Mehrwort-Query eine FTS5-OR-Query mit Anführungszeichen.
 
-        Gibt None zurück, wenn die Query bereits explizite FTS-Operatoren oder
-        Anführungszeichen enthält oder aus nur einem Wort besteht.
+        Nutzt _tokenize_query zur robusten Zerlegung in atomare Tokens und Phrasen.
+        Gibt None zurück, wenn die Query bereits explizite FTS-Operatoren
+        (AND, OR, NOT, NEAR) enthält oder aus nur einem Begriff/einer einzelnen Phrase besteht.
         """
         q_upper = query.upper()
-        if '"' in query or "NEAR(" in q_upper or any(op in q_upper.split() for op in ["OR", "AND", "NOT", "NEAR"]):
+        if "NEAR(" in q_upper or any(op in q_upper.split() for op in ["OR", "AND", "NOT", "NEAR"]):
             return None
 
-        tokens = [t.strip() for t in query.split() if t.strip()]
+        tokens = cls._tokenize_query(query)
         if len(tokens) <= 1:
             return None
 
-        cleaned = []
-        for t in tokens:
-            is_prefix = t.endswith('*') and len(t) > 1
-            t_clean = (t[:-1] if is_prefix else t).replace('"', '""')
+        fts_tokens = []
+        for text, is_phrase, is_prefix in tokens:
+            t_clean = text.replace('"', '""')
             star = '*' if is_prefix else ''
-            if t_clean:
-                cleaned.append(f'"{t_clean}"{star}')
+            fts_tokens.append(f'"{t_clean}"{star}')
 
-        if len(cleaned) <= 1:
+        if len(fts_tokens) <= 1:
             return None
 
-        return " OR ".join(cleaned)
+        return " OR ".join(fts_tokens)
 
     @staticmethod
     def _like_escape(value: str) -> str:
@@ -412,7 +411,7 @@ class Gardener:
                     source=None) -> List[Dict]:
         """Fallback-LIKE-Suche über beide Datenbanken."""
         results = []
-        tokens = [t.strip() for t in query.split() if t.strip()]
+        tokens = [text for text, _, _ in self._tokenize_query(query) if text]
         for db_prefix, db_label in [("main", "user"), ("other", "system")]:
             sql = f"""
                 SELECT e.*, '{db_label}' as source

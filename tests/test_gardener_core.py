@@ -173,12 +173,59 @@ class TestGardenerCore(GardenerTempCase):
         )
         # Single word -> None
         self.assertIsNone(build_or("Registry"))
-        # Explicit quotes -> None (preserved user phrase)
+        # Single quoted phrase -> None (preserved as exact phrase, not split)
         self.assertIsNone(build_or('"Registry Mitgliedschaft"'))
+        # Mixed phrase and additional term -> OR query keeping the phrase intact
+        self.assertEqual(
+            build_or('"Registry Mitgliedschaft" Benutzer'),
+            '"Registry Mitgliedschaft" OR "Benutzer"',
+        )
+        # Hyphenated word and bare word
+        self.assertEqual(
+            build_or("beleg-scanner rechnung"),
+            '"beleg-scanner" OR "rechnung"',
+        )
+        # Prefix tokens
+        self.assertEqual(
+            build_or("beleg-scan* rechn*"),
+            '"beleg-scan"* OR "rechn"*',
+        )
+        # Unclosed quote recovery
+        self.assertEqual(
+            build_or('"offenes zitat" rechnung'),
+            '"offenes zitat" OR "rechnung"',
+        )
         # Explicit operators -> None (preserved user boolean query)
         self.assertIsNone(build_or("Registry AND Mitgliedschaft"))
         self.assertIsNone(build_or("Registry OR Mitgliedschaft"))
         self.assertIsNone(build_or("Registry NOT Mitgliedschaft"))
+        self.assertIsNone(build_or("NEAR(Registry, Mitgliedschaft)"))
+
+    def test_multiword_phrase_or_fallback_and_like_clean_tokens(self):
+        self.af.put(
+            "doc-phrase-only",
+            content="Der beleg-scanner verarbeitet Dokumente schnell.",
+            type="tool",
+        )
+        self.af.put(
+            "doc-term-only",
+            content="Jede Eingangsrechnung erfordert eine Buchung.",
+            type="knowledge",
+        )
+
+        # Query has a phrase and another term that never co-occur in one document
+        # Exact AND search yields 0 hits; fallback to OR finds both documents
+        results = self.af.find('"beleg-scanner" Eingangsrechnung', with_snippets=True)
+        self.assertEqual(len(results), 2)
+        names = {r["name"] for r in results}
+        self.assertEqual(names, {"doc-phrase-only", "doc-term-only"})
+        # Verify snippet generation on OR matches
+        for r in results:
+            self.assertIn("snippet", r)
+
+        # Verify LIKE fallback token hygiene: _like_query extracts clean unquoted tokens
+        tokens = [text for text, _, _ in self.gardener.Gardener._tokenize_query('"beleg-scanner" "rechnung"') if text]
+        self.assertEqual(tokens, ["beleg-scanner", "rechnung"])
 
     def test_tokenize_query_and_build_fts_and_query_helpers(self):
         tokenize = self.gardener.Gardener._tokenize_query

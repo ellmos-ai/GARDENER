@@ -55,6 +55,24 @@ def test_legt_vorhandene_quelle_an(ref_dir, tmp_path):
     assert g.sources["da"]["kind"] == "markdown_dir"
 
 
+def test_unterstuetzt_listen_in_pfaden(ref_dir, tmp_path):
+    """Quellen mit Pfadlisten werden angelegt, wenn mindestens ein Pfad existiert."""
+    real = tmp_path / "vorhanden"
+    real.mkdir()
+    not_real = tmp_path / "fehlt"
+    _write_ref(ref_dir, {"base": {
+        "multi": {
+            "kind": "agent_transcripts",
+            "path": [str(not_real / "*.jsonl"), str(real / "*.jsonl")],
+        }
+    }})
+    g = FakeGardener()
+    seed._seed_observe_sources(g)
+    assert g.added == ["multi"]
+    assert g.sources["multi"]["kind"] == "agent_transcripts"
+    assert isinstance(g.sources["multi"]["path"], list)
+
+
 def test_ueberspringt_fehlende_pfade_ohne_fehler(ref_dir, tmp_path):
     """Der Normalfall auf einem fremden Host -- kein Fehler, kein Eintrag."""
     _write_ref(ref_dir, {"base": {
