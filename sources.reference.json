@@ -128,7 +128,11 @@
     "system": {
       "control-tickets": {
         "kind": "markdown_dir",
-        "path": "~/OneDrive/.TOPICS/_control-center/_TICKETS/*",
+        "_comment_path": "Zwei Namen, weil die Live-Queue von _TICKETS nach TICKETS umbenannt wird (T-20260906-387521104) und Ordner wie Configs ueber OneDrive mit eigener Latenz replizieren. Ein nicht existierender Eintrag kostet nichts: glob.glob() liefert dafuer eine leere Liste. Der alte Name faellt weg, sobald beide Hosts umgestellt sind.",
+        "path": [
+          "~/OneDrive/.TOPICS/_control-center/TICKETS/*",
+          "~/OneDrive/.TOPICS/_control-center/_TICKETS/*"
+        ],
         "patterns": [
           "*.txt",
           "*.md"
