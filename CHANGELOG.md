@@ -2,6 +2,23 @@
 
 ## [Unreleased]
 
+### Search Pinning Filter, SQL-Level Priority Promotion & Multi-Path Reference Seeding (2026-09-16)
+
+- **Search Pinning Filter & SQL WHERE Clause (`Gardener.find`, `_fts_query`, `_like_query`, `_source_listing`)**:
+  - Added `pinned: Optional[bool] = None` filter parameter to `Gardener.find()`, `_fts_query()`, `_like_query()`, and `_source_listing()`.
+  - When `pinned=True` or `pinned=False`, an explicit `WHERE` constraint (`AND e.pinned = ?`) is applied across both system and user SQLite databases prior to query evaluation and limit truncation.
+- **SQL-Level Ranking Prioritization (`ORDER BY e.pinned DESC, rank LIMIT ?`)**:
+  - Hardened FTS5 and LIKE queries to sort by `e.pinned DESC` before applying `LIMIT ?` directly in SQLite. This ensures pinned items are never cut off by BM25 rank thresholds when match volumes exceed the page limit.
+- **CLI & Web GUI Pin Filter Integration (`gardener find --pinned`, `search_gui.py`)**:
+  - Added `--pinned`, `--no-pinned`, and `--unpinned` CLI arguments to `gardener find`. Displayed `[PIN]` badge in CLI query results for pinned entries.
+  - Added `pinned` query parameter support (`pinned=1` / `pinned=0`) to the HTTP search endpoint `/api/search` in `search_gui.py`.
+  - Added bilingual help text (`help.find_pinned`) to `i18n.py` and `locales/translations.json`.
+- **Multi-Path Observe Source Seeding in CLI Tool (`apply_reference_sources.py`)**:
+  - Fixed path resolution and existence checks in `apply_reference_sources.py`: properly unpacks multi-path list/tuple definitions (e.g. `codex-sessions`) and verifies existence with `any()`.
+- **Test Suite Expansion & Badges (`tests/test_gardener_core.py`, `tests/test_search_gui.py`, `tests/test_seed_observe_sources.py`, `tests/test_metadata.py`)**:
+  - Added 4 unit tests (`test_find_with_pinned_filter`, `test_find_pinned_cli`, `test_api_search_pinned_filter`, `test_apply_reference_sources_list_and_existence`).
+  - Updated all badges and contract assertions across `README.md`, `README_de.md`, `llms.txt`, and `test_metadata.py` to 174 passing tests (100% green).
+
 ### Technical Hygiene, CI Matrix Hardening & Multi-Host Defense (2026-09-16)
 
 - **CI Workflow Guardrails & Runaway Defense (`.github/workflows/ci.yml`, `stale.yml`, `welcome.yml`)**:

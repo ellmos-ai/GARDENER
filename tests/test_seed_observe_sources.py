@@ -195,3 +195,28 @@ def test_referenzset_enthaelt_das_beschlossene_plans_register():
         "patterns": ["README.md", "PLANS-REPORT.md", "plans-register.json"],
         "extra_tags": ["plan", "governance-register"],
     }
+
+
+def test_apply_reference_sources_list_and_existence(tmp_path):
+    import apply_reference_sources
+
+    real_dir = tmp_path / "existiert"
+    real_dir.mkdir()
+    fake_dir = tmp_path / "existiert_nicht"
+
+    # 1. source_paths mit einzelnen Strings und Listen
+    cfg_list = {"path": [str(fake_dir / "*.jsonl"), str(real_dir / "*.jsonl")]}
+    paths = apply_reference_sources.source_paths(cfg_list)
+    assert len(paths) == 2
+    assert str(fake_dir) in paths[0]
+    assert str(real_dir) in paths[1]
+
+    # 2. exists liefert True, wenn mindestens ein Pfad existiert
+    assert apply_reference_sources.exists(cfg_list) is True
+
+    # 3. exists liefert False, wenn kein Pfad existiert
+    cfg_none = {"path": [str(fake_dir / "*.jsonl")]}
+    assert apply_reference_sources.exists(cfg_none) is False
+
+    # 4. exists liefert True, wenn gar kein Pfad konfiguriert ist
+    assert apply_reference_sources.exists({}) is True

@@ -125,6 +125,20 @@ class TestSearchGuiHttp(SearchGuiTempCase):
         self.assertEqual(status, 200)
         self.assertEqual(data["results"], [])
 
+    def test_api_search_pinned_filter(self):
+        self.af.put("gui-p-item", content="Suchbegriff im Inhalt", type="knowledge", pinned=True)
+        self.af.put("gui-u-item", content="Suchbegriff im Inhalt", type="knowledge", pinned=False)
+
+        status, data = self._get_json("/api/search?q=Suchbegriff&pinned=1")
+        self.assertEqual(status, 200)
+        names = [r["name"] for r in data["results"]]
+        self.assertEqual(names, ["gui-p-item"])
+
+        status, data = self._get_json("/api/search?q=Suchbegriff&pinned=0")
+        self.assertEqual(status, 200)
+        names = [r["name"] for r in data["results"]]
+        self.assertEqual(names, ["gui-u-item"])
+
     def test_api_search_empty_query(self):
         status, data = self._get_json("/api/search?q=")
         self.assertEqual(status, 200)

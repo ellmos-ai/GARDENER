@@ -23,18 +23,21 @@ from pathlib import Path
 
 def source_paths(cfg):
     """Pfade, deren Existenz ueber 'ueberspringen oder anlegen' entscheidet."""
-    out = []
+    raw_paths = []
     for field in ("path", "db_path"):
-        v = cfg.get(field)
-        if v:
-            out.append(str(v).split("*")[0].rstrip("/\\"))
-    return out
+        val = cfg.get(field)
+        if isinstance(val, (list, tuple)):
+            raw_paths.extend(val)
+        elif val:
+            raw_paths.append(val)
+    return [str(p).split("*")[0].rstrip("/\\") for p in raw_paths if p]
+
 
 def exists(cfg):
     ps = source_paths(cfg)
     if not ps:
         return True  # keine Pfadangabe -> Adapter entscheidet selbst
-    return all(Path(os.path.expanduser(p)).exists() for p in ps)
+    return any(Path(os.path.expanduser(p)).exists() for p in ps)
 
 def main():
     ap = argparse.ArgumentParser()

@@ -246,11 +246,16 @@ class SearchGuiHandler(BaseHTTPRequestHandler):
                 limit = max(1, min(limit, 100))
             except ValueError:
                 limit = 20
+            pinned_val = params.get("pinned", [None])[0]
+            pinned_filter = None
+            if pinned_val is not None and pinned_val.strip() != "":
+                pinned_filter = pinned_val.strip().lower() in ("1", "true", "yes", "ja")
             if not query:
                 self._send_json({"results": [], "query": query})
                 return
             results = self.gardener.find(query, type=type_filter,
-                                         limit=limit, with_snippets=True)
+                                         limit=limit, with_snippets=True,
+                                         pinned=pinned_filter)
             self._send_json({"results": results, "query": query})
             return
 

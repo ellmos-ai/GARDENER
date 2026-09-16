@@ -369,7 +369,7 @@ class Gardener:
     def _fts_query(self, conn: sqlite3.Connection, match_query: str,
                    type: Optional[str] = None, limit: int = 20,
                    with_snippets: bool = False,
-                   source=None) -> List[Dict]:
+                   source=None, pinned: Optional[bool] = None) -> List[Dict]:
         """Führt FTS5-Suche über beide Datenbanken aus."""
         results = []
         # snippet()/rank und die MATCH-Spalte brauchen den unqualifizierten
@@ -393,12 +393,16 @@ class Gardener:
                 sql += " AND e.type = ?"
                 params.append(type)
 
+            if pinned is not None:
+                sql += " AND e.pinned = ?"
+                params.append(1 if pinned else 0)
+
             src_sql, src_params = self._source_filter(source)
             if src_sql:
                 sql += f" AND {src_sql}"
                 params.extend(src_params)
 
-            sql += " ORDER BY rank LIMIT ?"
+            sql += " ORDER BY e.pinned DESC, rank LIMIT ?"
             params.append(limit)
 
             rows = conn.execute(sql, params).fetchall()
@@ -408,7 +412,7 @@ class Gardener:
 
     def _like_query(self, conn: sqlite3.Connection, query: str,
                     type: Optional[str] = None, limit: int = 20,
-                    source=None) -> List[Dict]:
+                    source=None, pinned: Optional[bool] = None) -> List[Dict]:
         """Fallback-LIKE-Suche über beide Datenbanken."""
         results = []
         tokens = [text for text, _, _ in self._tokenize_query(query) if text]
@@ -425,12 +429,16 @@ class Gardener:
                 sql += " AND e.type = ?"
                 params.append(type)
 
+            if pinned is not None:
+                sql += " AND e.pinned = ?"
+                params.append(1 if pinned else 0)
+
             src_sql, src_params = self._source_filter(source)
             if src_sql:
                 sql += f" AND {src_sql}"
                 params.extend(src_params)
 
-            sql += " LIMIT ?"
+            sql += " ORDER BY e.pinned DESC, e.updated DESC LIMIT ?"
             params.append(limit)
 
             rows = conn.execute(sql, params).fetchall()
@@ -455,12 +463,16 @@ class Gardener:
                     sql += " AND e.type = ?"
                     params.append(type)
 
+                if pinned is not None:
+                    sql += " AND e.pinned = ?"
+                    params.append(1 if pinned else 0)
+
                 src_sql, src_params = self._source_filter(source)
                 if src_sql:
                     sql += f" AND {src_sql}"
                     params.extend(src_params)
 
-                sql += " LIMIT ?"
+                sql += " ORDER BY e.pinned DESC, e.updated DESC LIMIT ?"
                 params.append(limit)
 
                 rows = conn.execute(sql, params).fetchall()
@@ -474,7 +486,8 @@ class Gardener:
     # ------------------------------------------------------------------
 
     def _source_listing(self, conn: sqlite3.Connection, source,
-                        type: Optional[str] = None, limit: int = 20) -> List[Dict]:
+                        type: Optional[str] = None, limit: int = 20,
+                        pinned: Optional[bool] = None) -> List[Dict]:
         """Listet eine Quelle ohne Volltextsuche (neueste zuerst).
 
         Für den Fall `find(query="", source="usmc-working")`: FTS5 braucht
@@ -494,7 +507,10 @@ class Gardener:
             if type:
                 sql += " AND e.type = ?"
                 params.append(type)
-            sql += " ORDER BY e.updated DESC LIMIT ?"
+            if pinned is not None:
+                sql += " AND e.pinned = ?"
+                params.append(1 if pinned else 0)
+            sql += " ORDER BY e.pinned DESC, e.updated DESC LIMIT ?"
             params.append(limit)
 
             for row in conn.execute(sql, params).fetchall():
@@ -503,7 +519,7 @@ class Gardener:
 
     def find(self, query: str, type: Optional[str] = None,
              limit: int = 20, with_snippets: bool = False,
-             source=None) -> List[Dict]:
+             source=None, pinned: Optional[bool] = None) -> List[Dict]:
         """Durchsucht beide Datenbanken. Der primäre Zugang zu allem.
 
         Bei Mehrwort-Suchanfragen (z. B. 'Registry Mitgliedschaft') wird zunächst
@@ -526,6 +542,8 @@ class Gardener:
                 ohne das verdrängen die grossen Transkript-Quellen per BM25
                 jede Fachsuche. NICHT zu verwechseln mit dem Feld 'source' im
                 Ergebnis -- das benennt die Datenbank ('user'/'system').
+            pinned: Optional filtern nach Gepinnt-Status (True: nur gepinnte,
+                False: nur ungepinnte, None: alle).
 
         Returns:
             Liste von Einträgen als Dicts
@@ -537,7 +555,8 @@ class Gardener:
         source_only = (not query or not query.strip()) and bool(self._normalize_sources(source))
         with self.connection("user") as conn:
             if source_only:
-                results = self._source_listing(conn, source, type=type, limit=limit)
+                results = self._source_listing(conn, source, type=type, limit=limit,
+                                               pinned=pinned)
             else:
                 # 1. Exakte / Standard-FTS5-Suche:
                 #    Versuche zuerst die Roh-Query (erlaubt FTS-Operatoren wie AND, OR, NOT, NEAR
@@ -545,7 +564,7 @@ class Gardener:
                 try:
                     results = self._fts_query(conn, query, type=type, limit=limit,
                                               with_snippets=with_snippets,
-                                              source=source)
+                                              source=source, pinned=pinned)
                 except Exception:
                     results = []
 
@@ -558,7 +577,7 @@ class Gardener:
                         try:
                             results = self._fts_query(conn, and_query, type=type, limit=limit,
                                                       with_snippets=with_snippets,
-                                                      source=source)
+                                                      source=source, pinned=pinned)
                         except Exception:
                             results = []
 
@@ -569,7 +588,7 @@ class Gardener:
                         try:
                             results = self._fts_query(conn, or_query, type=type, limit=limit,
                                                       with_snippets=with_snippets,
-                                                      source=source)
+                                                      source=source, pinned=pinned)
                         except Exception:
                             results = []
 
@@ -577,7 +596,7 @@ class Gardener:
                 if not results:
                     try:
                         results = self._like_query(conn, query, type=type, limit=limit,
-                                                   source=source)
+                                                   source=source, pinned=pinned)
                     except Exception:
                         results = []
 
@@ -1846,18 +1865,26 @@ def _parse_find_args(args: List[str]):
     """Trennt Optionen von Suchwörtern für `gardener find`.
 
     Das CLI kommt ohne argparse aus; ohne diese Trennung landete '--source'
-    schlicht im Suchstring. Unterstützt '--flag wert' und '--flag=wert';
-    alles ohne führende '--' gilt als Suchwort.
+    schlicht im Suchstring. Unterstützt '--flag wert' und '--flag=wert' sowie
+    boolesche Flags wie '--pinned'; alles ohne führende '--' gilt als Suchwort.
 
     Returns:
         (opts, words, error) -- error ist None, wenn alles verstanden wurde
     """
-    opts = {"source": None, "refresh-source": None, "type": None, "limit": 20}
+    opts = {"source": None, "refresh-source": None, "type": None, "limit": 20, "pinned": None}
     words: List[str] = []
     i = 0
     while i < len(args):
         arg = args[i]
         if arg.startswith("--"):
+            if arg == "--pinned":
+                opts["pinned"] = True
+                i += 1
+                continue
+            if arg in ("--no-pinned", "--unpinned"):
+                opts["pinned"] = False
+                i += 1
+                continue
             if "=" in arg:
                 key, value = arg[2:].split("=", 1)
                 step = 1
@@ -1867,6 +1894,13 @@ def _parse_find_args(args: List[str]):
                     value = args[i + 1]
             if key not in opts:
                 return opts, words, f"Unbekannte Option: {arg}"
+            if key == "pinned":
+                if value is None or value == "":
+                    opts["pinned"] = True
+                else:
+                    opts["pinned"] = value.strip().lower() in ("1", "true", "yes", "ja")
+                i += step
+                continue
             if value is None or value == "":
                 return opts, words, f"Option --{key} braucht einen Wert."
             if key == "limit":
@@ -1907,7 +1941,7 @@ def main():
         print()
         print(t("help.commands"))
         commands = [
-            ("gardener find <query>", "cmd.find"),
+            ("gardener find <query> [--pinned]", "cmd.find"),
             ("gardener gui [--port N] [--no-browser]", "cmd.gui"),
             ("gardener get <name>", "cmd.get"),
             ("gardener put <name> <text>", "cmd.put"),
@@ -1940,6 +1974,7 @@ def main():
         print()
         print(f"  {t('help.find_filters')}")
         for flag, label_key in [
+            ("--pinned", "help.find_pinned"),
             ("--source <id>[,<id>]", "help.find_source"),
             ("--refresh-source <id>[,<id>]", "help.find_refresh_source"),
             ("--type <typ>", "help.find_type"),
@@ -1956,12 +1991,12 @@ def main():
         opts, words, err = _parse_find_args(sys.argv[2:])
         if err:
             print(f"  {err}")
-            print("  Nutzung: gardener find [--source <id>[,<id>]] [--type <typ>] "
+            print("  Nutzung: gardener find [--pinned] [--source <id>[,<id>]] [--type <typ>] "
                   "[--limit <n>] <query>")
             return
         query = " ".join(words)
         if not query and not opts["source"]:
-            print("  Nutzung: gardener find [--source <id>[,<id>]] [--type <typ>] "
+            print("  Nutzung: gardener find [--pinned] [--source <id>[,<id>]] [--type <typ>] "
                   "[--limit <n>] <query>")
             print("  Ohne Suchbegriff braucht es mindestens --source "
                   "(dann wird die Quelle aufgelistet).")
@@ -1985,13 +2020,15 @@ def main():
                     f"{details.get('indexed', 0)} indexiert, "
                     f"{details.get('skipped', 0)} unverändert")
         results = af.find(query, type=opts["type"], limit=opts["limit"],
-                          source=opts["source"])
+                          source=opts["source"], pinned=opts["pinned"])
         for r in results:
             src = r.get("source", "?")
-            print(f"  [{r['type']:10s}] {r['name']:30s} ({src})")
+            pin_badge = " [PIN]" if r.get("pinned") else ""
+            print(f"  [{r['type']:10s}] {r['name']:30s} ({src}){pin_badge}")
         if not results:
             aktiv = [f"{k}={v}" for k, v in
-                     (("--source", opts["source"]), ("--type", opts["type"])) if v]
+                     (("--source", opts["source"]), ("--type", opts["type"]),
+                      ("--pinned", "true" if opts["pinned"] is True else ("false" if opts["pinned"] is False else None))) if v]
             zusatz = f" (Filter aktiv: {', '.join(aktiv)})" if aktiv else ""
             print(f"  Keine Ergebnisse.{zusatz}")
 

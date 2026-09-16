@@ -30,6 +30,10 @@ _BUILTIN_TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "de": "find-Filter (wirken VOR dem Ranking):",
         "en": "find filters (applied before ranking):",
     },
+    "help.find_pinned": {
+        "de": "nur gepinnte Einträge durchsuchen",
+        "en": "restrict search to pinned entries only",
+    },
     "help.find_source": {
         "de": "nur diese observe-Quelle(n), Namensraum observed/<id>/...",
         "en": "restrict to these observe-source(s), namespace observed/<id>/...",

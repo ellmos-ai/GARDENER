@@ -782,6 +782,72 @@ def execute(payload):
         )
         self.assertIn("Nicht gefunden: nicht-vorhanden", proc_missing.stdout)
 
+    def test_find_with_pinned_filter(self):
+        self.af.put("find-p-1", content="Einheitlicher Pin-Suchbegriff alpha", type="knowledge", pinned=True)
+        self.af.put("find-u-1", content="Einheitlicher Pin-Suchbegriff beta", type="knowledge", pinned=False)
+        self.af.put("find-p-2", content="Einheitlicher Pin-Suchbegriff gamma", type="memory", pinned=True)
+
+        # 1. pinned=True liefert nur gepinnte Treffer
+        res_pinned = self.af.find("Pin-Suchbegriff", pinned=True)
+        names_pinned = [r["name"] for r in res_pinned]
+        self.assertIn("find-p-1", names_pinned)
+        self.assertIn("find-p-2", names_pinned)
+        self.assertNotIn("find-u-1", names_pinned)
+
+        # 2. pinned=False liefert nur ungepinnte Treffer
+        res_unpinned = self.af.find("Pin-Suchbegriff", pinned=False)
+        names_unpinned = [r["name"] for r in res_unpinned]
+        self.assertEqual(names_unpinned, ["find-u-1"])
+
+        # 3. pinned=None liefert alle Treffer, mit gepinnten zuerst
+        res_all = self.af.find("Pin-Suchbegriff", pinned=None)
+        names_all = [r["name"] for r in res_all]
+        self.assertEqual(len(names_all), 3)
+        self.assertEqual(res_all[0]["pinned"], 1)
+        self.assertEqual(res_all[1]["pinned"], 1)
+        self.assertEqual(res_all[2]["pinned"], 0)
+
+        # 4. Filter kombiniert mit type
+        res_typed = self.af.find("Pin-Suchbegriff", type="memory", pinned=True)
+        self.assertEqual([r["name"] for r in res_typed], ["find-p-2"])
+
+    def test_find_pinned_cli(self):
+        self.af.put("cli-p-item", content="CLI Pin Testinhalt", type="knowledge", pinned=True)
+        self.af.put("cli-u-item", content="CLI Pin Testinhalt", type="knowledge", pinned=False)
+
+        env = os.environ.copy()
+        env["PYTHONIOENCODING"] = "utf-8"
+        env["GARDENER_DATA"] = str(self.af.data_dir)
+        env["GARDENER_HOME"] = str(self.af.home)
+
+        # 1. gardener find --pinned
+        proc_pinned = subprocess.run(
+            [sys.executable, str(ROOT / "gardener.py"), "find", "--pinned", "Testinhalt"],
+            cwd=ROOT,
+            env=env,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            check=True,
+        )
+        self.assertIn("cli-p-item", proc_pinned.stdout)
+        self.assertIn("[PIN]", proc_pinned.stdout)
+        self.assertNotIn("cli-u-item", proc_pinned.stdout)
+
+        # 2. gardener find --unpinned
+        proc_unpinned = subprocess.run(
+            [sys.executable, str(ROOT / "gardener.py"), "find", "--unpinned", "Testinhalt"],
+            cwd=ROOT,
+            env=env,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            check=True,
+        )
+        self.assertIn("cli-u-item", proc_unpinned.stdout)
+        self.assertNotIn("cli-p-item", proc_unpinned.stdout)
+        self.assertNotIn("[PIN]", proc_unpinned.stdout)
+
 
 class TestCliI18n(unittest.TestCase):
     def run_help(self, lang):
