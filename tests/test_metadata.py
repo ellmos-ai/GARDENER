@@ -17,6 +17,8 @@ class TestMetadataParity(unittest.TestCase):
         self.readme_de_path = ROOT / "README_de.md"
         self.security_path = ROOT / "SECURITY.md"
         self.ci_workflow_path = ROOT / ".github" / "workflows" / "ci.yml"
+        self.stale_workflow_path = ROOT / ".github" / "workflows" / "stale.yml"
+        self.welcome_workflow_path = ROOT / ".github" / "workflows" / "welcome.yml"
         self.llms_txt_path = ROOT / "llms.txt"
         self.changelog_path = ROOT / "CHANGELOG.md"
         self.marketing_log_path = ROOT / "MARKETING-LOG.txt"
@@ -27,6 +29,8 @@ class TestMetadataParity(unittest.TestCase):
         self.readme_de = self.readme_de_path.read_text(encoding="utf-8")
         self.security = self.security_path.read_text(encoding="utf-8")
         self.ci_workflow = self.ci_workflow_path.read_text(encoding="utf-8")
+        self.stale_workflow = self.stale_workflow_path.read_text(encoding="utf-8")
+        self.welcome_workflow = self.welcome_workflow_path.read_text(encoding="utf-8")
         self.llms_txt = self.llms_txt_path.read_text(encoding="utf-8")
         self.changelog = self.changelog_path.read_text(encoding="utf-8")
         self.marketing_log = self.marketing_log_path.read_text(encoding="utf-8")
@@ -44,9 +48,9 @@ class TestMetadataParity(unittest.TestCase):
         self.assertIn(f"[{version}]", self.changelog)
 
     def test_readme_badges_and_test_count(self):
-        # Assert test badges show 168 passed
-        self.assertIn("tests-168%20passed-brightgreen.svg", self.readme_en)
-        self.assertIn("tests-168%20passed-brightgreen.svg", self.readme_de)
+        # Assert test badges show 170 passed
+        self.assertIn("tests-170%20passed-brightgreen.svg", self.readme_en)
+        self.assertIn("tests-170%20passed-brightgreen.svg", self.readme_de)
 
         # Assert code style Ruff
         self.assertIn("code%20style-ruff-000000.svg", self.readme_en)
@@ -70,11 +74,12 @@ class TestMetadataParity(unittest.TestCase):
         self.assertIn("actions/workflows/ci.yml/badge.svg", self.readme_de)
 
     def test_llms_txt_consistency(self):
-        self.assertIn("Last-checked: 2026-09-13", self.llms_txt)
-        self.assertIn("168 passing tests", self.llms_txt)
+        self.assertIn("Last-checked: 2026-09-16", self.llms_txt)
+        self.assertIn("170 passing tests", self.llms_txt)
         self.assertIn("https://github.com/ellmos-ai/gardener", self.llms_txt)
         self.assertIn("ellmos-ai/gardener", self.llms_txt)
         self.assertIn("SECURITY.md", self.llms_txt)
+        self.assertIn("MARKETING-LOG", self.llms_txt)
 
     def test_mermaid_architecture_in_readmes(self):
         self.assertIn("```mermaid", self.readme_en)
@@ -179,8 +184,18 @@ class TestMetadataParity(unittest.TestCase):
             self.assertIn(os_target, self.ci_workflow)
         for py_ver in ("'3.10'", "'3.11'", "'3.12'", "'3.13'"):
             self.assertIn(py_ver, self.ci_workflow)
+        self.assertIn("timeout-minutes: 15", self.ci_workflow)
         self.assertIn("ruff check .", self.ci_workflow)
-        self.assertIn("pytest -v", self.ci_workflow)
+        self.assertIn("python -m pytest -ra -v", self.ci_workflow)
+
+    def test_auxiliary_workflows_hardening(self):
+        self.assertTrue(self.stale_workflow_path.is_file(), ".github/workflows/stale.yml must exist")
+        self.assertIn("timeout-minutes: 10", self.stale_workflow)
+        self.assertIn("cancel-in-progress: true", self.stale_workflow)
+
+        self.assertTrue(self.welcome_workflow_path.is_file(), ".github/workflows/welcome.yml must exist")
+        self.assertIn("timeout-minutes: 5", self.welcome_workflow)
+        self.assertIn("cancel-in-progress: true", self.welcome_workflow)
 
     def test_ci_concurrency_and_bytecode_gate(self):
         self.assertIn("concurrency:", self.ci_workflow)
@@ -210,24 +225,50 @@ class TestMetadataParity(unittest.TestCase):
         self.assertIn("Programming Language :: Python :: 3.10", self.pyproject)
         self.assertIn("Programming Language :: Python :: 3.13", self.pyproject)
 
-        for key in ("Homepage", "Documentation", "Repository", "Issues", "Changelog", "Security", "Parent Organization", "Umbrella"):
+        for key in (
+            "Homepage", "Documentation", "Repository", "Issues", "Changelog",
+            "Security", "Parent Organization", "Umbrella", "LLM Ready", "Marketing Log"
+        ):
             self.assertIn(f'"{key}" = ' if " " in key else f"{key} = ", self.pyproject)
+
+    def test_pyproject_pytest_and_ruff_config(self):
+        self.assertIn("[tool.pytest.ini_options]", self.pyproject)
+        self.assertIn('addopts = "-ra -v"', self.pyproject)
+        self.assertIn("norecursedirs = [", self.pyproject)
+        self.assertIn("[tool.ruff.lint]", self.pyproject)
+        self.assertIn('"B"', self.pyproject)
+        self.assertIn('"C4"', self.pyproject)
 
     def test_gitignore_hardened_patterns(self):
         self.assertTrue(self.gitignore_path.is_file(), ".gitignore must exist")
         self.assertIn("*.sync-conflict-*", self.gitignore)
         self.assertIn("LOCK.*", self.gitignore)
         self.assertIn("*.lock", self.gitignore)
+        self.assertIn("uv.lock", self.gitignore)
+        self.assertIn("!package-lock.json", self.gitignore)
+        self.assertIn("* (copy)*", self.gitignore)
+        self.assertIn("* (kopie)*", self.gitignore)
+        self.assertIn("*-WORKSTATION*", self.gitignore)
+        self.assertIn("*-ASUS*", self.gitignore)
+        self.assertIn("*-LAPTOP*", self.gitignore)
+        self.assertIn("*.sync-temp-*", self.gitignore)
+        self.assertIn("*.orig", self.gitignore)
+        self.assertIn("*.rej", self.gitignore)
         self.assertIn(".ruff_cache/", self.gitignore)
         self.assertIn(".pytest_cache/", self.gitignore)
+        self.assertIn(".coverage.*", self.gitignore)
 
     def test_marketing_log_and_changelog_recency(self):
         self.assertTrue(self.marketing_log_path.is_file(), "MARKETING-LOG.txt must exist")
         self.assertIn("2026-09-08", self.marketing_log)
         self.assertIn("Pfad B", self.marketing_log)
+        self.assertIn("2026-09-16", self.marketing_log)
+        self.assertIn("Pfad A", self.marketing_log)
         self.assertIn("ellmos-ai/gardener", self.marketing_log)
         self.assertIn("2026-09-08", self.changelog)
         self.assertIn("Marketing, Discoverability", self.changelog)
+        self.assertIn("2026-09-16", self.changelog)
+        self.assertIn("Technical Hygiene", self.changelog)
 
     def test_license_and_liability_notice(self):
         license_path = ROOT / "LICENSE"

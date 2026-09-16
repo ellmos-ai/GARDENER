@@ -2,6 +2,23 @@
 
 ## [Unreleased]
 
+### Technical Hygiene, CI Matrix Hardening & Multi-Host Defense (2026-09-16)
+
+- **CI Workflow Guardrails & Runaway Defense (`.github/workflows/ci.yml`, `stale.yml`, `welcome.yml`)**:
+  - Added explicit `timeout-minutes: 15` runaway protection across all 12 matrix jobs in `ci.yml`. Standardized test runner execution to `python -m pytest -ra -v` under UTF-8 encoding.
+  - Added `timeout-minutes: 10` and concurrency cancellation (`cancel-in-progress: true`) to `stale.yml`.
+  - Added `timeout-minutes: 5` and concurrency cancellation (`cancel-in-progress: true`) to `welcome.yml`.
+- **Multi-Host Sync Conflict & Canonical Lock Defense (`.gitignore`)**:
+  - Enforced full coverage for multi-host conflict files (`* (copy)*`, `* (Copy)*`, `* (kopie)*`, `* (Kopie)*`, `*conflicted copy*`, `*-WORKSTATION*`, `*-ASUS*`, `*-LAPTOP*`, `*-Mac Studio*`, `*.sync-temp-*`).
+  - Hardened lock isolation against accidental lock commits (`LOCK`, `LOCK*.txt`, `LOCK.*`, `*.lock`, `uv.lock`, with explicit unignore for `!package-lock.json`).
+  - Added hygiene masks for merge residue (`*.orig`, `*.rej`) and coverage/test caches (`.coverage.*`, `.hypothesis/`, `.turbo/`, `.nyc_output/`, `wheelhouse/`, `.wheel-smoke/`).
+- **PEP 621 Metadata Alignment & Ruff Expansion (`pyproject.toml`, `gardener.py`)**:
+  - Enriched `[project.urls]` with `"LLM Ready"` and `"Marketing Log"`.
+  - Added standard pytest configuration with `addopts = "-ra -v"`, `minversion = "7.0"`, and `norecursedirs`.
+  - Expanded Ruff linter rules to include flake8-bugbear (`B`) and flake8-comprehensions (`C4`), resolving unused loop variables in FTS tokenizers and direct attribute access.
+- **Contract Test Suite Expansion (`tests/test_metadata.py`)**:
+  - Extended metadata contract tests to verify CI timeouts and concurrency, multi-host and lock defense gitignore patterns, and PEP 621 extended project URLs.
+
 ### Phrase-Aware Multi-Word FTS5/LIKE Fallback & Multi-Path Source Seeding (2026-09-13)
 
 - **Phrase-Aware Multi-Word FTS5 OR Query (`Gardener._build_fts_or_query`)**: Upgraded `_build_fts_or_query` from a naive whitespace split to `cls._tokenize_query()`. Mixed queries combining quoted phrases and terms (e.g. `'"beleg-scanner" rechnung'`), prefix wildcards, and hyphenated terms now preserve quoted phrases intact and correctly fall back to FTS5 BM25-ranked OR searches when exact AND matches yield 0 results. Single phrases (e.g. `'"Registry Mitgliedschaft"'`) continue to be preserved as exact units rather than split into OR terms.

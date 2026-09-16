@@ -109,3 +109,27 @@ Version: 0.4.2
    - Register in Glama, mcp.so, and ToolRegistry under database-agents and local-first-memory.
 3. Ecosystem Cross-Referencing:
    - Deepen bi-directional linking between ellmos-ai/bach, ellmos-ai/rinnsal, and ellmos-ai/gardener to showcase file-centric vs database-centric AI architectures.
+
+================================================================================
+4. TECHNICAL HYGIENE, CI MATRIX & CONTRACT HARDENING (2026-09-16)
+================================================================================
+- Operator: Antigravity / Gemini (via GITHUBBOT Pfad A Turnus)
+- Scope: Full Technical Hygiene, CI Matrix Runaway Guards, Multi-Host Sync Defense
+[x] CI Workflow Hardening (.github/workflows/ci.yml, stale.yml, welcome.yml):
+    - Added timeout-minutes: 15 across all 12 matrix jobs in ci.yml.
+    - Standardized test runner execution to python -m pytest -ra -v with utf-8 encoding.
+    - Added timeout-minutes: 10 and concurrency cancellation in stale.yml.
+    - Added timeout-minutes: 5 and concurrency cancellation in welcome.yml.
+[x] Multi-Host Sync & Lock Defense (.gitignore):
+    - Added explicit rules for multi-host conflict duplicates (* (copy)*, * (kopie)*, *conflicted copy*, *-WORKSTATION*, *-ASUS*, *-LAPTOP*, *-Mac Studio*, *.sync-temp-*).
+    - Enforced canonical lock isolation (LOCK, LOCK.*, *.lock, uv.lock, with !package-lock.json exception).
+    - Added cache and test coverage masks (.coverage.*, .hypothesis/, .turbo/, .nyc_output/, wheelhouse/, .wheel-smoke/, *.orig, *.rej).
+[x] PEP 621 Metadata Alignment & Ruff Expansion (pyproject.toml):
+    - Added project URLs: "LLM Ready" (llms.txt) and "Marketing Log" (MARKETING-LOG.txt).
+    - Added pytest ini options (addopts = "-ra -v", minversion = "7.0", norecursedirs).
+    - Expanded Ruff linting rule sets to ["E", "F", "W", "I", "B", "C4"] with zero warnings.
+[x] Contract Test Suite Expansion (tests/test_metadata.py):
+    - Added contract verification for CI workflow timeouts and concurrency across all workflows.
+    - Added contract verification for hardened multi-host and lock defense gitignore patterns.
+    - Added contract verification for PEP 621 extended project URLs and pytest configuration.
+    - Added contract verification for marketing log and changelog recency.

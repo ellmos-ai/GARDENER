@@ -47,21 +47,44 @@ CORE.txt
 # Laufprotokolle der Repo-Pflege (Pipeline-Material, kein Repo-Inhalt)
 _after-care/
 
-# Interne Multi-Agenten-Koordination (LOCK-System)
+# Interne Multi-Agenten-Koordination (LOCK-System) & Package Locks
+LOCK
 LOCK*.txt
 LOCK.*
 *.lock
+uv.lock
+!package-lock.json
 
-# Multi-Host-Synchronisationskonflikte
+# Multi-Host-Synchronisationskonflikte & Duplikate
 *.sync-conflict-*
 *.conflict
 *-CONFLIT-*
 *-conflict-*
+* (copy)*
+* (Copy)*
+* (kopie)*
+* (Kopie)*
+*conflicted copy*
+*-WORKSTATION*
+*-ASUS*
+*-LAPTOP*
+*-Mac Studio*
+*.sync-temp-*
+
+# Merge- und Patch-Rückstände
+*.orig
+*.rej
 
 # Cache- und temporäre Artefakte
 .ruff_cache/
 .pytest_cache/
 .coverage
+.coverage.*
 htmlcov/
+.hypothesis/
+.turbo/
+.nyc_output/
+wheelhouse/
+.wheel-smoke/
 *.tmp
 *.bak

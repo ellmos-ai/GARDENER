@@ -278,7 +278,7 @@ class Gardener:
             return None
 
         fts_tokens = []
-        for text, is_phrase, is_prefix in tokens:
+        for text, _is_phrase, is_prefix in tokens:
             t_clean = text.replace('"', '""')
             star = '*' if is_prefix else ''
             fts_tokens.append(f'"{t_clean}"{star}')
@@ -305,7 +305,7 @@ class Gardener:
             return None
 
         fts_tokens = []
-        for text, is_phrase, is_prefix in tokens:
+        for text, _is_phrase, is_prefix in tokens:
             t_clean = text.replace('"', '""')
             star = '*' if is_prefix else ''
             fts_tokens.append(f'"{t_clean}"{star}')
@@ -1732,8 +1732,8 @@ class Gardener:
         else:
             rel_path = str(rel)
             cfg_excludes = (
-                getattr(self, "config", {}).get("exclude_patterns", [])
-                if hasattr(self, "config") and isinstance(getattr(self, "config"), dict)
+                self.config.get("exclude_patterns", [])
+                if hasattr(self, "config") and isinstance(self.config, dict)
                 else []
             )
 
