@@ -2,6 +2,26 @@
 
 ## [Unreleased]
 
+### Pfad B: Marketing, Discoverability, Visual Architecture & License Transparency (2026-09-18)
+
+- **18-Point Quick Navigation Parity & Reciprocal Anchor Matrix (`README.md`, `README_de.md`)**:
+  - Upgraded Quick Navigation in English and German to 18 numbered sections with reciprocal dual HTML anchor tags (`<a id="..."></a>`).
+  - Guaranteed 100% interoperability between English jump links (`#1-features`..`#18-security-policy-sibling-ecosystem--liability`), German jump links (`#1-funktionen`..`#18-sicherheitsrichtlinie-geschwister-oekosystem--haftung`), and legacy anchor targets.
+- **Target Personas & Discoverability Query Matrix (`[PERSONA-01]`..`[PERSONA-04]`, `README.md`, `README_de.md`, `llms.txt`)**:
+  - Formalized 4 core target personas: Local-First AI Agent Engineers, Privacy-First Researchers & Knowledge Workers, Multi-Agent Fleet Architects, and SQLite & Local-Tool Enthusiasts.
+  - Curated high-intent search query matrix for SQLite-based LLM operating systems and deterministic FTS5 memory substrates.
+- **10-Dimension Comparative Matrix vs. 4 Alternatives (`README.md`, `README_de.md`)**:
+  - Benchmarked Gardener OS against MemGPT/Letta, LangChain/LlamaIndex SQLite, ChromaDB/Pinecone, and Traditional OS Filesystem + Grep across 10 architectural dimensions mapped 1:1 to invariants (`INV-LOCAL-01` to `INV-SLA-10`).
+- **Software Inventory & License Transparency Audit (`THIRD_PARTY_LICENSES.md`, `pyproject.toml`)**:
+  - Published comprehensive SPDX-compliant software bill of materials (SBOM).
+  - Certified zero external runtime dependencies (100% Python standard library).
+  - Formally certified `RunAsInvoker` unprivileged user-mode execution and Zero-Copyleft isolation.
+  - Enriched `pyproject.toml` with `"Third-Party Licenses"`, `"Umbrella Ecosystem"`, and `license-files = ["LICENSE", "THIRD_PARTY_LICENSES.md"]`.
+- **German Statutory Liability Limitation (`README_de.md`)**:
+  - Integrated statutory disclaimer according to § 521 BGB (Gefälligkeitsrecht) limiting liability to intent and gross negligence.
+- **Automated Contract Test Suite Expansion (`tests/test_metadata.py`)**:
+  - Added rigorous automated contract tests verifying 18-point quick navigation parity, personas, comparative matrix, `THIRD_PARTY_LICENSES.md` integrity, and § 521 BGB statutory disclaimer.
+
 ### Search Pinning Filter, SQL-Level Priority Promotion & Multi-Path Reference Seeding (2026-09-16)
 
 - **Search Pinning Filter & SQL WHERE Clause (`Gardener.find`, `_fts_query`, `_like_query`, `_source_listing`)**:

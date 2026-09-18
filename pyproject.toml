@@ -11,6 +11,7 @@ version = "0.4.2"
 description = "Database-centric operating system for LLMs: find, get, put, run on a single SQLite substrate."
 readme = "README.md"
 license = { text = "MIT" }
+license-files = ["LICENSE", "THIRD_PARTY_LICENSES.md"]
 authors = [{ name = "Lukas Geiger" }]
 requires-python = ">=3.10"
 keywords = [
@@ -51,9 +52,11 @@ Issues = "https://github.com/ellmos-ai/gardener/issues"
 Changelog = "https://github.com/ellmos-ai/gardener/blob/master/CHANGELOG.md"
 Security = "https://github.com/ellmos-ai/gardener/blob/master/SECURITY.md"
 "Parent Organization" = "https://github.com/ellmos-ai"
+"Umbrella Ecosystem" = "https://github.com/open-bricks"
 Umbrella = "https://github.com/open-bricks"
 "LLM Ready" = "https://github.com/ellmos-ai/gardener/blob/master/llms.txt"
 "Marketing Log" = "https://github.com/ellmos-ai/gardener/blob/master/MARKETING-LOG.txt"
+"Third-Party Licenses" = "https://github.com/ellmos-ai/gardener/blob/master/THIRD_PARTY_LICENSES.md"
 
 [project.scripts]
 gardener = "gardener:main"

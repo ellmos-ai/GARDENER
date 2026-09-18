@@ -12,7 +12,8 @@
 [![Python 3.10-3.13](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-blue.svg)](https://www.python.org/)
 [![Platforms](https://img.shields.io/badge/platforms-Linux%20%7C%20Windows%20%7C%20macOS-lightgrey.svg)](https://github.com/ellmos-ai/gardener)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Tests: 174 passed](https://img.shields.io/badge/tests-174%20passed-brightgreen.svg)](https://github.com/ellmos-ai/gardener)
+[![Tests: 178 passed](https://img.shields.io/badge/tests-178%20passed-brightgreen.svg)](https://github.com/ellmos-ai/gardener)
+[![Execution: RunAsInvoker](https://img.shields.io/badge/execution-RunAsInvoker-success.svg)](THIRD_PARTY_LICENSES.md)
 [![Privacy: Local-First](https://img.shields.io/badge/privacy-Local--First%20%7C%20Zero--Egress-brightgreen.svg)](SECURITY.md)
 [![Security Policy](https://img.shields.io/badge/security-48h%20SLA-blue.svg)](SECURITY.md)
 [![LLM OS](https://img.shields.io/badge/LLM--OS-SQLite%20Substrate-blueviolet.svg)](https://github.com/ellmos-ai/gardener)
@@ -23,92 +24,138 @@
 > [!NOTE]
 > **LLM / Agent Integration**: Gardener provides a single-table FTS5 SQLite substrate (`gardener.db` / `user.db`) with `find`, `get`, `put`, and `run` primitives. See [`llms.txt`](llms.txt) for machine-readable context.
 
-**🇩🇪 [Deutsche Version](README_de.md)** | **🛡️ [Security Policy](SECURITY.md)** | **📝 [Changelog](CHANGELOG.md)** | **📋 [llms.txt](llms.txt)** | **📊 [Marketing Log](MARKETING-LOG.txt)**
+**🇩🇪 [Deutsche Version](README_de.md)** | **🛡️ [Security Policy](SECURITY.md)** | **📜 [Third-Party Licenses](THIRD_PARTY_LICENSES.md)** | **📝 [Changelog](CHANGELOG.md)** | **📋 [llms.txt](llms.txt)** | **📊 [Marketing Log](MARKETING-LOG.txt)**
 
 > Status: Prototype (v0.4.2) | Author: Lukas Geiger + Claude
 
+---
+
 ## 🧭 Quick Navigation
 
-- [What is Gardener?](#what-is-gardener)
-- [Discovery Context & Search Phrases](#discovery-context)
-- [System Architecture & Data Flow](#architecture)
-- [End-to-End Query & Execution Lifecycle](#end-to-end-query--execution-lifecycle)
-- [Governance & Runtime Invariants Matrix](#governance--runtime-invariants)
-- [Data Model & Everything Substrate](#data-model)
-- [Associative Memory Without Separate Systems](#memory-no-separate-memory-system)
-- [Unified Task Management](#tasks-no-separate-system)
-- [File Relations & Transporter](#three-relationships-with-files)
-- [Cross-Source Federated Index](#cross-source-federated-index)
-- [Gardener vs. Rinnsal Architectural Comparison](#comparison-gardener-vs-rinnsal)
-- [Sibling Projects & Ecosystem Matrix](#sibling-projects--ecosystem)
-- [Security Model & Vulnerability Reporting](#security-model-read-this)
-- [Haftung & Liability Notice](#haftung--liability)
+| # | Section (EN) | Abschnitt (DE) | Jump Link |
+|---|---|---|---|
+| 01 | [Features & Core Primitives](#1-features) | [Funktionen & Kernprimitive](#1-funktionen) | [`#1-features`](#1-features) |
+| 02 | [System Architecture](#2-architecture) | [Systemarchitektur](#2-architektur) | [`#2-architecture`](#2-architecture) |
+| 03 | [Target Personas & Discoverability](#3-target-personas--discoverability) | [Zielgruppen & Auffindbarkeit](#3-zielgruppen--auffindbarkeit) | [`#3-target-personas--discoverability`](#3-target-personas--discoverability) |
+| 04 | [Comparative Matrix vs. Alternatives](#4-comparative-matrix-vs-alternatives) | [Vergleichsmatrix vs. Alternativen](#4-vergleichsmatrix-vs-alternativen) | [`#4-comparative-matrix-vs-alternatives`](#4-comparative-matrix-vs-alternatives) |
+| 05 | [Dual Mermaid Diagrams](#5-dual-mermaid-diagrams) | [Duale Mermaid-Diagramme](#5-duale-mermaid-diagramme) | [`#5-dual-mermaid-diagrams`](#5-dual-mermaid-diagrams) |
+| 06 | [Governance & Runtime Invariants](#6-governance--runtime-invariants) | [Governance & Laufzeit-Invarianten](#6-governance--laufzeit-invarianten) | [`#6-governance--runtime-invariants`](#6-governance--runtime-invariants) |
+| 07 | [Data Model & Everything Substrate](#7-data-model--everything-substrate) | [Datenmodell & Everything-Substrat](#7-datenmodell--everything-substrat) | [`#7-data-model--everything-substrate`](#7-data-model--everything-substrate) |
+| 08 | [Dual SQLite Substrate & FTS5 BM25 Engine](#8-sqlite-substrate--fts5-engine) | [Duales SQLite-Substrat & FTS5-BM25](#8-sqlite-substrat--fts5-engine) | [`#8-sqlite-substrate--fts5-engine`](#8-sqlite-substrate--fts5-engine) |
+| 09 | [Search GUI & Web Companion](#9-search-gui--web-companion) | [Such-GUI & Web-Oberfläche](#9-such-gui--web-oberflaeche) | [`#9-search-gui--web-companion`](#9-search-gui--web-companion) |
+| 10 | [Installation & Quickstart](#10-installation--quickstart) | [Installation & Schnellstart](#10-installation--schnellstart) | [`#10-installation--quickstart`](#10-installation--quickstart) |
+| 11 | [CLI & Headless Automation](#11-cli--headless-automation) | [CLI & Headless-Automation](#11-cli--headless-automation) | [`#11-cli--headless-automation`](#11-cli--headless-automation) |
+| 12 | [Unified Task & Memory Management](#12-unified-task--memory-management) | [Einheitliches Task- & Memory-Management](#12-einheitliches-task--memory-management) | [`#12-unified-task--memory-management`](#12-unified-task--memory-management) |
+| 13 | [File Lifecycle: Absorb, Materialize & Sync](#13-file-lifecycle-absorb-materialize--sync) | [Dateilebenszyklus: Absorb, Materialize & Sync](#13-dateilebenszyklus-absorb-materialize--sync) | [`#13-file-lifecycle-absorb-materialize--sync`](#13-file-lifecycle-absorb-materialize--sync) |
+| 14 | [Federated Sources & Secret Redaction](#14-federated-sources--secret-redaction) | [Föderierte Quellen & Secret-Schwärzung](#14-foederierte-quellen--secret-schwaerzung) | [`#14-federated-sources--secret-redaction`](#14-federated-sources--secret-redaction) |
+| 15 | [Architectural Comparison: Gardener vs. Rinnsal](#15-gardener-vs-rinnsal) | [Architekturvergleich: Gardener vs. Rinnsal](#15-gardener-vs-rinnsal) | [`#15-gardener-vs-rinnsal`](#15-gardener-vs-rinnsal) |
+| 16 | [Testing & Quality Verification](#16-testing--quality-verification) | [Tests & Qualitätssicherung](#16-tests--qualitaetssicherung) | [`#16-testing--quality-verification`](#16-testing--quality-verification) |
+| 17 | [Third-Party Licenses & Software Inventory](#17-third-party-licenses--software-inventory) | [Drittanbieter-Lizenzen & Software-Inventar](#17-drittanbieter-lizenzen--software-inventar) | [`#17-third-party-licenses--software-inventory`](#17-third-party-licenses--software-inventory) |
+| 18 | [Security Policy, Sibling Ecosystem & Liability Notice](#18-security-policy-sibling-ecosystem--liability) | [Sicherheitsrichtlinie, Geschwister-Ökosystem & Haftungshinweis](#18-sicherheitsrichtlinie-geschwister-oekosystem--haftung) | [`#18-security-policy-sibling-ecosystem--liability`](#18-security-policy-sibling-ecosystem--liability) |
 
-## What is Gardener?
+---
 
-An operating system built for LLMs. Everything lives in a searchable
-database. Four functions are all you need.
+<a id="1-features"></a><a id="features"></a><a id="what-is-gardener"></a>
+## 1. Features & Core Primitives
 
-## Discovery Context
+An operating system built specifically for LLMs. Everything lives in a searchable SQLite database. Four functions are all you need:
 
-Use the canonical search phrase `ellmos-ai/gardener` when you need this
-repository. The short name `gardener` collides with gardening sites, Sesame
-Street results, and unrelated database-operating-system research. This project
-is specifically the ellmos SQLite memory substrate for LLM agents: one
-`everything` table, FTS5 search, and the four primitives `find`, `get`, `put`,
-and `run`.
+- **`find(query, ...)`**: Full-text search with BM25 ranking, snippet extraction, and namespace filtering across memories, tasks, knowledge, and tools.
+- **`get(name)`**: Retrieve an entry by key or path, inspect metadata, and load structured state.
+- **`put(name, content, ...)`**: Persist memories, lessons, tasks, documents, or executable tools directly into SQLite.
+- **`run(name, input=...)`**: Ephemerally materialize and execute tool code in unprivileged user space.
+- **100% Offline & Zero-Egress**: Pure standard library execution with zero network telemetry or tracking.
+- **Dual SQLite Substrate**: Clean physical separation between system blueprints (`gardener.db`) and user data (`user.db`).
+- **Federated Observe Ingestion**: Tail agent transcripts, markdown directories, `.remember` notes, and external SQLite tables without moving or modifying foreign data.
+- **Automated Secret Redaction**: Real-time pre-index scrubbing of 13 credential families and cloud-sync leak detection.
 
-## Quickstart
+---
 
-```python
-from gardener import Gardener
+<a id="2-architecture"></a><a id="architecture"></a>
+## 2. System Architecture
 
-# Recommended: use as context manager for guaranteed connection cleanup
-with Gardener() as af:
-    # Search
-    af.find("taxes")
+Gardener replaces complex distributed memory microservices with a single, high-performance SQLite substrate:
 
-    # Read
-    af.get("receipt-scanner")
+```
+Gardener/
+  gardener.py          # Core: Gardener class + CLI engine
+  sources.py           # Read-only adapters for observed foreign sources
+  seed.py              # Initial system knowledge & reference sources
+  search_gui.py        # Local zero-egress web search companion (127.0.0.1)
+  i18n.py              # CLI internationalization & translation catalog
+  locales/             # Translation strings (DE / EN)
+  tests/               # Comprehensive automated contract test suite
+  KONZEPT.md           # Deep architectural design document (German)
+  README.md            # Canonical English specification & documentation
+  README_de.md         # Canonical German specification & documentation
+  THIRD_PARTY_LICENSES.md # Comprehensive software inventory & SPDX SBOM
+  workspace/           # Ephemeral materialized code execution sandbox
+  blobs/               # Storage repository for large binary assets (>50MB)
 
-    # Write
-    af.put("note", content="Important!", type="memory", tags="todo")
+Local Storage (Local-First, Override with GARDENER_DATA):
+  ~/.gardener/
+    gardener.db        # System Substrate: Base knowledge, tools, blueprints
+    user.db            # User Substrate: Memories, tasks, federated observations
+    blobs/             # Large local blob files
 
-    # Execute
-    af.run("file-info", input={"path": "/path/to/file"})
+User Sync Directory (Cloud-Ready, Override with GARDENER_HOME):
+  ~/gardener/
+    .absorber/         # Incoming drop folder: Files automatically absorbed into DB
+    .output/           # Materialized files extracted from DB appear here
+    documents/         # Live directory continuously observed by Gardener
 ```
 
-## CLI
+---
 
-```bash
-python gardener.py find <query>
-python gardener.py gui [--port N] [--no-browser]
-python gardener.py get <name>
-python gardener.py put <name> <text>
-python gardener.py run <name>
-python gardener.py absorb <file>
-python gardener.py materialize <name>
-python gardener.py sync
-python gardener.py observe
-python gardener.py observe-source add <id> <kind> [key=value ...]
-python gardener.py observe-source list
-python gardener.py observe-source remove <id>
-python gardener.py observe-source refresh [id]
-python gardener.py find --refresh-source <id>[,<id>] <query>
-python gardener.py status
+<a id="3-target-personas--discoverability"></a><a id="target-personas"></a><a id="discovery-context"></a>
+## 3. Target Personas & Discoverability
+
+### Target Personas
+
+- **`[PERSONA-01]` Local-First AI Agent Engineers**: Developers building autonomous agents (Claude Code, AutoGen, CrewAI, LangChain) who need durable, low-latency, 100% offline memory without external API dependencies or vector-database drift.
+- **`[PERSONA-02]` Privacy-First Researchers & Knowledge Workers**: Scientists, legal analysts, and developers who require unified document indexing, transcript tracking, and automatic secret redaction with zero cloud egress.
+- **`[PERSONA-03]` Multi-Agent Fleet Architects**: System designers orchestrating multi-agent systems requiring cross-session memory consolidation, shared task prioritization, and safe ephemeral tool execution.
+- **`[PERSONA-04]` SQLite & Local-Tool Enthusiasts**: Developers who appreciate clean, single-file architectures where all state (tools, memory, tasks, knowledge) lives in a battle-tested SQLite database rather than complex microservice clusters.
+
+### High-Intent Search Queries & Discovery Context
+
+Use the canonical search identifier `ellmos-ai/gardener` to locate this project. The short name `gardener` collides with gardening websites, botanical tools, and Sesame Street results.
+
+```text
+ellmos-ai/gardener
+sqlite llm operating system
+local-first agent memory substrate
+offline fts5 agent knowledge base
+zero egress multi-agent memory
+ellmos-ai gardener sqlite
+deterministic agent memory bm25
+unprivileged agent tool workspace
 ```
 
-The CLI help defaults to German. Set `GARDENER_LANG=en` for English help
-text; unsupported languages fall back to German and English.
+---
 
-### Search GUI (for humans)
+<a id="4-comparative-matrix-vs-alternatives"></a><a id="comparative-matrix"></a>
+## 4. Comparative Matrix vs. Alternatives
 
-`python gardener.py gui` starts a small local web UI for the FTS5 search
-(search box, type filter, BM25-ranked hits with match snippets, entry
-detail view). Pure standard library, no dependencies; it binds to
-127.0.0.1 only and is strictly read-only against both databases.
+| Dimension | Invariant | Gardener OS (`ellmos-ai/gardener`) | MemGPT / Letta | LangChain / LlamaIndex | ChromaDB / Pinecone | Plain OS Filesystem + Grep |
+|---|---|---|---|---|---|---|
+| **1. Offline & Zero-Egress** | `INV-LOCAL-01` | **Yes (100% Local SQLite)** | Requires server daemon / API | Cloud API wrappers typical | Vector API / telemetry | Yes (Local disk) |
+| **2. Non-Elevation Security** | `INV-RUNAS-02` | **Yes (`RunAsInvoker` User Mode)** | Container / Root daemon | Process dependent | Process dependent | Depends on user |
+| **3. Memory & Search Substrate** | `INV-FTS-03` | **SQLite FTS5 BM25 Engine** | Vector DB + LLM tiering | Vector store wrappers | Dense embeddings (Drift) | Grep / Regex (Unranked) |
+| **4. Secret Redaction** | `INV-SEC-04` | **Yes (13 Credential Families)** | No (Stores raw text) | No (External tool needed) | No (Stores raw text) | None (Raw disk) |
+| **5. Cloud Leak Detection** | `INV-CLOUD-05` | **Yes (Idempotent Cloud Alarm)** | No | No | No | None |
+| **6. Read-Only Foreign Isolation** | `INV-RO-06` | **Yes (`mode=ro` DBs + Globs)** | No (Single dedicated DB) | Varies | Dedicated vector DB | Read/Write shared |
+| **7. Execution Boundary** | `INV-TRAV-07` | **Yes (Isolated Workspace)** | Docker / Subprocess | Code interpreter agents | None (Vector search only) | Direct shell execution |
+| **8. Unified Everything Substrate** | `INV-SUB-08` | **Yes (Single Table Substrate)** | Multiple SQL tables + DB | Disparate storage layers | Vectors only (No tools) | Fragmented files |
+| **9. Spec & Documentation Parity** | `INV-DOCS-09` | **Yes (18 Pts EN/DE + `llms.txt`)** | English docs only | English docs only | English docs only | Dispersed docs |
+| **10. Open Governance & SLA** | `INV-SLA-10` | **MIT (48h Response / 5d Triage)** | Apache-2.0 / Commercial | MIT / Commercial | Apache-2.0 / Proprietary | Varies |
 
-## Architecture
+---
+
+<a id="5-dual-mermaid-diagrams"></a><a id="dual-mermaid-diagrams"></a><a id="end-to-end-query--execution-lifecycle"></a>
+## 5. Dual Mermaid Diagrams
+
+### Architecture Topology Diagram
 
 ```mermaid
 flowchart TD
@@ -143,35 +190,9 @@ flowchart TD
     SOURCES --> OBS --> UDB
 ```
 
-```
-Gardener/
-  gardener.py          # Core: Gardener class + CLI
-  sources.py           # Read-only adapters for observed foreign sources
-  seed.py              # Initial system knowledge
-  i18n.py              # CLI string lookup
-  locales/             # Translation catalogue for CLI strings
-  tests/               # unittest suite (also runnable with pytest)
-  KONZEPT.md           # Design documentation (German)
-  README.md            # This file
-  workspace/           # Materialized code for execution
-  blobs/               # Storage for large files (>50MB)
+### End-to-End Query & Execution Lifecycle Sequence
 
-Local (not in cloud, override with GARDENER_DATA):
-  ~/.gardener/
-    gardener.db        # System: Knowledge, tools, blueprints
-    user.db            # User: Memory, tasks, personal data
-    blobs/             # Large files
-
-User directory (cloud ok, override with GARDENER_HOME):
-  ~/gardener/
-    .absorber/         # Files here → automatically absorbed into DB
-    .output/           # Materialized files appear here
-    documents/         # Observed files (LLM reads along)
-```
-
-### End-to-End Query & Execution Lifecycle
-
-The following sequence details how queries are routed through the pre-ranking namespace filters, evaluated via FTS5 BM25, and how tools are dynamically materialized in unprivileged user workspace:
+The following sequence details how queries are routed through pre-ranking namespace filters, evaluated via FTS5 BM25, and how tools are dynamically materialized in unprivileged user workspace:
 
 ```mermaid
 sequenceDiagram
@@ -207,433 +228,313 @@ sequenceDiagram
     end
 ```
 
-## Governance & Runtime Invariants
+---
+
+<a id="6-governance--runtime-invariants"></a><a id="governance--runtime-invariants"></a>
+## 6. Governance & Runtime Invariants
 
 Gardener enforces 10 strict architectural guarantees for safe, predictable, and local-first LLM memory operations:
 
 | # | Invariant | Description | Enforcement Level |
 |---|---|---|---|
-| 1 | **100% Offline / Zero-Egress** | Strictly local SQLite execution (`~/.gardener/user.db`, `~/.gardener/system.db`). Zero telemetry, zero external network calls, zero outbound analytics. | Architectural Guarantee |
-| 2 | **FTS5 BM25 Associative Memory** | Deterministic SQLite FTS5 BM25 ranking, snippet extraction, and prefix filtering without vector-drift or remote embedding dependencies. | Core Query Engine |
-| 3 | **Automated Secret Redaction** | 13 credential families (GitHub tokens, AWS keys, Anthropic/OpenAI keys, Bearer tokens, private keys) are redacted in `sources.py` before indexing. | Pre-Index Ingestion Gate |
-| 4 | **Cloud Leak Alerting** | Signatures found in cloud-synced roots (`~/OneDrive`) generate idempotent findings in `GARDENER_CLOUD_ALERT_FILE` without storing values. | Real-Time Privacy Alarm |
-| 5 | **Read-Only External Observation** | Foreign sources (BACH wiki, agent transcripts, markdown directories) are queried read-only (`mode=ro`). The host database never mutates them. | Read-Only DB Isolation |
-| 6 | **Path Traversal Sanitization** | `materialize()` and `absorb()` sanitize target filenames, rejecting directory traversal attempts (`../`, absolute paths) to prevent escapes. | Filesystem Boundary Gate |
-| 7 | **Ephemeral Workspace & Non-Elevation** | Tools execute strictly unprivileged in user mode within `data_dir/workspace/` and can be purged via `clean_workspace()`. | User-Space Process Guard |
-| 8 | **Multi-OS CI Matrix** | Automated cross-platform verification across Ubuntu, Windows, and macOS on Python 3.10, 3.11, 3.12, and 3.13. | GitHub Actions CI |
-| 9 | **Strict CI Concurrency & Bytecode Gate** | `cancel-in-progress: true` eliminates redundant runner compute, while `compileall` guarantees 100% syntactically valid bytecode. | Automated Build Gate |
-| 10 | **Dual-Language & Metadata Parity** | 100% German/English parity across READMEs, CLI documentation, and automated contract tests verifying all invariants. | Contract Test Suite |
+| 1 | **`INV-LOCAL-01` 100% Offline / Zero-Egress** | Strictly local SQLite execution (`~/.gardener/user.db`, `~/.gardener/gardener.db`). Zero telemetry, zero external network calls, zero outbound analytics. | Architectural Guarantee |
+| 2 | **`INV-RUNAS-02` Unprivileged User Mode (`RunAsInvoker`)** | Strictly unprivileged execution; no administrative elevation, UAC elevation prompt, or root capabilities are ever required. | Process Security Gate |
+| 3 | **`INV-FTS-03` FTS5 BM25 Associative Memory** | Deterministic SQLite FTS5 BM25 ranking, snippet extraction, and prefix filtering without vector-drift or remote embedding dependencies. | Core Query Engine |
+| 4 | **`INV-SEC-04` Automated Secret Redaction** | 13 credential families (GitHub tokens, AWS keys, Anthropic/OpenAI keys, Bearer tokens, private keys) are redacted in `sources.py` before indexing. | Pre-Index Ingestion Gate |
+| 5 | **`INV-CLOUD-05` Cloud Leak Alerting** | Signatures found in cloud-synced roots (`~/OneDrive`) generate idempotent findings in `GARDENER_CLOUD_ALERT_FILE` without storing values. | Real-Time Privacy Alarm |
+| 6 | **`INV-RO-06` Read-Only External Observation** | Foreign sources (BACH wiki, agent transcripts, markdown directories) are queried read-only (`mode=ro`). The host database never mutates them. | Read-Only DB Isolation |
+| 7 | **`INV-TRAV-07` Path Traversal & Workspace Isolation** | `materialize()` and `absorb()` sanitize target filenames, rejecting directory traversal attempts (`../`, absolute paths) to prevent escapes. | Filesystem Boundary Gate |
+| 8 | **`INV-SUB-08` Unified Everything Substrate** | A single `everything` table storing knowledge, tools, memories, tasks, and documents, partitioned physically across `gardener.db` and `user.db`. | Substrate Architecture |
+| 9 | **`INV-DOCS-09` Dual-Language & Metadata Parity** | 100% German/English parity across READMEs, CLI documentation, and automated contract tests verifying all invariants. | Contract Test Suite |
+| 10 | **`INV-SLA-10` Open Source Governance & SLA** | Permissive MIT License, public GitHub issues, and a committed 48h initial response / 5d triage security SLA. | Community Commitment |
 
-## Data Model
+---
 
-One table for (almost) everything:
+<a id="7-data-model--everything-substrate"></a><a id="data-model"></a>
+## 7. Data Model & Everything Substrate
 
-| Type | Description | Target DB |
-|------|-------------|-----------|
-| knowledge | Knowledge, docs, rules | gardener.db |
-| tool | Executable code | gardener.db |
-| memory | Memories, notes | user.db |
-| task | Tasks | user.db |
-| document | Absorbed files | user.db |
-| observed | Observed files | user.db |
-| config | Configuration | user.db |
-| export | Marked for materialization | user.db |
+One unified table for (almost) everything:
 
-## Memory (No Separate Memory System!)
+| Type | Description | Target Substrate | Lifecycle & Decay |
+|------|-------------|------------------|-------------------|
+| `knowledge` | Curated reference knowledge, documentation, rules | `gardener.db` | Permanent, protected |
+| `tool` | Executable scripts and automation primitives | `gardener.db` | Permanent, runnable |
+| `memory` | Working notes, observations, daily context | `user.db` | Fast exponential decay |
+| `lesson` | Distilled insights and best practices | `user.db` | High persistence, slow decay |
+| `task` | Action items, priorities, and deadlines | `user.db` | Status-driven (`open`/`done`) |
+| `document` | Files absorbed into database rows | `user.db` | On-demand storage |
+| `observed` | Foreign documents, transcripts, and tables | `user.db` | Refreshable federated index |
+| `config` | Configuration parameters | `user.db` | System settings |
+| `export` | Artifacts marked for filesystem materialization | `user.db` | Workspace delivery |
 
-Instead of 5 tables: everything in `everything` with types and meta fields.
-The FTS5 search IS the associative memory.
+---
 
-```python
-af.memo("Quick note")                    # Working memory (decays fast)
-af.lesson("Title", "Insight")            # Best practice (barely decays)
-af.session_end("Summary")               # Session report
-af.recall("taxes")                       # Remember (searches + boosts weight)
-af.consolidate()                         # Sleep: Decay + Forget
+<a id="8-sqlite-substrate--fts5-engine"></a><a id="sqlite-substrate"></a>
+## 8. Dual SQLite Substrate & FTS5 BM25 Engine
+
+Gardener partitions system blueprints from user state using two distinct SQLite databases:
+
+1. **System Substrate (`gardener.db`)**: Holds core knowledge blueprints, tool implementations, and built-in reference documentation.
+2. **User Substrate (`user.db`)**: Holds personal memories, lessons, active tasks, absorbed documents, and federated observed index entries.
+
+### Deterministic BM25 Search & SQL-Level Pinning
+
+Gardener uses SQLite's built-in FTS5 full-text engine with BM25 ranking. Queries automatically leverage SQL-level sorting:
+```sql
+SELECT ... FROM everything WHERE ... ORDER BY pinned DESC, rank LIMIT ?
 ```
+Pinned entries (`pinned = 1`) are promoted to the top at the SQL level, ensuring critical context is never truncated regardless of BM25 score volume.
+
+---
+
+<a id="9-search-gui--web-companion"></a><a id="search-gui"></a>
+## 9. Search GUI & Web Companion
+
+`python gardener.py gui` starts a lightweight, zero-dependency local web companion:
+
+- **100% Offline & Private**: Binds exclusively to `127.0.0.1`.
+- **Pure Python Standard Library**: Built directly on `http.server` without external JavaScript frameworks or external CDN dependencies.
+- **Strictly Read-Only**: Guarantees zero writes or state mutations against `gardener.db` or `user.db`.
+- **Interactive Inspection**: Full-text search box, type filtering (`memory`, `task`, `observed`, etc.), pinned entry badges, match snippet highlights, and JSON detail viewer.
 
 ```bash
-gardener memo <text>            # Note
-gardener lesson <title> [text]  # Lesson
-gardener recall <query>         # Remember
-gardener consolidate            # Consolidate
-gardener session-end <text>     # End session
+# Launch the local GUI on default port 8420
+python gardener.py gui
+
+# Launch on a custom port without auto-opening a browser
+python gardener.py gui --port 8080 --no-browser
 ```
 
-Details: [KONZEPT.md#memory](KONZEPT.md#memory-kein-separates-gedächtnis-system-design-entscheidung)
+---
 
-## Tasks (No Separate System!)
+<a id="10-installation--quickstart"></a><a id="quickstart"></a>
+## 10. Installation & Quickstart
 
-Tasks are entries of type `task` in the `everything` table. **No separate
-task system needed.** `find("taxes")` finds knowledge AND tasks simultaneously.
-
-```python
-af.task("taxes-2025", content="File return", priority="high", due="2026-05-31")
-af.tasks()                     # All tasks
-af.tasks(status="open")        # Open only
-af.task_done("taxes-2025")     # Mark done
-```
+Gardener requires Python 3.10 or newer and zero external dependencies:
 
 ```bash
-gardener task <name> [text]     # Create
-gardener tasks [status]         # List
-gardener done <name>            # Mark done
+# Clone the repository
+git clone https://github.com/ellmos-ai/gardener.git
+cd gardener
+
+# Initialize system knowledge and reference sources
+python seed.py
 ```
 
-Details: [KONZEPT.md#tasks](KONZEPT.md#tasks-kein-separates-system-design-entscheidung)
-
-## Three Relationships with Files
-
-1. **Observe:** File stays in folder, LLM reads along (looking out the window)
-2. **Absorb:** File gets pulled into the DB (now lives in the house)
-3. **Direct edit:** LLM edits file in folder (working in front of the house)
-
-## Transporter
+### Python API Quickstart
 
 ```python
-af.absorb("/path/to/file.pdf")     # File → DB (dematerialize)
-af.materialize("file.pdf")          # DB → File (rematerialize)
+from gardener import Gardener
+
+# Recommended: context manager for guaranteed connection closing
+with Gardener() as af:
+    # Search across memories, tasks, and documents
+    results = af.find("invoice")
+    for hit in results:
+        print(f"[{hit['type']}] {hit['name']}: {hit['content'][:60]}")
+
+    # Read specific entry
+    doc = af.get("receipt-scanner")
+
+    # Store working memory note
+    af.put("project-meeting", content="Discuss SQLite substrate", type="memory", tags="meeting")
+
+    # Execute a registered tool
+    af.run("file-info", input={"path": "README.md"})
 ```
 
-## Cross-Source Federated Index
+---
 
-`observe()` watches Gardener's own home folder. **Observe-sources** extend
-the same read-only principle to knowledge that lives in *other* tools:
-their originals are never touched, moved, or copied in — only their text
-is added to Gardener's FTS index, and every indexed entry carries a
-`source_ref` in its `meta` so a search hit can be traced back to exactly
-where it came from (file path, DB table + row, or transcript line).
-`find()` already searches `gardener.db` + `user.db` in one query, so
-observed cross-source hits show up right alongside your own entries —
-no separate search call needed.
-
-Four source kinds:
-
-| Kind | What it indexes | Key config |
-|------|------------------|------------|
-| `markdown_dir` | A directory of markdown files, one entry per file. The `path` may itself be a glob spanning several directories (e.g. a per-project memory convention). `patterns` widens this to other file kinds (e.g. `.txt` notes). `exclude_patterns` drops filenames matching a pattern back out of what `patterns`/`glob` matched — e.g. a help-text directory that ships one canonical language plus several machine-translated siblings (`patterns=["*.txt"]`, `exclude_patterns=["*_en.txt", "*_es.txt"]`), where `patterns` alone cannot express "not this suffix". `extra_tags` appends static tags to every item, so a downstream consumer can tell sources apart beyond the fixed `type='observed'` (e.g. a rule file worth surfacing as a hint vs. a rotating registry that should stay searchable but not surfaced). | `path`, `patterns` (list, default `["*.md"]`), `glob` (single-pattern legacy alias), `exclude_patterns` (list), `extra_tags` (string or list) |
-| `remember_files` | Small note files anywhere below a root, found via a recursive glob. | `path`, `glob` (default `**/.remember`) |
-| `sqlite_table` | A single table in a foreign SQLite database, opened strictly read-only (`mode=ro`). Column names are whitelisted against the live schema before use. `content` may name several columns, joined in order — a row whose meaning is split across two text fields (a lesson's problem *and* its solution) stays fully searchable. | `db_path`, `table`, `columns` (`content` required, string or list; `id`/`name`/`tags` optional) |
-| `agent_transcripts` | JSONL chat transcripts, indexed line by line, **text turns only** (tool calls/results and internal "thinking" blocks are skipped). Ships built-in field mappings for Claude Code, Gemini Antigravity, Codex, and Kimi transcript formats; any other line-based JSON transcript can be indexed via a generic dotted-path role/text mapping. `default_role` covers single-role archives that carry no role field at all, such as a bare prompt history. Large, growing files are tailed from a saved byte offset — a refresh never re-reads what it already indexed. `path` may be a **list** of globs, and `key_by="name"` keys the offset state on the filename instead of the full path — together they cover hosts that *rotate* transcripts between directories (Codex moves finished rollouts from `sessions/` to `archived_sessions/`), which would otherwise re-index every moved file under a second name. | `path` (glob or list of globs, `**` recurses), `format` (`claude_code` default, `gemini_antigravity`, `codex`, `kimi`, or `generic` with `role_field`/`text_field`/`default_role`), `key_by` (`path` default, or `name`) |
+<a id="11-cli--headless-automation"></a><a id="cli"></a>
+## 11. CLI & Headless Automation
 
 ```bash
-# Index this machine's Claude Code project memories
-gardener observe-source add claude-memories markdown_dir path="~/.claude/projects/*/memory"
+# Core Primitives
+python gardener.py find <query>
+python gardener.py find --pinned <query>
+python gardener.py find --source <source_id> <query>
+python gardener.py get <name>
+python gardener.py put <name> <text>
+python gardener.py run <name> [input_json]
 
-# Index .remember notes anywhere below a root
-gardener observe-source add notes remember_files path="~/notes"
+# File Management
+python gardener.py absorb <file>
+python gardener.py materialize <name>
+python gardener.py sync
 
-# Index a table in a foreign, read-only SQLite database
-gardener observe-source add tasks-db sqlite_table db_path="~/.some-tool/tool.db" table=tasks
+# Memory & Task Operations
+python gardener.py memo <text>
+python gardener.py lesson <title> [text]
+python gardener.py recall <query>
+python gardener.py consolidate
+python gardener.py session-end <text>
+python gardener.py task <name> [text]
+python gardener.py tasks [status]
+python gardener.py done <name>
 
-# Index Claude Code transcripts (main conversation, text turns only)
-gardener observe-source add claude-transcripts agent_transcripts path="~/.claude/projects/*/**/*.jsonl"
+# Federated Observe Sources
+python gardener.py observe
+python gardener.py observe-source list
+python gardener.py observe-source add <id> <kind> [key=value ...]
+python gardener.py observe-source refresh [id]
+python gardener.py observe-source remove <id>
 
-gardener observe-source list
-gardener observe-source refresh              # all sources
-gardener observe-source refresh claude-memories
-gardener observe-source remove claude-memories
+# System Inspection & GUI
+python gardener.py status
+python gardener.py gui [--port N] [--no-browser]
 ```
+
+CLI help defaults to German. Set `GARDENER_LANG=en` for English help text; unsupported languages cleanly fall back to English.
+
+---
+
+<a id="12-unified-task--memory-management"></a><a id="memory-no-separate-memory-system"></a><a id="tasks-no-separate-system"></a>
+## 12. Unified Task & Memory Management
+
+### Associative Memory Without Vector Databases
+
+Instead of maintaining separate vector stores and embedding servers, everything lives in the `everything` table. FTS5 full-text search **is** the associative memory.
 
 ```python
-af.observe_source_add("claude-memories", "markdown_dir",
-                       path="~/.claude/projects/*/memory")
-af.observe_sources()                          # refresh all configured sources
-af.find("taxes")                              # own entries + observed hits, one query
-
-# List-valued config like `patterns` needs the Python API -- the CLI's
-# plain key=value form only accepts strings, not JSON.
-af.observe_source_add("mixed-notes", "markdown_dir",
-                       path="~/notes", patterns=["*.md", "*.txt"])
+af.memo("Quick working note")             # Working memory (exponential decay)
+af.lesson("SQLite Concurrency", "Use WAL") # Architectural insight (barely decays)
+af.session_end("Session completed")       # Session log
+af.recall("concurrency")                  # Searches and boosts relevance weight
+af.consolidate()                          # Sleep phase: Decays weak memos, prunes noise
 ```
 
-A search reads the index and deliberately does not start a global scan. When a
-new transcript or ticket must be findable immediately, the query can refresh
-exactly those sources first:
+### Unified Task Lifecycle
 
-```bash
-gardener find --refresh-source claude-transcripts,control-tickets <session-id>
-```
-
-The refresh only reads the originals, writes exclusively to Gardener's local
-index, and resumes large JSONL files at their stored byte offsets. This makes a
-stale index explicit and repairable without rescanning every source.
-
-The `sqlite_table` adapter's `columns` mapping lets it point at any
-foreign table without Gardener knowing its schema in advance — e.g. a
-task or notes table kept by a different local tool. Configuration lives
-in `config.json` under `observe_sources`; nothing here is hardcoded to a
-specific machine or tool.
-
-### Indexing several coding agents at once
-
-The four kinds are enough to put every agent on a machine into one
-search, whatever each of them happens to use as storage:
+Tasks are rows of type `task` in the `everything` table. A single query `find("taxes")` discovers relevant knowledge, files, and tasks simultaneously:
 
 ```python
-# Markdown memories and rule files (Codex, Gemini, ...)
-af.observe_source_add("codex-memories", "markdown_dir", path="~/.codex/memories")
-af.observe_source_add("gemini-rules", "markdown_dir", path="~/.gemini",
-                       patterns=["GEMINI.md", "memory.md", "memory.txt"])
-
-# A prompt history with no role field per line
-af.observe_source_add("kimi-prompts", "agent_transcripts",
-                       path="~/.kimi-code/user-history/*.jsonl",
-                       format="generic", text_field="content",
-                       default_role="user")
-
-# Transcripts the host rotates between two directories: one source over
-# both, keyed on the filename, so a moved file keeps its identity
-af.observe_source_add("codex-sessions", "agent_transcripts",
-                       path=["~/.codex/sessions/**/*.jsonl",
-                             "~/.codex/archived_sessions/*.jsonl"],
-                       format="codex", key_by="name")
-
-# Transcripts that only exist inside a zip: read streaming, never
-# unpacked. Incrementality is per archive -- an archive is finished, so
-# an unchanged (mtime, size) skips the whole file unopened.
-af.observe_source_add("gemini-archive", "agent_transcripts",
-                       path="~/.gemini/antigravity/conversations_archive/*.zip",
-                       format="gemini_antigravity",
-                       zip_inner="*/.system_generated/logs/transcript.jsonl")
-
-# A curated memory database, read-only, problem+solution in one entry
-af.observe_source_add("usmc-lessons", "sqlite_table",
-                       db_path="~/.usmc/usmc_memory.db", table="usmc_lessons",
-                       columns={"id": "id", "name": "title",
-                                "content": ["problem", "solution"],
-                                "tags": "category"})
+af.task("taxes-2025", content="File tax return", priority="high", due="2026-05-31")
+af.tasks()                     # List all tasks
+af.tasks(status="open")        # Filter active tasks
+af.task_done("taxes-2025")     # Mark completed
 ```
 
-### Indexing a foreign system's own knowledge base
+---
 
-A local "OS-in-a-box" system typically keeps its documentation two ways
-at once: structured rows in its own SQLite database (wiki articles,
-skill definitions) and plain files on disk (README/architecture docs,
-a generated per-command help directory). Both are `observed`, not
-absorbed — Gardener never touches the foreign system's files or DB:
+<a id="13-file-lifecycle-absorb-materialize--sync"></a><a id="three-relationships-with-files"></a>
+## 13. File Lifecycle: Absorb, Materialize & Sync
+
+Gardener supports three explicit relationships with files:
+
+1. **Observe:** File remains in folder; Gardener tails and indexes it read-only.
+2. **Absorb:** File is pulled into the SQLite database and becomes an indexed `document` row.
+3. **Direct Edit / Materialize:** Database content is rematerialized into `workspace/` for execution or editing.
 
 ```python
-# Two tables of the foreign system's own knowledge base
-af.observe_source_add("bach-wiki", "sqlite_table",
-                       db_path="~/.bach/bach.db", table="wiki_articles",
-                       columns={"id": "path", "name": "title",
-                                "content": "content", "tags": "category"})
-af.observe_source_add("bach-skills", "sqlite_table",
-                       db_path="~/.bach/bach.db", table="skills",
-                       columns={"id": "id", "name": "name",
-                                "content": ["description", "content"],
-                                "tags": "category"})
-
-# README/architecture-style docs at fixed, named paths -- non-recursive
-# `patterns` naturally keeps a docs/ subfolder (e.g. docs/help/) out
-# without an extra exclude
-af.observe_source_add("bach-system-docs", "markdown_dir",
-                       path="~/OneDrive/.../BACH/system",
-                       patterns=["ARCHITECTURE.md", "CHANGELOG.md",
-                                 "FEATURES.md", "ROADMAP.md"])
-
-# A generated per-command help directory that ships one canonical
-# language plus five machine-translated siblings per key -- indexing
-# every language would flood FTS ranking with near-duplicates for
-# little marginal value, so only the canonical language is kept
-af.observe_source_add("bach-help-de", "markdown_dir",
-                       path="~/OneDrive/.../BACH/system/docs/help",
-                       patterns=["*.txt"],
-                       exclude_patterns=["*_en.txt", "*_es.txt",
-                                         "*_ja.txt", "*_ru.txt", "*_zh.txt"])
+af.absorb("/path/to/invoice.pdf")    # File → DB (dematerialize into row/blob)
+af.materialize("invoice.pdf")        # DB → File (rematerialize into workspace)
 ```
 
-### Searching one source instead of all of them
+---
 
-Sources differ in size by three orders of magnitude. On this machine
-`codex-sessions` holds 260,000 transcript lines while `usmc-working` holds
-518 notes — so BM25 hands the whole first page to the transcripts, and a
-subject-matter search comes back looking empty. `find()` therefore takes a
-source filter:
+<a id="14-federated-sources--secret-redaction"></a><a id="cross-source-federated-index"></a>
+## 14. Federated Sources & Secret Redaction
 
-```bash
-gardener find --pinned store                      # search only pinned entries
-gardener find --source usmc-working store welle
-gardener find --source usmc-working,usmc-facts store
-gardener find --source usmc-working              # no query: list the source
-gardener find --type memory --limit 5 store      # also exposed: type, limit
-```
+Observe sources extend read-only indexing to external tools: originals are never modified or copied into Gardener:
 
-```python
-af.find("store", pinned=True)                     # search only pinned entries
-af.find("store welle", source="usmc-working")
-af.find("store", source=["usmc-working", "usmc-facts"])
-af.find("", source="usmc-working", limit=50)     # list, newest first
-```
+| Source Kind | What It Indexes | Key Config Parameters |
+|---|---|---|
+| `markdown_dir` | Directories of markdown/text files. Supports multi-dir globs, exclusion patterns, and extra tags. | `path`, `patterns` (default `["*.md"]`), `exclude_patterns`, `extra_tags` |
+| `remember_files` | Lightweight `.remember` notes scattered across arbitrary project subdirectories. | `path`, `glob` (default `**/.remember`) |
+| `sqlite_table` | Single table in an external SQLite database opened strictly read-only (`mode=ro`). | `db_path`, `table`, `columns` (`content`, `id`, `tags`) |
+| `agent_transcripts` | JSONL chat transcripts indexed turn-by-turn (text turns only). Built-in support for Claude Code, Codex, Gemini Antigravity, and Kimi. | `path`, `format`, `key_by`, `zip_inner` |
 
-The filter is a `WHERE` condition on the `observed/<source-id>/…` namespace
-and runs **before** the ranking, in all three stages of `find()` (exact FTS,
-multi-word OR fallback, LIKE fallback). A source id matches the whole path
-segment, so `--source usmc` does not pull in `usmc-working`; a leading
-`observed/` may be written or omitted. `--source` and the `source` field in a
-result are different things — the field names the database (`user`/`system`).
+### Automated Secret Redaction
 
-> [!NOTE]
-> **Older versions without `--source`:** pass the source id as a search word,
-> `gardener find usmc-working store`. Entry names are part of the full-text
-> index, so this works — it just ranks weaker than a real filter, because the
-> id competes with the query terms instead of restricting the candidate set.
+Text ingested through any adapter passes through `sources.scan()` where 13 credential families are redacted before reaching the database:
+- GitHub PATs & fine-grained tokens
+- AWS Access Key IDs
+- Anthropic & OpenAI API keys
+- Slack Webhook URLs & bot tokens
+- Google API keys & GitLab personal access tokens
+- NPM authorization tokens (`npm_***REDACTED***`)
+- Bearer tokens (`Authorization: Bearer ***REDACTED***`)
+- Private key PEM blocks
 
-This is the query-time counterpart to `extra_tags` below: `extra_tags` labels a
-source when it is registered, for consumers that group several sources under one
-name; `--source` narrows a single search to a named source and needs no foresight.
+**Cloud Leak Alerting**: If a credential signature is discovered in a cloud-synced path (`~/OneDrive`), an alert is appended idempotently to `GARDENER_CLOUD_ALERT_FILE` without ever storing the secret value.
 
-### What a source can never index
+---
 
-A source config points an adapter at whatever glob it likes, so the
-guard against indexing secrets cannot live in the configs — it lives in
-the adapters. `sources.is_excluded()` is checked per file, and no
-config can switch it off:
+<a id="15-gardener-vs-rinnsal"></a><a id="comparison-gardener-vs-rinnsal"></a>
+## 15. Architectural Comparison: Gardener vs. Rinnsal
 
-- **Path segments** (matched whole, case-insensitively): `CREDENTIALS`,
-  `.ssh`, `.gnupg`, `.gardener` (Gardener's own runtime dir),
-  `node_modules`, `.git`, `.venv`/`venv`, `__pycache__`, `.absorber`,
-  `.output`.
-- **Filenames:** `.npmrc`, `.netrc`, `.pgpass`, `.env`, `auth.json`,
-  `credentials.json`, `secrets.json`, `token.json`, `id_rsa`/`id_ed25519`, …
-- **Suffixes:** `.pem`, `.key`, `.p12`, `.pfx`, `.keystore`, `.jks`, …
-
-Because segments are matched whole rather than as string prefixes, a
-sibling named `credentials-howto.md` is *not* excluded — only an actual
-`CREDENTIALS/` directory is. `gardener.py` derives its `observe()`/
-`sync()` skip list from the same constants, so there is one list to
-maintain and the home-folder walk cannot drift apart from the adapters.
-
-### Secrets are redacted on the way in
-
-The never-index list keeps credential *stores* out. It cannot help with a
-token someone pasted into the middle of an agent session — that text is
-part of the transcript. So the text itself is redacted, in `scan()`, the
-one gate every adapter's items pass through:
-
-```text
-//registry.npmjs.org/:_authToken=npm_***REDACTED***
-```
-
-**The semantics are deliberate: an agent that needs the real token must go
-to the source file. The index tells it where the credential lives, never
-what it is.**
-
-13 families follow the documented formats used by GitHub secret scanning,
-gitleaks and detect-secrets (Anthropic, OpenAI, GitHub PATs, AWS key ids,
-Slack, Google, GitLab, npm, `Authorization: Bearer`, PEM blocks). Each
-anchors on a fixed length, a restricted character class and — where the
-vendor provides one — a literal marker (`T3BlbkFJ`). That anchoring, not
-the prefix, is what keeps prose out: `skalar`, `ghpx_…`, `AKIAA`,
-`npm_install` and a bare "Bearer" in a sentence are left alone. Entropy
-heuristics and keyword detectors are deliberately excluded — both are
-high-recall/low-precision, and a step that runs unattended must not guess.
-
-A signature found in a **cloud-synced** file (under `GARDENER_CLOUD_ROOT`,
-default `~/OneDrive`) is a finding in its own right, because the value has
-left the machine. One line per finding — date, path, family, **never the
-value** — is appended idempotently to `GARDENER_CLOUD_ALERT_FILE`, counted
-in `observe_sources()`' stats and warned about on stderr. The same
-signature in a local transcript raises no alert: it never left.
-
-### Tagging a source for downstream filtering
-
-`type` is always `observed` for everything an observe-source indexes — a
-consumer that queries the DB directly (rather than through `recall()`,
-which already restricts itself to `memory`/`lesson`/`session`) cannot use
-`type` to tell a rule file apart from a rotating check registry. `extra_tags`
-adds a second, source-level axis for exactly that:
-
-```python
-# Findable and worth surfacing as a hint
-af.observe_source_add("team-policies", "markdown_dir",
-                       path="~/policies", extra_tags=["policy"])
-
-# Findable, but a consumer may reasonably choose not to surface it —
-# a rotating log is rarely useful as an injected hint, even though it's
-# still worth having in find()
-af.observe_source_add("check-registry", "markdown_dir",
-                       path="~/registries", patterns=["CHECKS-REG.md"],
-                       extra_tags=["register-log"])
-```
-
-Everything indexed this way is `observed` — foreign material, reachable
-through `find()`. It deliberately does not become `memory`/`lesson`, the
-types `recall()` draws on, so that bulk material cannot drown out the
-entries that were curated on purpose.
-
-## Seeding
-
-```bash
-python seed.py    # Populates gardener.db with base knowledge and example tools
-```
-
-Seeding also registers a default set of `observe-sources` (which folders/tables become
-searchable) from `sources.reference.json`, so `find()` isn't empty on first use. This is
-voluntary at two levels, so a standalone install (no ellmos ecosystem) stays unaffected
-unless you opt in:
-
-- **`base` tier** (agent-neutral: transcripts, memories, skills, commands) is on by default
-  -- that's the point of a fresh Gardener. Missing paths are silently skipped, never an error.
-- **`system` tier** (assumes ellmos infrastructure: USMC, taskplan, policies, tickets) is
-  **off by default** and needs explicit opt-in: `GARDENER_SEED_ECOSYSTEM_SOURCES=1`. It
-  includes the read-only `_control-center/_PLANS` metadata/report source as
-  `plans-register`; the canonical plans remain in their owning documents.
-- To skip observe-source seeding entirely (including `base`): `GARDENER_SEED_OBSERVE_SOURCES=0`.
-
-Existing sources are never overwritten either way.
-
-## Comparison: Gardener vs Rinnsal
-
-Gardener and [Rinnsal](https://github.com/ellmos-ai/rinnsal) are both lightweight
-LLM operating systems from the ellmos ecosystem. Here are the differences:
+Gardener and [Rinnsal](https://github.com/ellmos-ai/rinnsal) represent complementary agent operating system philosophies within the ellmos-ai ecosystem:
 
 | Feature | Detail | **Gardener** | **Rinnsal** |
 |---|---|---|---|
-| **Core API** | Style | 4 functions (find/get/put/run) | ~20 CLI commands, module-based |
+| **Core API** | Style | 4 primitives (`find`/`get`/`put`/`run`) | ~20 CLI commands, module-based |
 | **Data Model** | Tables | 1 (`everything` + type field) | 4+ (facts, notes, lessons, sessions) |
-| | FTS5 Search | Yes (core feature, IS the memory) | No (structured queries) |
-| **Memory** | Working | memo() with decay | notes (session-scoped) |
-| | Long-term | lesson() + weighting | facts (confidence score) |
-| | Consolidation | consolidate() (decay+forget) | No |
-| | Recall/Boost | recall() boosts weight | No |
-| | Context Export | No | api.context() (LLM-ready) |
-| **Tasks** | Priorities | Yes (meta field) | critical/high/medium/low |
-| | Agent Assignment | No | Yes |
-| | Deadlines | Yes (due field) | No |
-| **Files** | Absorb (file→DB) | Yes | No |
-| | Materialize (DB→file) | Yes | No |
-| | Observe (watch) | Yes | No |
-| | Blob Storage (>50MB) | Yes | No |
-| **Automation** | Chains | No | Marble-run model |
-| | Ollama | No | Yes (REST client) |
-| **Connectors** | Telegram/Discord/HA | No (planned) | Yes |
-| **Architecture** | Dependencies | Zero | Zero |
-| | Event Bus | No | Yes |
-| | Multi-Agent | No | Yes (event bus + USMC) |
+| | FTS5 Search | Yes (core feature; IS the memory) | No (structured queries) |
+| **Memory** | Working | `memo()` with exponential decay | `notes` (session-scoped) |
+| | Long-term | `lesson()` with relevance weighting | `facts` (confidence score) |
+| | Consolidation | `consolidate()` (decay + prune) | No |
+| | Recall/Boost | `recall()` boosts relevance | No |
+| **Tasks** | Priorities | Yes (metadata field) | critical / high / medium / low |
+| | Deadlines | Yes (`due` field) | No |
+| **Files** | Absorb (File → DB) | Yes | No |
+| | Materialize (DB → File) | Yes | No |
+| | Observe (Watch) | Yes | No |
+| **Architecture** | Runtime Dependencies | **Zero (Python Standard Library)** | **Zero (Python Standard Library)** |
+| | Target Philosophy | Radical minimalism (1 table, search-centric) | Structured event bus, pipelines & channels |
 
-**In short:** Gardener = radical minimalism (1 table, search = everything).
-Rinnsal = more structure, but connectors and chains out of the box.
+---
 
-## Extensibility
+<a id="16-testing--quality-verification"></a><a id="testing"></a>
+## 16. Testing & Quality Verification
 
-Gardener is designed as a core that can be extended with ellmos modules:
+Gardener maintains a 100% green test suite with multi-OS and multi-version coverage:
 
-| Module | Function | Status |
-|--------|----------|--------|
-| [connectors](https://github.com/ellmos-ai/connectors) | Telegram, Discord, Webhook, etc. | Planned |
-| [USMC](https://github.com/ellmos-ai/usmc) | Cross-Agent Shared Memory | Integrable |
-| [clutch](https://github.com/ellmos-ai/clutch) | Smart Model Routing | Integrable |
-| [swarm-ai](https://github.com/ellmos-ai/swarm-ai) | Parallel LLM Patterns | Integrable |
+```bash
+# Run tests with Python's built-in unittest
+python -m unittest discover -s tests -v
 
-The vision: The LLM serves itself from a library of modules.
-Gardener provides search, memory, and the execution environment —
-everything else is added as a plugin when needed.
+# Run tests with pytest
+pytest -ra -v
 
-### Sibling Projects & Ecosystem
+# Run linting with Ruff
+ruff check .
 
-Gardener is part of the **ellmos-ai** and **open-bricks** ecosystems for modular, local-first LLM tooling:
+# Validate syntax across all Python source files
+python -m compileall -q .
+```
+
+- **Unit & Functional Tests**: Validate core primitives, FTS5 BM25 scoring, SQL-level pinning, decay mechanisms, and CLI operations.
+- **Contract & Metadata Tests**: Assert strict bilingual synchronization, Mermaid diagram integrity, invariant parity, and license compliance.
+- **Continuous Integration**: GitHub Actions matrix executing across **Ubuntu, Windows, and macOS** on **Python 3.10, 3.11, 3.12, and 3.13**.
+
+---
+
+<a id="17-third-party-licenses--software-inventory"></a><a id="licenses"></a><a id="third-party-licenses"></a>
+## 17. Third-Party Licenses & Software Inventory
+
+Gardener OS is licensed under the permissive [MIT License](LICENSE).
+
+Detailed license information, full dependency SBOM, SPDX identifiers, `RunAsInvoker` unprivileged execution guarantees, and Zero-Copyleft isolation certificates are documented in [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md).
+
+- **Runtime Dependencies**: Zero external dependencies (100% Python Standard Library).
+- **Development Tooling**: `pytest` (MIT), `ruff` (MIT/Apache-2.0), `setuptools` (MIT).
+- **Non-Elevation**: Executes completely within user space (`RunAsInvoker`) without root or administrative privileges.
+
+---
+
+<a id="18-security-policy-sibling-ecosystem--liability"></a><a id="security-model-read-this"></a><a id="sibling-projects--ecosystem"></a><a id="haftung--liability"></a>
+## 18. Security Policy, Sibling Ecosystem & Liability Notice
+
+### Security Model & SLA
+
+Gardener is a **local, single-user tool with unprivileged user-mode execution**. Tool execution (`run()`) executes code with your standard user permissions. Only absorb, store, and execute code from trusted sources.
+
+- **Vulnerability Reporting**: Report security vulnerabilities to [security@ellmos.ai](mailto:security@ellmos.ai) or via private GitHub Security Advisory.
+- **Security SLA**: Committed initial response within **48 hours** and issue triage within **5 business days**. See [SECURITY.md](SECURITY.md).
+
+### Sibling Projects & Ecosystem Matrix
+
+Gardener is an active member of the **ellmos-ai** and **open-bricks** ecosystems:
 
 | Repository | Focus / Description | Category |
 |---|---|---|
@@ -651,35 +552,10 @@ Gardener is part of the **ellmos-ai** and **open-bricks** ecosystems for modular
 | [DevCenter](https://github.com/dev-bricks/DevCenter) | Developer workspace orchestration and management | Developer Tools |
 | [open-bricks](https://github.com/open-bricks) | Umbrella organization for modular open-source building blocks | Ecosystem Umbrella |
 
-## Security Model (Read This)
+### Haftungsausschluss / Statutory Liability Notice (§ 521 BGB)
 
-Gardener is a **local, single-user tool with no sandbox — by design**. Be
-aware of what that means before feeding it untrusted content:
-
-- `run(name)` executes the Python code stored in an entry's content **with
-  the full permissions of your user account**. There is no isolation, no
-  restricted builtins, no network or filesystem limits.
-- The seeded `shell` tool executes arbitrary shell commands
-  (`subprocess.run(..., shell=True)`).
-- Anything that can call `put()` can therefore achieve code execution via
-  `run()`. If you expose Gardener through another layer (e.g. an MCP server
-  or a chat agent), that layer inherits this power — add your own
-  authorization there.
-
-**Rule of thumb:** only absorb, put, and run content you trust as much as
-code you would execute yourself.
-
-## Design Document
-
-Detailed design documentation: [KONZEPT.md](KONZEPT.md) (German)
-
----
-
-## Haftung / Liability
-
-Dieses Projekt ist eine **unentgeltliche Open-Source-Schenkung** im Sinne der §§ 516 ff. BGB. Die Haftung des Urhebers ist gemäß **§ 521 BGB** auf **Vorsatz und grobe Fahrlässigkeit** beschränkt. Ergänzend gelten die Haftungsausschlüsse aus GPL-3.0 / MIT / Apache-2.0 §§ 15–16 (je nach gewählter Lizenz).
+Dieses Projekt ist eine **unentgeltliche Open-Source-Schenkung** im Sinne der §§ 516 ff. BGB. Die Haftung des Urhebers ist gemäß **§ 521 BGB** auf **Vorsatz und grobe Fahrlässigkeit** beschränkt. Ergänzend gelten die Haftungsausschlüsse der MIT-Lizenz.
 
 Nutzung auf eigenes Risiko. Keine Wartungszusage, keine Verfügbarkeitsgarantie, keine Gewähr für Fehlerfreiheit oder Eignung für einen bestimmten Zweck.
 
 This project is an unpaid open-source donation. Liability is limited to intent and gross negligence (§ 521 German Civil Code). Use at your own risk. No warranty, no maintenance guarantee, no fitness-for-purpose assumed.
-

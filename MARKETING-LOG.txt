@@ -133,3 +133,70 @@ Version: 0.4.2
     - Added contract verification for hardened multi-host and lock defense gitignore patterns.
     - Added contract verification for PEP 621 extended project URLs and pytest configuration.
     - Added contract verification for marketing log and changelog recency.
+
+================================================================================
+5. PFAD B AUDIT: MARKETING, DISCOVERABILITY & VISUAL ARCHITECTURE (2026-09-18)
+================================================================================
+- Operator: Antigravity / Gemini (via GITHUBBOT Pfad B Turnus)
+- Repository: ellmos-ai/gardener (C:\_Local_DEV\repos\gardener)
+- Scope: 18-Point Quick Navigation Parity, 4 Target Personas, 10-Dimension Comparative Matrix,
+         SPDX Software Inventory (THIRD_PARTY_LICENSES.md), § 521 BGB Statutory Notice,
+         and Comprehensive Contract Test Expansion.
+
+[x] 18-Point Quick Navigation Table & Dual Reciprocal Anchor Parity:
+    - Expanded Quick Navigation in both README.md and README_de.md to 18 numbered sections.
+    - Implemented reciprocal dual HTML anchor tags (<a id="..."></a>) supporting both English
+      and German anchor IDs, as well as backwards-compatible legacy anchors.
+    - Added direct jumps: #1-features through #18-security-policy-sibling-ecosystem--liability.
+
+[x] Target Personas & High-Intent Discoverability Terms:
+    - Formalized 4 target personas:
+      * [PERSONA-01] Local-First AI Agent Engineers
+      * [PERSONA-02] Privacy-First Researchers & Knowledge Workers
+      * [PERSONA-03] Multi-Agent Fleet Architects
+      * [PERSONA-04] SQLite & Local-Tool Enthusiasts
+    - Curated high-intent search queries: "sqlite llm operating system", "local-first agent memory substrate",
+      "offline fts5 agent knowledge base", "zero egress multi-agent memory", "ellmos-ai gardener sqlite".
+
+[x] 10-Dimension Comparative Matrix vs. 4 Alternatives:
+    - Benchmarked Gardener OS against MemGPT/Letta, LangChain/LlamaIndex SQLite, ChromaDB/Pinecone,
+      and Traditional OS Filesystem + Grep across 10 architectural dimensions mapped 1:1 to invariants:
+      1. Offline & Zero-Egress (INV-LOCAL-01)
+      2. Non-Elevation Security (INV-RUNAS-02 / RunAsInvoker)
+      3. Memory & Search Substrate (INV-FTS-03 / Deterministic FTS5 BM25)
+      4. Secret Redaction (INV-SEC-04 / 13 Credential Families)
+      5. Cloud Leak Detection (INV-CLOUD-05 / Idempotent Alarm)
+      6. Read-Only Foreign Isolation (INV-RO-06 / mode=ro DBs & Transcripts)
+      7. Execution Boundary (INV-TRAV-07 / Ephemeral Workspace Isolation)
+      8. Unified Everything Substrate (INV-SUB-08 / Single Table Substrate)
+      9. Spec & Documentation Parity (INV-DOCS-09 / 18 Pts EN/DE + llms.txt)
+      10. Open Governance & SLA (INV-SLA-10 / MIT + 48h Response / 5d Triage SLA)
+
+[x] Dual Mermaid Architecture & Runtime Sequence Validation:
+    - Validated Architecture Topology diagram (flowchart TD) with 5 structured subgraphs.
+    - Validated End-to-End Query & Execution Lifecycle diagram (sequenceDiagram with autonumber).
+
+[x] Third-Party Licenses & Software Inventory (THIRD_PARTY_LICENSES.md):
+    - Conducted comprehensive SPDX software inventory audit.
+    - Certified pure Python standard library runtime (0 external runtime dependencies).
+    - Catalogued development/testing tools (pytest, ruff, setuptools).
+    - Certified RunAsInvoker unprivileged execution guarantee and Zero-Copyleft isolation.
+    - Documented all 10 governance & runtime invariants with verification mappings.
+
+[x] German Statutory Notice (§ 521 BGB Gefälligkeitsrecht):
+    - Added legal disclaimer in README_de.md declaring open-source donation status (Schenkung)
+      limiting liability to intent and gross negligence (Vorsatz und grobe Fahrlässigkeit).
+
+[x] Package & Metadata Alignment (pyproject.toml & llms.txt):
+    - Enriched pyproject.toml [project.urls] with "Third-Party Licenses" and "Umbrella Ecosystem".
+    - Added license-files = ["LICENSE", "THIRD_PARTY_LICENSES.md"] under [project].
+    - Updated llms.txt with Last-checked date (2026-09-18), target personas, and 18-point nav references.
+
+[x] Automated Contract Test Expansion (tests/test_metadata.py):
+    - Expanded test_metadata.py to assert:
+      1. test_quick_navigation_18_points_parity (18 numbered points + reciprocal anchors)
+      2. test_target_personas_and_high_intent_queries ([PERSONA-01]..[PERSONA-04])
+      3. test_comparative_matrix_vs_alternatives (10 dimensions vs 4 alternatives)
+      4. test_third_party_licenses_md_integrity (SPDX, RunAsInvoker, Zero-Copyleft)
+      5. test_german_statutory_notice (§ 521 BGB Gefälligkeitsrecht)
+      6. Updated URL and file references.

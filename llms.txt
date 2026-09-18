@@ -1,26 +1,26 @@
 # Gardener - Database-Based Operating System for LLMs
 
-Last-checked: 2026-09-16
+Last-checked: 2026-09-18
 Canonical repository: https://github.com/ellmos-ai/gardener
 
 > Gardener is a database-centric operating system for LLMs: everything -- knowledge, tools, memories, tasks -- lives in a single searchable SQLite database, exposed through four primitive operations (find, get, put, run). A minimalist counterpart to file-centric agent systems like BACH.
 
-Where BACH treats the filesystem as the LLM's working environment, Gardener treats the database as the working environment. The LLM does not navigate folders -- it queries, retrieves, stores, and executes. Code lives in the DB as tool rows and is materialized to a workspace only when run. Author: Lukas Geiger. Status: prototype. Python, SQLite, MIT.
+Where BACH treats the filesystem as the LLM's working environment, Gardener treats the database as the working environment. The LLM does not navigate folders -- it queries, retrieves, stores, and executes. Code lives in the DB as tool rows and is materialized to a workspace only when run. Author: Lukas Geiger. Status: prototype (v0.4.2). Python, SQLite, MIT.
 
-Core primitives: find (search across all entries; restrictable to one observe-source via --source / find(source=...) or pinned entries via --pinned / find(pinned=True), applied before ranking so a large transcript source cannot bury a small curated one), get (read entry by name), put (store knowledge, memory, tools, tasks), run (execute a tool with input), absorb (ingest files into DB), materialize (write DB content to workspace), observe (watch user folder for changes), sync, status, pin/unpin (protect entries from decay and rank top), clean_workspace. Data model: a single `everything` table typed as knowledge / tool / memory / task, split across `gardener.db` (system) and `user.db` (user data).
+Core primitives: find (search across all entries; restrictable to one observe-source via --source / find(source=...) or pinned entries via --pinned / find(pinned=True), applied before ranking so a large transcript source cannot bury a small curated one), get (read entry by name), put (store knowledge, memory, tools, tasks), run (execute a tool with input), absorb (ingest files into DB), materialize (write DB content to workspace), observe (watch user folder for changes), sync, status, pin/unpin (protect entries from decay and rank top), clean_workspace. Data model: a single `everything` table typed as knowledge / tool / memory / task / observed, split physically across `gardener.db` (system blueprints) and `user.db` (user data).
 
 Cross-source observe adapters put every coding agent on a machine into one search without moving their data: markdown memory/rule files, `.remember` notes, foreign SQLite tables (read-only, `mode=ro`), and JSONL chat transcripts. Everything indexed that way is typed `observed` -- foreign material reachable via find() -- and deliberately never becomes memory/lesson, the types recall() draws on, so bulk material cannot drown out curated entries.
 
 The opt-in `system` reference tier includes `plans-register`, a read-only observe source over `_control-center/_PLANS/{README.md,PLANS-REPORT.md,plans-register.json}`. Gardener indexes plan metadata for discovery but does not own or rewrite plans.
 
-Testing: run `python -m unittest discover -s tests -v` or `pytest`. CI uses a multi-OS matrix (Ubuntu, Windows, macOS) on Python 3.10, 3.11, 3.12, and 3.13 with Ruff linting. Current local suite: 174 passing tests (100% green).
+Testing: run `python -m unittest discover -s tests -v` or `pytest`. CI uses a multi-OS matrix (Ubuntu, Windows, macOS) on Python 3.10, 3.11, 3.12, and 3.13 with Ruff linting. Current local suite: 178 passing tests (100% green).
 
-## Audience
+## Target Personas
 
-- LLM-agent builders who want inspectable local memory without a hosted platform
-- Developers comparing file-centric agent operating systems with database-centric ones
-- Researchers prototyping SQLite/FTS5-backed agent memory, task state, and tool storage
-- People searching for the ellmos minimal OS layer rather than gardening content or generic DBOS research
+- `[PERSONA-01]` Local-First AI Agent Engineers: Autonomous agent builders wanting durable, low-latency, 100% offline memory without vector drift or cloud dependencies.
+- `[PERSONA-02]` Privacy-First Researchers & Knowledge Workers: Analysts needing unified indexing and automatic secret redaction with zero cloud egress.
+- `[PERSONA-03]` Multi-Agent Fleet Architects: System designers coordinating fleets with cross-session memory consolidation and safe ephemeral tool execution.
+- `[PERSONA-04]` SQLite & Local-Tool Enthusiasts: Developers favoring clean, single-table SQLite architectures over complex microservices.
 
 ## Preferred Search Phrases
 
@@ -37,27 +37,26 @@ ellmos SQLite everything table agent memory
 
 ## Disambiguation
 
-Gardener is not a plant database, gardening app, Sesame Street / Elmo result, or
-the DBOS research project. It is a small ellmos prototype for local-first LLM
-agents that store knowledge, tools, memories, tasks, and absorbed files in
-SQLite.
+Gardener is not a plant database, gardening app, botanical software, Sesame Street / Elmo result, or the DBOS research project. It is a dedicated ellmos SQLite memory and execution substrate for local-first LLM agents storing knowledge, tools, memories, tasks, and absorbed files in SQLite.
 
-## Docs
+## Documentation Structure (18-Point Quick Navigation)
 
-- [README](https://github.com/ellmos-ai/gardener/blob/master/README.md): Overview, quick start, CLI, architecture, data model
-- [SECURITY](https://github.com/ellmos-ai/gardener/blob/master/SECURITY.md): Security policy, privacy invariants, and vulnerability reporting
-- [CHANGELOG](https://github.com/ellmos-ai/gardener/blob/master/CHANGELOG.md): Version history and release notes
-- [MARKETING-LOG](https://github.com/ellmos-ai/gardener/blob/master/MARKETING-LOG.txt): Discoverability, outreach, and technical hygiene audits
-- [KONZEPT.md](https://github.com/ellmos-ai/gardener/blob/master/KONZEPT.md): Design rationale
-- [LICENSE](https://github.com/ellmos-ai/gardener/blob/master/LICENSE): MIT license text
+- [README](https://github.com/ellmos-ai/gardener/blob/master/README.md): 18-point comprehensive English specification & quick navigation
+- [README_de](https://github.com/ellmos-ai/gardener/blob/master/README_de.md): 18-point comprehensive German specification & quick navigation
+- [SECURITY](https://github.com/ellmos-ai/gardener/blob/master/SECURITY.md): Security policy, privacy invariants, and 48h SLA reporting
+- [THIRD_PARTY_LICENSES](https://github.com/ellmos-ai/gardener/blob/master/THIRD_PARTY_LICENSES.md): Full software inventory, SPDX identifiers, RunAsInvoker guarantee, and invariant matrix
+- [CHANGELOG](https://github.com/ellmos-ai/gardener/blob/master/CHANGELOG.md): Version history, release notes, and hygiene audits
+- [MARKETING-LOG](https://github.com/ellmos-ai/gardener/blob/master/MARKETING-LOG.txt): Discoverability audits, target personas, and technical hygiene
+- [KONZEPT.md](https://github.com/ellmos-ai/gardener/blob/master/KONZEPT.md): Architectural concept & design rationale (German)
+- [LICENSE](https://github.com/ellmos-ai/gardener/blob/master/LICENSE): Permissive MIT license text
 
-## Related projects
+## Related Projects & Ecosystem
 
-- [BACH](https://github.com/ellmos-ai/bach): File-centric text-based OS for LLMs (the counterpart paradigm)
+- [BACH](https://github.com/ellmos-ai/bach): File-centric text-based OS for LLMs (the filesystem counterpart)
 - [USMC](https://github.com/ellmos-ai/usmc): Cross-agent shared memory primitive
-- [Rinnsal](https://github.com/ellmos-ai/rinnsal): Lightweight LLM agent infrastructure
-- [open-bricks](https://github.com/open-bricks): Umbrella organization for open-source bricks
+- [Rinnsal](https://github.com/ellmos-ai/rinnsal): Lightweight structured event-driven agent infrastructure
+- [open-bricks](https://github.com/open-bricks): Umbrella organization for modular open-source building blocks
 
-## Optional
+## Community & Issue Tracker
 
 - [GitHub Issues](https://github.com/ellmos-ai/gardener/issues): Bug reports and feature requests
