@@ -1,4 +1,4 @@
-<img src="assets/banner.svg" width="100%" alt="Gardener banner: a database pot growing a crystalline tree of knowledge nodes, labeled with the find/get/put/run primitives">
+<img src="assets/banner.png" width="100%" alt="Gardener banner">
 
 <p align="center">
   <img src="logo.jpg" alt="gardener logo" width="300">

@@ -1,4 +1,4 @@
-<img src="assets/banner.svg" width="100%" alt="Gardener Banner: ein Datenbank-Topf, aus dem ein kristallines Wissensnetz waechst, beschriftet mit den find/get/put/run-Primitiven">
+<img src="assets/banner.png" width="100%" alt="Gardener Banner">
 
 <p align="center">
   <img src="logo.jpg" alt="gardener Logo" width="300">
