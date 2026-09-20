@@ -1,6 +1,20 @@
 # Changelog
-
+ 
 ## [Unreleased]
+
+### FTS5 Boolean Operator Precision Hardening & Three Musketeers Skills Federation (2026-09-20)
+
+- **FTS5 Boolean Operator Query Hardening (`_build_fts_safe_operator_query`, `Gardener.find`)**:
+  - Implemented `_build_fts_safe_operator_query` to preserve explicit boolean operators (`AND`, `OR`, `NOT`) while safely quoting and escaping operand terms.
+  - Resolves FTS5 syntax errors where unquoted terms containing hyphens, colons, slashes, or special symbols (e.g. `beleg-scanner AND rechnung`, `c++ OR c#`, `rechnung NOT beleg-scanner`, `beleg-scan* AND rechnung`) caused SQLite to abort FTS matching (`no such column: scanner`) and fall back to LIKE OR-matching, restoring strict boolean precision, BM25 ranking, and highlighted snippets.
+- **FTS5 Asterisk-Only Token Crash Guard (`_tokenize_query`)**:
+  - Filtered out bare tokens consisting solely of asterisks (`*`, `**`, `***`) to prevent SQLite FTS5 from raising `OperationalError: unknown special query: **`.
+- **Three Musketeers Skills Federation (`sources.reference.json`, `seed.py`)**:
+  - Registered `codex-skills` (`~/.codex/skills/*`) and `gemini-skills` (`["~/.gemini/skills/*", "~/.gemini/antigravity/builtin/skills/*"]`) under `tiers.base` in `sources.reference.json`.
+  - Completes cross-source skill observation across the Three Musketeers (Claude, Codex, Gemini) and the central skills library.
+- **Automated Test Suite Expansion & Badge Parity**:
+  - Added unit tests `test_find_with_boolean_operators_and_special_chars` in `tests/test_gardener_core.py` and `test_referenzset_enthaelt_drei_musketiere_skills` in `tests/test_seed_observe_sources.py`.
+  - Updated all badges and contract assertions across `README.md`, `README_de.md`, `llms.txt`, and `tests/test_metadata.py` to 180 passing tests (100% green).
 
 ### Pfad B: Marketing, Discoverability, Visual Architecture & License Transparency (2026-09-18)
 

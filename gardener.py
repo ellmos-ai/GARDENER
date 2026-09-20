@@ -254,11 +254,58 @@ class Gardener:
             elif bare_text:
                 is_prefix = bare_text.endswith('*') and len(bare_text) > 1
                 text = bare_text[:-1] if is_prefix else bare_text
-                if text == '*' or not text:
+                if not text.strip('*'):
                     continue
                 tokens.append((text, False, is_prefix))
 
         return tokens
+
+    @classmethod
+    def _build_fts_safe_operator_query(cls, query: str) -> Optional[str]:
+        """Baut aus einer Query mit FTS-Operatoren (AND, OR, NOT) eine abgesicherte FTS5-Query.
+
+        Maskiert/quotiert Operanden, damit Bindestriche, Doppelpunkte, Pfade oder
+        Sonderzeichen (z. B. 'beleg-scanner AND rechnung', 'c++ OR c#', 'rechnung NOT beleg-scanner')
+        keine FTS5-Syntaxfehler auslösen, während die booleschen Operatoren erhalten bleiben.
+        Gibt None zurück, wenn keine Operatoren (AND, OR, NOT) vorliegen, NEAR(...) verwendet wird,
+        oder die Query leer ist.
+        """
+        q_upper = query.upper()
+        if "NEAR(" in q_upper:
+            return None
+        words = q_upper.split()
+        operators = {"AND", "OR", "NOT"}
+        if not any(w in operators for w in words):
+            return None
+
+        tokens = cls._tokenize_query(query)
+        if not tokens:
+            return None
+
+        out_parts: List[str] = []
+        prev_was_term = False
+        for text, is_phrase, is_prefix in tokens:
+            upper = text.upper()
+            if not is_phrase and upper in operators:
+                out_parts.append(upper)
+                prev_was_term = False
+            else:
+                t_clean = text.replace('"', '""')
+                star = '*' if is_prefix else ''
+                if prev_was_term:
+                    out_parts.append("AND")
+                out_parts.append(f'"{t_clean}"{star}')
+                prev_was_term = True
+
+        while out_parts and out_parts[0] in ("AND", "OR"):
+            out_parts.pop(0)
+        while out_parts and out_parts[-1] in ("AND", "OR", "NOT"):
+            out_parts.pop()
+
+        if not out_parts:
+            return None
+
+        return " ".join(out_parts)
 
     @classmethod
     def _build_fts_and_query(cls, query: str) -> Optional[str]:
@@ -568,7 +615,20 @@ class Gardener:
                 except Exception:
                     results = []
 
-                # 1b. Abgesicherte AND-Query: Falls Roh-Query fehlschlug oder keine Treffer ergab
+                # 1b. Abgesicherte Operator-Query: Falls Roh-Query fehlschlug oder 0 Treffer ergab
+                #     und boolesche Operatoren (AND, OR, NOT) enthält, deren Operanden Sonderzeichen
+                #     (wie '-', ':', '/') enthalten.
+                if not results:
+                    safe_op_query = self._build_fts_safe_operator_query(query)
+                    if safe_op_query and safe_op_query != query:
+                        try:
+                            results = self._fts_query(conn, safe_op_query, type=type, limit=limit,
+                                                      with_snippets=with_snippets,
+                                                      source=source, pinned=pinned)
+                        except Exception:
+                            results = []
+
+                # 1c. Abgesicherte AND-Query: Falls Roh-Query fehlschlug oder keine Treffer ergab
                 #     (z. B. wegen Bindestrichen wie 'beleg-scanner', Pfaden, Doppelpunkten
                 #     oder Sonderzeichen, die FTS5 als Spaltensubtraktion/Syntaxfehler abweist).
                 if not results:

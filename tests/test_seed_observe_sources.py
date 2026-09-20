@@ -197,6 +197,33 @@ def test_referenzset_enthaelt_das_beschlossene_plans_register():
     }
 
 
+def test_referenzset_enthaelt_drei_musketiere_skills():
+    reference = Path(seed.__file__).resolve().parent / "sources.reference.json"
+    data = json.loads(reference.read_text(encoding="utf-8"))
+    base = data["tiers"]["base"]
+
+    assert "claude-skills" in base
+    assert base["claude-skills"] == {
+        "kind": "markdown_dir",
+        "path": "~/.claude/skills/*",
+    }
+
+    assert "codex-skills" in base
+    assert base["codex-skills"] == {
+        "kind": "markdown_dir",
+        "path": "~/.codex/skills/*",
+    }
+
+    assert "gemini-skills" in base
+    assert base["gemini-skills"] == {
+        "kind": "markdown_dir",
+        "path": [
+            "~/.gemini/skills/*",
+            "~/.gemini/antigravity/builtin/skills/*",
+        ],
+    }
+
+
 def test_apply_reference_sources_list_and_existence(tmp_path):
     import apply_reference_sources
 

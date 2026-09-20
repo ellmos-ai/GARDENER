@@ -55,6 +55,10 @@
         "format": "codex",
         "key_by": "name"
       },
+      "codex-skills": {
+        "kind": "markdown_dir",
+        "path": "~/.codex/skills/*"
+      },
       "gemini-antigravity": {
         "kind": "markdown_dir",
         "path": "~/.gemini/antigravity",
@@ -93,6 +97,13 @@
           "AUTOMATIONS-MEMORY.md",
           "memory.md",
           "memory.txt"
+        ]
+      },
+      "gemini-skills": {
+        "kind": "markdown_dir",
+        "path": [
+          "~/.gemini/skills/*",
+          "~/.gemini/antigravity/builtin/skills/*"
         ]
       },
       "gemini-transcripts": {

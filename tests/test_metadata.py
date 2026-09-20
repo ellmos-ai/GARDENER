@@ -51,9 +51,9 @@ class TestMetadataParity(unittest.TestCase):
         self.assertIn(f"[{version}]", self.changelog)
 
     def test_readme_badges_and_test_count(self):
-        # Assert test badges show 178 passed
-        self.assertIn("tests-178%20passed-brightgreen.svg", self.readme_en)
-        self.assertIn("tests-178%20passed-brightgreen.svg", self.readme_de)
+        # Assert test badges show 180 passed
+        self.assertIn("tests-180%20passed-brightgreen.svg", self.readme_en)
+        self.assertIn("tests-180%20passed-brightgreen.svg", self.readme_de)
 
         # Assert code style Ruff
         self.assertIn("code%20style-ruff-000000.svg", self.readme_en)
@@ -81,8 +81,8 @@ class TestMetadataParity(unittest.TestCase):
         self.assertIn("actions/workflows/ci.yml/badge.svg", self.readme_de)
 
     def test_llms_txt_consistency(self):
-        self.assertIn("Last-checked: 2026-09-18", self.llms_txt)
-        self.assertIn("178 passing tests", self.llms_txt)
+        self.assertIn("Last-checked: 2026-09-20", self.llms_txt)
+        self.assertIn("180 passing tests", self.llms_txt)
         self.assertIn("https://github.com/ellmos-ai/gardener", self.llms_txt)
         self.assertIn("ellmos-ai/gardener", self.llms_txt)
         self.assertIn("SECURITY.md", self.llms_txt)

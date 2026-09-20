@@ -243,6 +243,10 @@ class TestGardenerCore(GardenerTempCase):
         tokens = tokenize('"offenes zitat')
         self.assertEqual(tokens, [("offenes zitat", True, False)])
 
+        # Asterisk-only tokens are ignored to prevent FTS5 special query crashes
+        self.assertEqual(tokenize("***"), [])
+        self.assertEqual(tokenize("scan* *** doc"), [("scan", False, True), ("doc", False, False)])
+
         # AND query building with token quoting for FTS5 safety
         self.assertEqual(build_and("beleg-scanner"), '"beleg-scanner"')
         self.assertEqual(build_and("beleg-scanner rechnung"), '"beleg-scanner" "rechnung"')
@@ -256,6 +260,67 @@ class TestGardenerCore(GardenerTempCase):
         self.assertIsNone(build_and("NEAR(beleg, rechnung)"))
         self.assertIsNone(build_and(""))
         self.assertIsNone(build_and("   "))
+
+        # Safe operator query building preserving AND / OR / NOT while quoting operands
+        build_safe_op = self.gardener.Gardener._build_fts_safe_operator_query
+        self.assertEqual(build_safe_op("beleg-scanner AND rechnung"), '"beleg-scanner" AND "rechnung"')
+        self.assertEqual(build_safe_op("beleg-scanner OR rechnung"), '"beleg-scanner" OR "rechnung"')
+        self.assertEqual(build_safe_op("rechnung NOT beleg-scanner"), '"rechnung" NOT "beleg-scanner"')
+        self.assertEqual(build_safe_op("c++ AND linux"), '"c++" AND "linux"')
+        self.assertEqual(build_safe_op("c++ OR c#"), '"c++" OR "c#"')
+        self.assertEqual(build_safe_op("c++ developer AND linux"), '"c++" AND "developer" AND "linux"')
+        self.assertEqual(build_safe_op("beleg-scan* AND rechnung"), '"beleg-scan"* AND "rechnung"')
+        self.assertEqual(build_safe_op("AND rechnung AND"), '"rechnung"')
+        self.assertIsNone(build_safe_op("beleg-scanner rechnung"))
+        self.assertIsNone(build_safe_op("NEAR(beleg, rechnung)"))
+        self.assertIsNone(build_safe_op(""))
+
+    def test_find_with_boolean_operators_and_special_chars(self):
+        self.af.put(
+            "doc-scanner-rechnung",
+            content="Der beleg-scanner verarbeitet jede Rechnung präzise.",
+            type="knowledge",
+        )
+        self.af.put(
+            "doc-rechnung-only",
+            content="Nur eine Rechnung ohne jeglichen Scanner.",
+            type="knowledge",
+        )
+        self.af.put(
+            "doc-scanner-only",
+            content="Der beleg-scanner archiviert Quittungen.",
+            type="knowledge",
+        )
+        self.af.put(
+            "doc-cpp-linux",
+            content="Softwareentwicklung mit c++ unter linux.",
+            type="tool",
+        )
+
+        # 1. Unquoted hyphenated term with explicit AND
+        hits_and = self.af.find("beleg-scanner AND rechnung", with_snippets=True)
+        self.assertEqual(len(hits_and), 1)
+        self.assertEqual(hits_and[0]["name"], "doc-scanner-rechnung")
+        self.assertIn("snippet", hits_and[0])
+        self.assertIn(">>>beleg-scanner<<<", hits_and[0]["snippet"])
+
+        # 2. Unquoted hyphenated term with NOT
+        hits_not1 = self.af.find("rechnung NOT beleg-scanner")
+        self.assertEqual(len(hits_not1), 1)
+        self.assertEqual(hits_not1[0]["name"], "doc-rechnung-only")
+
+        hits_not2 = self.af.find("beleg-scanner NOT rechnung")
+        self.assertEqual(len(hits_not2), 1)
+        self.assertEqual(hits_not2[0]["name"], "doc-scanner-only")
+
+        # 3. Special symbol c++ with AND
+        hits_cpp = self.af.find("c++ AND linux")
+        self.assertEqual(len(hits_cpp), 1)
+        self.assertEqual(hits_cpp[0]["name"], "doc-cpp-linux")
+
+        # 4. Asterisk-only query does not crash FTS5
+        hits_stars = self.af.find("***")
+        self.assertEqual(hits_stars, [])
 
     def test_find_with_hyphens_special_chars_and_snippets(self):
         self.af.put(
