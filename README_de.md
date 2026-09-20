@@ -1,3 +1,5 @@
+<img src="assets/banner-mower.svg" width="100%" alt="GARDENER — lawnmower animation">
+
 <p align="center">
   <img src="logo.jpg" alt="gardener Logo" width="300">
 </p>
