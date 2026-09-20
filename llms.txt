@@ -1,9 +1,9 @@
-# Gardener - Database-Based Operating System for LLMs
+# Gardener - Curated Memory for Agentic Systems
 
 Last-checked: 2026-09-18
 Canonical repository: https://github.com/ellmos-ai/gardener
 
-> Gardener is a database-centric operating system for LLMs: everything -- knowledge, tools, memories, tasks -- lives in a single searchable SQLite database, exposed through four primitive operations (find, get, put, run). A minimalist counterpart to file-centric agent systems like BACH.
+> Gardener is curated memory for agentic systems: it tames wild systems, knows what belongs to the garden, and makes it searchable. Everything -- knowledge, tools, memories, tasks -- lives in a single searchable SQLite database, exposed through four primitive operations (find, get, put, run). A minimalist counterpart to file-centric agent systems like BACH.
 
 Where BACH treats the filesystem as the LLM's working environment, Gardener treats the database as the working environment. The LLM does not navigate folders -- it queries, retrieves, stores, and executes. Code lives in the DB as tool rows and is materialized to a workspace only when run. Author: Lukas Geiger. Status: prototype (v0.4.2). Python, SQLite, MIT.
 

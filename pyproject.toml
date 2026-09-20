@@ -8,7 +8,7 @@ build-backend = "setuptools.build_meta"
 # console script stay "gardener".
 name = "gardener-os"
 version = "0.4.2"
-description = "Database-centric operating system for LLMs: find, get, put, run on a single SQLite substrate."
+description = "Curated memory for agentic systems: Gardener tames wild systems, knows what belongs to the garden, and makes it searchable."
 readme = "README.md"
 license = { text = "MIT" }
 license-files = ["LICENSE", "THIRD_PARTY_LICENSES.md"]

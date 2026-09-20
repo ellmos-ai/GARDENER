@@ -2,7 +2,7 @@
   <img src="logo.jpg" alt="gardener Logo" width="300">
 </p>
 
-# gardener — Datenbankbasiertes Betriebssystem für LLMs
+# gardener — Gepflegte Memory für agentische Systeme
 
 [![CI](https://github.com/ellmos-ai/gardener/actions/workflows/ci.yml/badge.svg)](https://github.com/ellmos-ai/gardener/actions/workflows/ci.yml)
 [![Version: 0.4.2](https://img.shields.io/badge/version-0.4.2-blue.svg)](https://github.com/ellmos-ai/gardener)
