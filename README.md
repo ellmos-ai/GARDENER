@@ -1,4 +1,4 @@
-<img src="assets/banner-mower.svg" width="100%" alt="GARDENER — lawnmower animation">
+<img src="assets/banner-mower.gif" width="100%" alt="GARDENER — lawnmower animation">
 
 <p align="center">
   <img src="logo.jpg" alt="gardener logo" width="300">
