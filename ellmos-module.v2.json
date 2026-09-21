@@ -9,7 +9,8 @@
   "provides": [
     "memory.organic",
     "knowledge.index",
-    "knowledge.search"
+    "knowledge.search",
+    "knowledge.search.default"
   ],
   "requires": [],
   "optional": [],
