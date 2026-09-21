@@ -266,11 +266,20 @@ class TestGardenerCore(GardenerTempCase):
         self.assertEqual(build_safe_op("beleg-scanner AND rechnung"), '"beleg-scanner" AND "rechnung"')
         self.assertEqual(build_safe_op("beleg-scanner OR rechnung"), '"beleg-scanner" OR "rechnung"')
         self.assertEqual(build_safe_op("rechnung NOT beleg-scanner"), '"rechnung" NOT "beleg-scanner"')
+        self.assertEqual(build_safe_op("apple AND NOT banana"), '"apple" NOT "banana"')
+        self.assertEqual(build_safe_op("apple OR NOT banana"), '"apple" NOT "banana"')
+        self.assertEqual(build_safe_op("apple AND AND banana"), '"apple" AND "banana"')
+        self.assertEqual(build_safe_op("apple OR OR banana"), '"apple" OR "banana"')
+        self.assertEqual(build_safe_op("apple AND OR banana"), '"apple" OR "banana"')
         self.assertEqual(build_safe_op("c++ AND linux"), '"c++" AND "linux"')
         self.assertEqual(build_safe_op("c++ OR c#"), '"c++" OR "c#"')
         self.assertEqual(build_safe_op("c++ developer AND linux"), '"c++" AND "developer" AND "linux"')
         self.assertEqual(build_safe_op("beleg-scan* AND rechnung"), '"beleg-scan"* AND "rechnung"')
         self.assertEqual(build_safe_op("AND rechnung AND"), '"rechnung"')
+        self.assertEqual(build_safe_op("NOT banana"), '"banana"')
+        self.assertEqual(build_safe_op("banana NOT"), '"banana"')
+        self.assertIsNone(build_safe_op("NOT"))
+        self.assertIsNone(build_safe_op("AND OR NOT"))
         self.assertIsNone(build_safe_op("beleg-scanner rechnung"))
         self.assertIsNone(build_safe_op("NEAR(beleg, rechnung)"))
         self.assertIsNone(build_safe_op(""))
@@ -321,6 +330,48 @@ class TestGardenerCore(GardenerTempCase):
         # 4. Asterisk-only query does not crash FTS5
         hits_stars = self.af.find("***")
         self.assertEqual(hits_stars, [])
+
+    def test_find_with_compound_boolean_operators_and_negation(self):
+        """Testet erweiterte Operator-UX: 'AND NOT', 'OR NOT', wiederholte Operatoren und führendes NOT."""
+        self.af.put(
+            "doc-apple-fruit",
+            content="Frischer roter Apfel direkt vom Obstbaum.",
+            type="knowledge",
+        )
+        self.af.put(
+            "doc-banana-fruit",
+            content="Reife gelbe Banane reich an Kalium.",
+            type="knowledge",
+        )
+        self.af.put(
+            "doc-mixed-fruit",
+            content="Fruchtsalat mit Apfel und Banane zusammen.",
+            type="knowledge",
+        )
+
+        # 1. 'AND NOT' normalisiert auf 'NOT' im FTS5
+        hits_and_not = self.af.find("Apfel AND NOT Banane", with_snippets=True)
+        self.assertEqual(len(hits_and_not), 1)
+        self.assertEqual(hits_and_not[0]["name"], "doc-apple-fruit")
+        self.assertIn("snippet", hits_and_not[0])
+        self.assertIn(">>>Apfel<<<", hits_and_not[0]["snippet"])
+
+        # 2. 'OR NOT' normalisiert auf 'NOT' im FTS5
+        hits_or_not = self.af.find("Banane OR NOT Apfel")
+        self.assertEqual(len(hits_or_not), 1)
+        self.assertEqual(hits_or_not[0]["name"], "doc-banana-fruit")
+
+        # 3. Wiederholte Operatoren ('AND AND') werden dedupliziert
+        hits_and_and = self.af.find("Apfel AND AND Banane")
+        self.assertEqual(len(hits_and_and), 1)
+        self.assertEqual(hits_and_and[0]["name"], "doc-mixed-fruit")
+
+        # 4. Führendes NOT wirft keinen FTS5-Syntaxfehler, sondern sucht den Term
+        hits_lead_not = self.af.find("NOT Banane")
+        self.assertTrue(len(hits_lead_not) >= 2)
+        hit_names = [h["name"] for h in hits_lead_not]
+        self.assertIn("doc-banana-fruit", hit_names)
+        self.assertIn("doc-mixed-fruit", hit_names)
 
     def test_find_with_hyphens_special_chars_and_snippets(self):
         self.af.put(

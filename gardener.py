@@ -267,6 +267,9 @@ class Gardener:
         Maskiert/quotiert Operanden, damit Bindestriche, Doppelpunkte, Pfade oder
         Sonderzeichen (z. B. 'beleg-scanner AND rechnung', 'c++ OR c#', 'rechnung NOT beleg-scanner')
         keine FTS5-Syntaxfehler auslösen, während die booleschen Operatoren erhalten bleiben.
+        Konsolidiert zudem Operator-Kombinationen wie 'AND NOT' oder 'OR NOT' zu 'NOT',
+        verwirft ungültige Mehrfach-Operatoren (z. B. 'AND AND') und bereinigt führende/
+        nachlaufende Operatoren.
         Gibt None zurück, wenn keine Operatoren (AND, OR, NOT) vorliegen, NEAR(...) verwendet wird,
         oder die Query leer ist.
         """
@@ -282,30 +285,41 @@ class Gardener:
         if not tokens:
             return None
 
-        out_parts: List[str] = []
-        prev_was_term = False
+        terms_and_ops: List[str] = []
+        current_ops: List[str] = []
+
         for text, is_phrase, is_prefix in tokens:
             upper = text.upper()
             if not is_phrase and upper in operators:
-                out_parts.append(upper)
-                prev_was_term = False
+                current_ops.append(upper)
             else:
+                if terms_and_ops:
+                    if not current_ops:
+                        terms_and_ops.append("AND")
+                    else:
+                        # Konsolidiere Operatorfolge zwischen zwei Termen:
+                        # 'AND NOT' oder 'OR NOT' -> FTS5 kennt nur binäres 'NOT', kein 'AND NOT'
+                        if current_ops[-1] == "NOT" or "NOT" in current_ops:
+                            terms_and_ops.append("NOT")
+                        elif current_ops[-1] in ("AND", "OR"):
+                            terms_and_ops.append(current_ops[-1])
+                        else:
+                            terms_and_ops.append("AND")
+                    current_ops = []
+                else:
+                    # Führende Operatoren vor dem ersten Term verwerfen (z. B. 'NOT banana', 'AND foo')
+                    current_ops = []
+
                 t_clean = text.replace('"', '""')
                 star = '*' if is_prefix else ''
-                if prev_was_term:
-                    out_parts.append("AND")
-                out_parts.append(f'"{t_clean}"{star}')
-                prev_was_term = True
+                terms_and_ops.append(f'"{t_clean}"{star}')
 
-        while out_parts and out_parts[0] in ("AND", "OR"):
-            out_parts.pop(0)
-        while out_parts and out_parts[-1] in ("AND", "OR", "NOT"):
-            out_parts.pop()
+        # Nachlaufende Operatoren in current_ops werden automatisch verworfen
 
-        if not out_parts:
+        if not terms_and_ops:
             return None
 
-        return " ".join(out_parts)
+        return " ".join(terms_and_ops)
 
     @classmethod
     def _build_fts_and_query(cls, query: str) -> Optional[str]:

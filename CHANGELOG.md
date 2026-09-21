@@ -2,6 +2,17 @@
  
 ## [Unreleased]
 
+### FTS5 Compound Boolean Operators Normalization & Negation UX (2026-09-21)
+
+- **FTS5 Compound Boolean Operator Consolidation (`_build_fts_safe_operator_query`, `Gardener.find`)**:
+  - Upgraded `_build_fts_safe_operator_query` with state-machine token stream consolidation for user-entered boolean queries.
+  - Consolidates compound boolean sequences like `AND NOT` or `OR NOT` into SQLite FTS5's required binary `NOT` syntax (`<term1> NOT <term2>`), preventing `sqlite3.OperationalError: fts5: syntax error near "NOT"`.
+  - Normalizes consecutive repeated operators (e.g. `AND AND`, `OR OR`, `AND OR`) by deduplication and picking the last logical combinator, preventing `syntax error near "AND"` / `"OR"`.
+  - Safely handles unary leading `NOT` (e.g. `NOT banana` -> `"banana"`) and trailing hanging operators without syntax errors.
+- **Automated Test Suite Expansion & Badge Parity**:
+  - Added unit test method `test_find_with_compound_boolean_operators_and_negation` and query builder assertions in `tests/test_gardener_core.py`.
+  - Synchronized badges and assertions across `README.md`, `README_de.md`, `llms.txt`, and `tests/test_metadata.py` to 181 passing tests (100% green).
+
 ### FTS5 Boolean Operator Precision Hardening & Three Musketeers Skills Federation (2026-09-20)
 
 - **FTS5 Boolean Operator Query Hardening (`_build_fts_safe_operator_query`, `Gardener.find`)**:
