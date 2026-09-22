@@ -2,6 +2,19 @@
  
 ## [Unreleased]
 
+### Recall Multi-Word Query UX, FTS5 Safe-Operator Alignment & Observed-Awareness (2026-09-22)
+
+- **FTS5 Multi-Word & Safe-Operator Recall Hardening (`Gardener.recall`)**:
+  - Aligned `recall()` with `find()`'s multi-stage query architecture: Exact MATCH -> Safe Operator (`_build_fts_safe_operator_query`) -> Safe AND (`_build_fts_and_query`) -> Multi-word OR Fallback (`_build_fts_or_query`) -> Tokenized LIKE Fallback.
+  - Consolidated single-pass retrieval across target types via `WHERE everything_fts MATCH ? AND e.type IN (...)` within `@contextmanager connection("user")`, eliminating redundant queries and ensuring safe connection lifecycles.
+  - Targeted score boost: `self._boost(conn, item["id"])` is strictly limited to recalled items belonging to memory types (`memory`, `lesson`, `session`), preventing unwanted boosts on observed sources.
+- **Observed-Awareness & Parameter Expansion (`include_observed`, CLI `gardener recall`)**:
+  - Added optional parameter `include_observed: bool = False` to `Gardener.recall()` and exposed via `--include-observed` / `-o` in CLI `main()`.
+  - Added intelligent observed-awareness hint in CLI `recall`: If 0 memory hits are returned, but hits exist in other observed types or external sources via `find()`, the user receives a helpful tip: `(Hinweis: X Treffer in anderen Quellen/Typen vorhanden — nutze 'gardener find')`.
+- **Automated Test Suite Expansion & Badge Parity**:
+  - Added 3 unit tests in `tests/test_gardener_core.py`: `test_recall_multi_word_query_ux_or_fallback_and_ranking`, `test_recall_include_observed_parameter`, and `test_cli_recall_observed_awareness_hint`.
+  - Synchronized test badges and assertions across `README.md`, `README_de.md`, `llms.txt`, and `tests/test_metadata.py` to 184 passing tests (100% green).
+
 ### FTS5 Compound Boolean Operators Normalization & Negation UX (2026-09-21)
 
 - **FTS5 Compound Boolean Operator Consolidation (`_build_fts_safe_operator_query`, `Gardener.find`)**:

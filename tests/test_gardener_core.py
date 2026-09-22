@@ -484,6 +484,84 @@ class TestGardenerCore(GardenerTempCase):
         self.assertEqual(results[0]["name"], "broken-meta-memory")
         self.assertEqual(results[0]["meta"], {})
 
+    def test_recall_multi_word_query_ux_or_fallback_and_ranking(self):
+        # Entry A: Only "Python" in memory
+        self.af.put(
+            "memo-python",
+            content="Erinnerung an Python Decorator Funktionen.",
+            type="memory",
+            meta={"weight": 0.5},
+        )
+        # Entry B: Only "Volltextsuche" in lesson
+        self.af.put(
+            "lesson-fts",
+            content="Notiz über FTS5 Volltextsuche und Indizes.",
+            type="lesson",
+            meta={"weight": 0.5},
+        )
+
+        # Multi-word search when no memory has both terms must find both via OR-fallback
+        results = self.af.recall("Python Volltextsuche")
+        names = [r["name"] for r in results]
+        self.assertIn("memo-python", names)
+        self.assertIn("lesson-fts", names)
+
+        # Entry C: Contains BOTH terms in session with higher weight
+        self.af.put(
+            "session-both",
+            content="Session über Python und Volltextsuche kombiniert.",
+            type="session",
+            meta={"weight": 0.9},
+        )
+
+        results_with_both = self.af.recall("Python Volltextsuche")
+        self.assertEqual(results_with_both[0]["name"], "session-both")
+
+        # Recall boosts accessed count on recalled memories
+        entry = self.af.get("session-both")
+        self.assertGreaterEqual(entry.get("meta", {}).get("accessed", 0), 1)
+
+    def test_recall_include_observed_parameter(self):
+        self.af.put(
+            "obs-transcript",
+            content="Transkript einer Agentensitzung über Python.",
+            type="observed",
+        )
+        # Without include_observed -> empty
+        res_default = self.af.recall("Agentensitzung", include_observed=False)
+        self.assertEqual(len(res_default), 0)
+
+        # With include_observed=True -> found
+        res_obs = self.af.recall("Agentensitzung", include_observed=True)
+        self.assertEqual(len(res_obs), 1)
+        self.assertEqual(res_obs[0]["name"], "obs-transcript")
+
+    def test_cli_recall_observed_awareness_hint(self):
+        # Only knowledge entry exists, no memory entry
+        self.af.put(
+            "know-architektur",
+            content="Architektur und Entwurfsmuster für Software.",
+            type="knowledge",
+        )
+
+        # Calling CLI recall for "Architektur" should report hint pointing to 'gardener find'
+        import io
+        from contextlib import redirect_stdout
+
+        buf = io.StringIO()
+        old_argv = sys.argv
+        try:
+            sys.argv = ["gardener", "recall", "Architektur"]
+            with redirect_stdout(buf):
+                self.gardener.main()
+        finally:
+            sys.argv = old_argv
+
+        output = buf.getvalue()
+        self.assertIn("Keine Erinnerungen gefunden.", output)
+        self.assertIn("Treffer in anderen Quellen/Typen vorhanden", output)
+        self.assertIn("nutze 'gardener find'", output)
+
     def test_tasks_sorted_by_semantic_priority(self):
         self.af.task("t-low", "x", priority="low")
         self.af.task("t-critical", "x", priority="critical")
