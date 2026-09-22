@@ -2,6 +2,17 @@
  
 ## [Unreleased]
 
+### FTS5 Column-Filtered Query Parsing & Hyphen Hardening (2026-09-22)
+
+- **Column-Aware FTS5 & LIKE Search UX (`_tokenize_query`, `_split_col`, `_format_fts_token`, `_like_query`)**:
+  - Implemented column prefix awareness for FTS5 indexed columns (`name`, `content`, `tags`) in `_tokenize_query` while distinguishing them from Windows drive letters (`C:\...`).
+  - Formats column-filtered tokens safely as `col:"<val>"` (e.g. `tags:python-script` -> `tags:"python-script"`), eliminating SQLite FTS5 column subtraction syntax errors (`no such column: script`) when searching hyphenated tags or names.
+  - Supports quoted phrases in column filters (e.g. `tags:"machine learning"`), prefix wildcards (`tags:scan*`), boolean operator combinations (`tags:python-script AND name:beleg-1`, `tags:python NOT tags:legacy`), and tolerant spacing after colons.
+  - Upgraded `_like_query` fallback to direct targeted column searches (`WHERE e.col LIKE ?`) when column filters are present in single-term or multi-term queries.
+- **Automated Test Suite Expansion & Badge Parity**:
+  - Added unit test methods `test_find_with_column_filters_and_hyphenated_values` and `test_like_query_with_column_filters`, plus expanded helper assertions in `tests/test_gardener_core.py`.
+  - Synchronized badges and assertions across `README.md`, `README_de.md`, `llms.txt`, and `tests/test_metadata.py` to 183 passing tests (100% green).
+
 ### FTS5 Compound Boolean Operators Normalization & Negation UX (2026-09-21)
 
 - **FTS5 Compound Boolean Operator Consolidation (`_build_fts_safe_operator_query`, `Gardener.find`)**:

@@ -284,6 +284,40 @@ class TestGardenerCore(GardenerTempCase):
         self.assertIsNone(build_safe_op("NEAR(beleg, rechnung)"))
         self.assertIsNone(build_safe_op(""))
 
+        # Column prefix tokenization & query building (name, content, tags)
+        self.assertEqual(tokenize("tags:python-script"), [("tags:python-script", False, False)])
+        self.assertEqual(tokenize('tags:"machine learning"'), [("tags:machine learning", True, False)])
+        self.assertEqual(tokenize('tags: "machine learning"'), [("tags:machine learning", True, False)])
+        self.assertEqual(tokenize("tags:scan*"), [("tags:scan", False, True)])
+        self.assertEqual(tokenize("name:beleg-rechnung-1"), [("name:beleg-rechnung-1", False, False)])
+        self.assertEqual(tokenize("content:error-404"), [("content:error-404", False, False)])
+
+        self.assertEqual(build_and("tags:python-script"), 'tags:"python-script"')
+        self.assertEqual(build_and("name:beleg-rechnung-1"), 'name:"beleg-rechnung-1"')
+        self.assertEqual(build_and('tags:"machine learning"'), 'tags:"machine learning"')
+        self.assertEqual(build_and("tags:scan*"), 'tags:"scan"*')
+
+        self.assertEqual(
+            build_safe_op("tags:python-script AND name:beleg-1"),
+            'tags:"python-script" AND name:"beleg-1"'
+        )
+        self.assertEqual(
+            build_safe_op("tags:python OR tags:javascript"),
+            'tags:"python" OR tags:"javascript"'
+        )
+        self.assertEqual(
+            build_safe_op("tags:python NOT tags:legacy"),
+            'tags:"python" NOT tags:"legacy"'
+        )
+        self.assertEqual(
+            build_safe_op("tags:python AND NOT tags:legacy"),
+            'tags:"python" NOT tags:"legacy"'
+        )
+        self.assertEqual(
+            build_safe_op("name:beleg* OR tags:rechnung*"),
+            'name:"beleg"* OR tags:"rechnung"*'
+        )
+
     def test_find_with_boolean_operators_and_special_chars(self):
         self.af.put(
             "doc-scanner-rechnung",
@@ -372,6 +406,99 @@ class TestGardenerCore(GardenerTempCase):
         hit_names = [h["name"] for h in hits_lead_not]
         self.assertIn("doc-banana-fruit", hit_names)
         self.assertIn("doc-mixed-fruit", hit_names)
+
+    def test_find_with_column_filters_and_hyphenated_values(self):
+        """Testet FTS5-Spaltenfilter (tags:, name:, content:) mit Bindestrichen, Phrasen und Operatoren."""
+        self.af.put(
+            "beleg-rechnung-42",
+            content="Rechnung für Büromaterial und Schreibwaren.",
+            tags="finanzen,beleg-scanner",
+            type="knowledge",
+        )
+        self.af.put(
+            "script-python-fastapi",
+            content="Backend API Server mit FastAPI Framework für Microservices.",
+            tags="python-script,backend",
+            type="tool",
+        )
+        self.af.put(
+            "script-python-legacy",
+            content="Altes Python Wartungsskript ohne Framework.",
+            tags="python-script,legacy",
+            type="tool",
+        )
+        self.af.put(
+            "ml-study-note",
+            content="Notizen zu Machine Learning und Deep Learning Architekturen.",
+            tags="ai,machine learning",
+            type="memory",
+        )
+
+        # 1. Spaltenfilter mit Bindestrich im Wert: tags:python-script
+        hits_tag = self.af.find("tags:python-script", with_snippets=True)
+        self.assertEqual(len(hits_tag), 2)
+        tag_names = [h["name"] for h in hits_tag]
+        self.assertIn("script-python-fastapi", tag_names)
+        self.assertIn("script-python-legacy", tag_names)
+
+        # 2. Spaltenfilter mit Bindestrichen im Namen: name:beleg-rechnung-42
+        hits_name = self.af.find("name:beleg-rechnung-42")
+        self.assertEqual(len(hits_name), 1)
+        self.assertEqual(hits_name[0]["name"], "beleg-rechnung-42")
+
+        # 3. Spaltenfilter mit quotierter Phrase: tags:"machine learning"
+        hits_phrase = self.af.find('tags:"machine learning"')
+        self.assertEqual(len(hits_phrase), 1)
+        self.assertEqual(hits_phrase[0]["name"], "ml-study-note")
+
+        # 4. Spaltenfilter mit Leerzeichen nach Doppelpunkt: tags: "machine learning"
+        hits_space = self.af.find('tags: "machine learning"')
+        self.assertEqual(len(hits_space), 1)
+        self.assertEqual(hits_space[0]["name"], "ml-study-note")
+
+        # 5. Verknüpfung zweier Spaltenfilter mit AND
+        hits_and = self.af.find("tags:python-script AND name:script-python-fastapi")
+        self.assertEqual(len(hits_and), 1)
+        self.assertEqual(hits_and[0]["name"], "script-python-fastapi")
+
+        # 6. Spaltenfilter mit NOT-Ausschluss
+        hits_not = self.af.find("tags:python-script NOT tags:legacy")
+        self.assertEqual(len(hits_not), 1)
+        self.assertEqual(hits_not[0]["name"], "script-python-fastapi")
+
+        # 7. Präfix-Spaltenfilter mit Wildcard und OR
+        hits_or = self.af.find("name:beleg* OR tags:ai")
+        self.assertEqual(len(hits_or), 2)
+        or_names = [h["name"] for h in hits_or]
+        self.assertIn("beleg-rechnung-42", or_names)
+        self.assertIn("ml-study-note", or_names)
+
+        # 8. Präfix-Wildcard am Spaltenwert
+        hits_wild = self.af.find("tags:python-script*")
+        self.assertEqual(len(hits_wild), 2)
+
+    def test_like_query_with_column_filters(self):
+        """Testet den gezielten Spaltenabgleich des LIKE-Fallbacks bei Vorliegen von Spaltenfiltern."""
+        self.af.put(
+            "doc-like-col",
+            content="Normaler Inhalt ohne Stichwort im Text.",
+            tags="custom-target-tag",
+            type="knowledge",
+        )
+        with self.af.connection("user") as conn:
+            # Gezielte Suche im tags-Feld über LIKE
+            hits = self.af._like_query(conn, "tags:custom-target-tag")
+            self.assertEqual(len(hits), 1)
+            self.assertEqual(hits[0]["name"], "doc-like-col")
+
+            # Suche im name-Feld
+            hits_name = self.af._like_query(conn, "name:doc-like-col")
+            self.assertEqual(len(hits_name), 1)
+            self.assertEqual(hits_name[0]["name"], "doc-like-col")
+
+            # Falsche Spalte liefert 0 Treffer
+            hits_none = self.af._like_query(conn, "content:custom-target-tag")
+            self.assertEqual(len(hits_none), 0)
 
     def test_find_with_hyphens_special_chars_and_snippets(self):
         self.af.put(

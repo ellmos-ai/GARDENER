@@ -139,6 +139,12 @@ CREATE TABLE IF NOT EXISTS shelves (
 class Gardener:
     """Das LLM-native Betriebssystem. Vier Funktionen, eine Suche."""
 
+    FTS_COLUMNS = frozenset({"name", "content", "tags"})
+    _TOKEN_PATTERN = re.compile(
+        r'(?:(?P<col>name|content|tags):\s*)?(?:\"(?P<qphrase>[^\"]*)\"(?P<qstar>\*)?|(?P<bare>\S+))',
+        re.IGNORECASE,
+    )
+
     def __init__(self, home: Optional[Path] = None, data_dir: Optional[Path] = None):
         self.home = Path(home) if home else DEFAULT_HOME
         self.data_dir = Path(data_dir) if data_dir else LOCAL_DATA_DIR
@@ -223,12 +229,33 @@ class Gardener:
     # API: find()
     # ------------------------------------------------------------------
 
-    @staticmethod
-    def _tokenize_query(query: str) -> List[Tuple[str, bool, bool]]:
+    @classmethod
+    def _split_col(cls, token_text: str) -> Tuple[Optional[str], str]:
+        """Trennt ein Token in FTS-Spaltenname (name, content, tags) und Wert."""
+        if ":" in token_text:
+            prefix, val = token_text.split(":", 1)
+            if prefix.lower() in cls.FTS_COLUMNS:
+                return prefix.lower(), val.strip()
+        return None, token_text
+
+    @classmethod
+    def _format_fts_token(cls, text: str, is_phrase: bool, is_prefix: bool) -> str:
+        """Formatiert ein Token FTS5-sicher unter Erhalt von Spaltenpräfixen."""
+        col, val = cls._split_col(text)
+        val_clean = val.replace('"', '""')
+        star = '*' if is_prefix else ''
+        if col:
+            return f'{col}:"{val_clean}"{star}'
+        return f'"{val_clean}"{star}'
+
+    @classmethod
+    def _tokenize_query(cls, query: str) -> List[Tuple[str, bool, bool]]:
         """Tokenisiert eine Query in (text, is_phrase, is_prefix).
 
         Erkennt:
         - Phrasen in Anführungszeichen: "hallo welt" -> ("hallo welt", True, False)
+        - Spaltenpräfixe: tags:python -> ("tags:python", False, False)
+        - Spaltenpräfixe mit Phrase: tags:"machine learning" -> ("tags:machine learning", True, False)
         - Präfix-Tokens: scan* -> ("scan", False, True)
         - Quotierte Präfixe: "beleg-scan"* -> ("beleg-scan", True, True)
         - Unvollständige Anführungszeichen: "hallo welt -> ("hallo welt", True, False)
@@ -242,20 +269,30 @@ class Gardener:
         if query.count('"') % 2 != 0:
             query += '"'
 
-        pattern = re.compile(r'"([^"]*)"(\*)?|(\S+)')
         tokens: List[Tuple[str, bool, bool]] = []
 
-        for match in pattern.finditer(query):
-            quoted_text, quoted_star, bare_text = match.groups()
+        for match in cls._TOKEN_PATTERN.finditer(query):
+            col, quoted_text, quoted_star, bare_text = (
+                match.group("col"),
+                match.group("qphrase"),
+                match.group("qstar"),
+                match.group("bare"),
+            )
+
+            col_prefix = f"{col.lower()}:" if col and col.lower() in cls.FTS_COLUMNS else ""
+
             if quoted_text is not None:
                 q_clean = quoted_text.strip()
                 if q_clean:
-                    tokens.append((q_clean, True, bool(quoted_star)))
+                    text = f"{col_prefix}{q_clean}" if col_prefix else q_clean
+                    tokens.append((text, True, bool(quoted_star)))
             elif bare_text:
                 is_prefix = bare_text.endswith('*') and len(bare_text) > 1
                 text = bare_text[:-1] if is_prefix else bare_text
                 if not text.strip('*'):
                     continue
+                if col_prefix:
+                    text = f"{col_prefix}{text}"
                 tokens.append((text, False, is_prefix))
 
         return tokens
@@ -265,8 +302,9 @@ class Gardener:
         """Baut aus einer Query mit FTS-Operatoren (AND, OR, NOT) eine abgesicherte FTS5-Query.
 
         Maskiert/quotiert Operanden, damit Bindestriche, Doppelpunkte, Pfade oder
-        Sonderzeichen (z. B. 'beleg-scanner AND rechnung', 'c++ OR c#', 'rechnung NOT beleg-scanner')
-        keine FTS5-Syntaxfehler auslösen, während die booleschen Operatoren erhalten bleiben.
+        Sonderzeichen (z. B. 'beleg-scanner AND rechnung', 'c++ OR c#', 'rechnung NOT beleg-scanner',
+        'tags:python-script AND name:beleg-1') keine FTS5-Syntaxfehler auslösen, während die
+        booleschen Operatoren und Spaltenfilter erhalten bleiben.
         Konsolidiert zudem Operator-Kombinationen wie 'AND NOT' oder 'OR NOT' zu 'NOT',
         verwirft ungültige Mehrfach-Operatoren (z. B. 'AND AND') und bereinigt führende/
         nachlaufende Operatoren.
@@ -310,9 +348,7 @@ class Gardener:
                     # Führende Operatoren vor dem ersten Term verwerfen (z. B. 'NOT banana', 'AND foo')
                     current_ops = []
 
-                t_clean = text.replace('"', '""')
-                star = '*' if is_prefix else ''
-                terms_and_ops.append(f'"{t_clean}"{star}')
+                terms_and_ops.append(cls._format_fts_token(text, is_phrase, is_prefix))
 
         # Nachlaufende Operatoren in current_ops werden automatisch verworfen
 
@@ -325,8 +361,9 @@ class Gardener:
     def _build_fts_and_query(cls, query: str) -> Optional[str]:
         """Baut aus einer Query eine abgesicherte FTS5-AND-Query.
 
-        Maskiert/quotiert Tokens, um FTS5-Syntaxfehler (z. B. '-' als Spaltensubtraktion,
-        ':' als Spaltenfilter, unescapte Sonderzeichen wie '/', '\\', '()') abzusichern.
+        Maskiert/quotiert Tokens unter Erhalt von FTS-Spaltenfiltern (name, content, tags),
+        um FTS5-Syntaxfehler (z. B. '-' als Spaltensubtraktion, unescapte Sonderzeichen wie '/',
+        '\\', '()') abzusichern.
         Gibt None zurück, wenn explizite FTS-Operatoren (AND, OR, NOT, NEAR) vorliegen
         oder die Query leer ist.
         """
@@ -338,11 +375,7 @@ class Gardener:
         if not tokens:
             return None
 
-        fts_tokens = []
-        for text, _is_phrase, is_prefix in tokens:
-            t_clean = text.replace('"', '""')
-            star = '*' if is_prefix else ''
-            fts_tokens.append(f'"{t_clean}"{star}')
+        fts_tokens = [cls._format_fts_token(text, _is_phrase, is_prefix) for text, _is_phrase, is_prefix in tokens]
 
         if not fts_tokens:
             return None
@@ -353,7 +386,8 @@ class Gardener:
     def _build_fts_or_query(cls, query: str) -> Optional[str]:
         """Baut aus einer Mehrwort-Query eine FTS5-OR-Query mit Anführungszeichen.
 
-        Nutzt _tokenize_query zur robusten Zerlegung in atomare Tokens und Phrasen.
+        Nutzt _tokenize_query zur robusten Zerlegung in atomare Tokens und Phrasen
+        unter Beachtung von Spaltenfiltern.
         Gibt None zurück, wenn die Query bereits explizite FTS-Operatoren
         (AND, OR, NOT, NEAR) enthält oder aus nur einem Begriff/einer einzelnen Phrase besteht.
         """
@@ -365,11 +399,7 @@ class Gardener:
         if len(tokens) <= 1:
             return None
 
-        fts_tokens = []
-        for text, _is_phrase, is_prefix in tokens:
-            t_clean = text.replace('"', '""')
-            star = '*' if is_prefix else ''
-            fts_tokens.append(f'"{t_clean}"{star}')
+        fts_tokens = [cls._format_fts_token(text, _is_phrase, is_prefix) for text, _is_phrase, is_prefix in tokens]
 
         if len(fts_tokens) <= 1:
             return None
@@ -474,17 +504,26 @@ class Gardener:
     def _like_query(self, conn: sqlite3.Connection, query: str,
                     type: Optional[str] = None, limit: int = 20,
                     source=None, pinned: Optional[bool] = None) -> List[Dict]:
-        """Fallback-LIKE-Suche über beide Datenbanken."""
+        """Fallback-LIKE-Suche über beide Datenbanken unter Beachtung von Spaltenfiltern."""
         results = []
         tokens = [text for text, _, _ in self._tokenize_query(query) if text]
+        q_col, q_val = self._split_col(query.strip())
+        q_val_clean = q_val.strip('"')
+
         for db_prefix, db_label in [("main", "user"), ("other", "system")]:
+            if q_col:
+                where_sql = f"e.{q_col} LIKE ?"
+                params = [f"%{q_val_clean}%"]
+            else:
+                where_sql = "(e.name LIKE ? OR e.content LIKE ? OR e.tags LIKE ?)"
+                like = f"%{query}%"
+                params = [like, like, like]
+
             sql = f"""
                 SELECT e.*, '{db_label}' as source
                 FROM {db_prefix}.everything e
-                WHERE (e.name LIKE ? OR e.content LIKE ? OR e.tags LIKE ?)
+                WHERE {where_sql}
             """
-            like = f"%{query}%"
-            params = [like, like, like]
 
             if type:
                 sql += " AND e.type = ?"
@@ -511,9 +550,15 @@ class Gardener:
                 conditions = []
                 params = []
                 for t in tokens:
-                    like_param = f"%{t}%"
-                    conditions.append("(e.name LIKE ? OR e.content LIKE ? OR e.tags LIKE ?)")
-                    params.extend([like_param, like_param, like_param])
+                    c, v = self._split_col(t)
+                    v_clean = v.strip('"')
+                    like_param = f"%{v_clean}%"
+                    if c:
+                        conditions.append(f"e.{c} LIKE ?")
+                        params.append(like_param)
+                    else:
+                        conditions.append("(e.name LIKE ? OR e.content LIKE ? OR e.tags LIKE ?)")
+                        params.extend([like_param, like_param, like_param])
 
                 sql = f"""
                     SELECT e.*, '{db_label}' as source
