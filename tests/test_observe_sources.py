@@ -370,6 +370,30 @@ class TestSqliteTableSource(ObserveSourceTestCase):
 
         self.assertEqual(self.af.find("cp1252")[0]["content"].count("\n\n"), 1)
 
+    def test_sqlite_view_is_observed_by_its_id_column(self):
+        # USMC's union schema turns usmc_* into read views over memory_*.
+        db_path = self.foreign / "union.db"
+        conn = sqlite3.connect(str(db_path))
+        conn.execute("CREATE TABLE memory_lessons (id INTEGER PRIMARY KEY, title TEXT, solution TEXT)")
+        conn.execute("INSERT INTO memory_lessons VALUES (7, 'Sicht', 'Views haben keine rowid')")
+        conn.execute("CREATE VIEW usmc_lessons AS SELECT id, title, solution FROM memory_lessons")
+        conn.commit()
+        conn.close()
+
+        self.af.observe_source_add(
+            "usmc-lessons", "sqlite_table", db_path=str(db_path), table="usmc_lessons",
+            columns={"id": "id", "name": "title", "content": "solution"},
+        )
+        self.assertEqual(self.af.observe_sources("usmc-lessons")["usmc-lessons"]["indexed"], 1)
+        hit = self.af.find("rowid")[0]
+        self.assertTrue(hit["name"].endswith("/usmc_lessons/7"))
+
+        self.af.observe_source_add(
+            "view-no-id", "sqlite_table", db_path=str(db_path), table="usmc_lessons",
+            columns={"content": "solution"},
+        )
+        self.assertEqual(self.af.observe_sources("view-no-id")["view-no-id"]["indexed"], 0)
+
     def test_content_list_refuses_unknown_column(self):
         db_path = self._make_foreign_db()
         self.af.observe_source_add(

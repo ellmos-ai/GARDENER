@@ -475,11 +475,14 @@ def scan_sqlite_table(source_id: str, config: Dict) -> Iterator[SourceItem]:
     conn.row_factory = sqlite3.Row
     try:
         conn.execute("PRAGMA busy_timeout = 30000")
-        valid_tables = {row["name"] for row in conn.execute(
-            "SELECT name FROM sqlite_master WHERE type='table'"
+        # Views count too: USMC's shared BACH/OCEAN schema keeps usmc_* as
+        # read views over memory_* (union contract, T-20260920-823767362).
+        object_types = {row["name"]: row["type"] for row in conn.execute(
+            "SELECT name, type FROM sqlite_master WHERE type IN ('table', 'view')"
         )}
-        if table not in valid_tables:
+        if table not in object_types:
             return
+        is_view = object_types[table] == "view"
         valid_columns = {row["name"] for row in
                           conn.execute('PRAGMA table_info("{}")'.format(table))}
 
@@ -487,7 +490,10 @@ def scan_sqlite_table(source_id: str, config: Dict) -> Iterator[SourceItem]:
         name_col = columns.get("name")
         tags_col = columns.get("tags")
 
-        select_cols = ["rowid"]
+        # A view has no rowid; there the configured id column is the key.
+        if is_view and not id_col:
+            return
+        select_cols = [] if is_view else ["rowid"]
         for col in [id_col, name_col, *content_cols, tags_col]:
             if col and col not in valid_columns:
                 # A configured column that doesn't exist is a config
