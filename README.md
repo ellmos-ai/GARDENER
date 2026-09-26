@@ -14,7 +14,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Attribution: NOTICE](https://img.shields.io/badge/Attribution-NOTICE-blue.svg)](NOTICE)
 [![Verified: 2026-09-26](https://img.shields.io/badge/verified-2026--09--26-blue.svg)](https://github.com/ellmos-ai/gardener)
-[![Tests: 188 passed](https://img.shields.io/badge/tests-188%20passed-brightgreen.svg)](https://github.com/ellmos-ai/gardener)
+[![Tests: 189 passed](https://img.shields.io/badge/tests-189%20passed-brightgreen.svg)](https://github.com/ellmos-ai/gardener)
 [![Execution: RunAsInvoker](https://img.shields.io/badge/execution-RunAsInvoker-success.svg)](THIRD_PARTY_LICENSES.md)
 [![Privacy: Local-First](https://img.shields.io/badge/privacy-Local--First%20%7C%20Zero--Egress-brightgreen.svg)](SECURITY.md)
 [![Security Policy](https://img.shields.io/badge/security-48h%20SLA-blue.svg)](SECURITY.md)

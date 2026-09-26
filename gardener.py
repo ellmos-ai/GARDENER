@@ -140,6 +140,14 @@ class Gardener:
     """Das LLM-native Betriebssystem. Vier Funktionen, eine Suche."""
 
     FTS_COLUMNS = frozenset({"name", "content", "tags"})
+    OPERATOR_MAP = {
+        "AND": "AND",
+        "UND": "AND",
+        "OR": "OR",
+        "ODER": "OR",
+        "NOT": "NOT",
+        "NICHT": "NOT",
+    }
     _TOKEN_PATTERN = re.compile(
         r'(?:(?P<col>name|content|tags):\s*)?(?:\"(?P<qphrase>[^\"]*)\"(?P<qstar>\*)?|(?P<bare>\S+))',
         re.IGNORECASE,
@@ -241,12 +249,24 @@ class Gardener:
     @classmethod
     def _format_fts_token(cls, text: str, is_phrase: bool, is_prefix: bool) -> str:
         """Formatiert ein Token FTS5-sicher unter Erhalt von Spaltenpräfixen."""
+        if text in ("(", ")"):
+            return text
         col, val = cls._split_col(text)
         val_clean = val.replace('"', '""')
         star = '*' if is_prefix else ''
         if col:
             return f'{col}:"{val_clean}"{star}'
         return f'"{val_clean}"{star}'
+
+    @classmethod
+    def _pad_parens_outside_quotes(cls, query: str) -> str:
+        """Fügt um runde Klammern außerhalb von Anführungszeichen Leerzeichen ein."""
+        if "(" not in query and ")" not in query:
+            return query
+        parts = query.split('"')
+        for i in range(0, len(parts), 2):
+            parts[i] = parts[i].replace("(", " ( ").replace(")", " ) ")
+        return '"'.join(parts)
 
     @classmethod
     def _tokenize_query(cls, query: str) -> List[Tuple[str, bool, bool]]:
@@ -258,12 +278,16 @@ class Gardener:
         - Spaltenpräfixe mit Phrase: tags:"machine learning" -> ("tags:machine learning", True, False)
         - Präfix-Tokens: scan* -> ("scan", False, True)
         - Quotierte Präfixe: "beleg-scan"* -> ("beleg-scan", True, True)
+        - Gruppierungsklammern: (python OR rust) -> [("(", False, False), ("python", False, False), ...]
         - Unvollständige Anführungszeichen: "hallo welt -> ("hallo welt", True, False)
         - Einzelwörter/Sonderzeichen: beleg-scanner -> ("beleg-scanner", False, False)
         """
         query = query.strip()
         if not query:
             return []
+
+        # Runde Klammern außerhalb von Anführungszeichen separieren
+        query = cls._pad_parens_outside_quotes(query)
 
         # Unbalancierte Anführungszeichen am Ende schließen
         if query.count('"') % 2 != 0:
@@ -299,63 +323,94 @@ class Gardener:
 
     @classmethod
     def _build_fts_safe_operator_query(cls, query: str) -> Optional[str]:
-        """Baut aus einer Query mit FTS-Operatoren (AND, OR, NOT) eine abgesicherte FTS5-Query.
+        """Baut aus einer Query mit FTS-Operatoren (AND, OR, NOT, UND, ODER, NICHT)
+        oder Gruppierungsklammern eine abgesicherte FTS5-Query.
 
         Maskiert/quotiert Operanden, damit Bindestriche, Doppelpunkte, Pfade oder
         Sonderzeichen (z. B. 'beleg-scanner AND rechnung', 'c++ OR c#', 'rechnung NOT beleg-scanner',
         'tags:python-script AND name:beleg-1') keine FTS5-Syntaxfehler auslösen, während die
-        booleschen Operatoren und Spaltenfilter erhalten bleiben.
-        Konsolidiert zudem Operator-Kombinationen wie 'AND NOT' oder 'OR NOT' zu 'NOT',
-        verwirft ungültige Mehrfach-Operatoren (z. B. 'AND AND') und bereinigt führende/
-        nachlaufende Operatoren.
-        Gibt None zurück, wenn keine Operatoren (AND, OR, NOT) vorliegen, NEAR(...) verwendet wird,
+        booleschen Operatoren, Gruppierungsklammern und Spaltenfilter erhalten bleiben.
+        Normalisiert Operatoren (inkl. Klein- und deutscher Schreibweisen: und, oder, nicht),
+        konsolidiert Kombinationen wie 'AND NOT' oder 'OR NOT' zu 'NOT',
+        balanciert Klammern und verwirft ungültige Mehrfach- oder Rand-Operatoren.
+        Gibt None zurück, wenn weder Operatoren noch Klammern vorliegen, NEAR(...) verwendet wird,
         oder die Query leer ist.
         """
         q_upper = query.upper()
         if "NEAR(" in q_upper:
             return None
-        words = q_upper.split()
-        operators = {"AND", "OR", "NOT"}
-        if not any(w in operators for w in words):
+        words = [w.strip("()") for w in q_upper.split()]
+        operators = set(cls.OPERATOR_MAP.keys())
+        has_operator = any(w in operators for w in words)
+        has_parens = "(" in query or ")" in query
+        if not (has_operator or has_parens):
             return None
 
         tokens = cls._tokenize_query(query)
         if not tokens:
             return None
 
-        terms_and_ops: List[str] = []
-        current_ops: List[str] = []
+        out: List[str] = []
+        pending_ops: List[str] = []
+        open_parens = 0
 
         for text, is_phrase, is_prefix in tokens:
             upper = text.upper()
-            if not is_phrase and upper in operators:
-                current_ops.append(upper)
-            else:
-                if terms_and_ops:
-                    if not current_ops:
-                        terms_and_ops.append("AND")
+            if not is_phrase and text == "(":
+                if out and out[-1] not in ("(", "AND", "OR", "NOT"):
+                    if pending_ops:
+                        op = "NOT" if ("NOT" in pending_ops or pending_ops[-1] == "NOT") else (pending_ops[-1] if pending_ops[-1] in ("AND", "OR") else "AND")
+                        out.append(op)
                     else:
-                        # Konsolidiere Operatorfolge zwischen zwei Termen:
-                        # 'AND NOT' oder 'OR NOT' -> FTS5 kennt nur binäres 'NOT', kein 'AND NOT'
-                        if current_ops[-1] == "NOT" or "NOT" in current_ops:
-                            terms_and_ops.append("NOT")
-                        elif current_ops[-1] in ("AND", "OR"):
-                            terms_and_ops.append(current_ops[-1])
-                        else:
-                            terms_and_ops.append("AND")
-                    current_ops = []
-                else:
-                    # Führende Operatoren vor dem ersten Term verwerfen (z. B. 'NOT banana', 'AND foo')
-                    current_ops = []
+                        out.append("AND")
+                pending_ops = []
+                out.append("(")
+                open_parens += 1
+            elif not is_phrase and text == ")":
+                if open_parens > 0:
+                    pending_ops = []
+                    if out and out[-1] == "(":
+                        out.pop()
+                        open_parens -= 1
+                    else:
+                        out.append(")")
+                        open_parens -= 1
+            elif not is_phrase and upper in operators:
+                pending_ops.append(cls.OPERATOR_MAP[upper])
+            else:
+                term_str = cls._format_fts_token(text, is_phrase, is_prefix)
+                if out and out[-1] not in ("(", "AND", "OR", "NOT"):
+                    if pending_ops:
+                        op = "NOT" if ("NOT" in pending_ops or pending_ops[-1] == "NOT") else (pending_ops[-1] if pending_ops[-1] in ("AND", "OR") else "AND")
+                        out.append(op)
+                    else:
+                        out.append("AND")
+                pending_ops = []
+                out.append(term_str)
 
-                terms_and_ops.append(cls._format_fts_token(text, is_phrase, is_prefix))
+        while open_parens > 0:
+            if out and out[-1] == "(":
+                out.pop()
+            else:
+                out.append(")")
+            open_parens -= 1
 
-        # Nachlaufende Operatoren in current_ops werden automatisch verworfen
+        # Bereinige etwaige nachlaufende Operatoren
+        while out and out[-1] in ("AND", "OR", "NOT"):
+            out.pop()
 
-        if not terms_and_ops:
+        operands = [x for x in out if x not in ("(", ")", "AND", "OR", "NOT")]
+        if not operands:
             return None
 
-        return " ".join(terms_and_ops)
+        # Wenn die Query nur aus einem einzelnen Operand ohne echte Operatoren und ohne Klammern bestand,
+        # soll sie nicht als Operator-Query behandelt werden
+        if len(out) == 1 and not has_operator and not has_parens:
+            return None
+
+        res = " ".join(out)
+        res = res.replace("( ", "(").replace(" )", ")")
+        return res
 
     @classmethod
     def _build_fts_and_query(cls, query: str) -> Optional[str]:
@@ -364,11 +419,15 @@ class Gardener:
         Maskiert/quotiert Tokens unter Erhalt von FTS-Spaltenfiltern (name, content, tags),
         um FTS5-Syntaxfehler (z. B. '-' als Spaltensubtraktion, unescapte Sonderzeichen wie '/',
         '\\', '()') abzusichern.
-        Gibt None zurück, wenn explizite FTS-Operatoren (AND, OR, NOT, NEAR) vorliegen
-        oder die Query leer ist.
+        Gibt None zurück, wenn explizite FTS-Operatoren (AND, OR, NOT, NEAR, UND, ODER, NICHT)
+        oder Gruppierungsklammern vorliegen oder die Query leer ist.
         """
         q_upper = query.upper()
-        if "NEAR(" in q_upper or any(op in q_upper.split() for op in ["OR", "AND", "NOT", "NEAR"]):
+        if "NEAR(" in q_upper or "(" in query or ")" in query:
+            return None
+        words = [w.strip("()") for w in q_upper.split()]
+        operators = set(cls.OPERATOR_MAP.keys()) | {"NEAR"}
+        if any(w in operators for w in words):
             return None
 
         tokens = cls._tokenize_query(query)
@@ -389,10 +448,15 @@ class Gardener:
         Nutzt _tokenize_query zur robusten Zerlegung in atomare Tokens und Phrasen
         unter Beachtung von Spaltenfiltern.
         Gibt None zurück, wenn die Query bereits explizite FTS-Operatoren
-        (AND, OR, NOT, NEAR) enthält oder aus nur einem Begriff/einer einzelnen Phrase besteht.
+        (AND, OR, NOT, NEAR, UND, ODER, NICHT) oder Gruppierungsklammern enthält
+        oder aus nur einem Begriff/einer einzelnen Phrase besteht.
         """
         q_upper = query.upper()
-        if "NEAR(" in q_upper or any(op in q_upper.split() for op in ["OR", "AND", "NOT", "NEAR"]):
+        if "NEAR(" in q_upper or "(" in query or ")" in query:
+            return None
+        words = [w.strip("()") for w in q_upper.split()]
+        operators = set(cls.OPERATOR_MAP.keys()) | {"NEAR"}
+        if any(w in operators for w in words):
             return None
 
         tokens = cls._tokenize_query(query)
@@ -506,8 +570,13 @@ class Gardener:
                     source=None, pinned: Optional[bool] = None) -> List[Dict]:
         """Fallback-LIKE-Suche über beide Datenbanken unter Beachtung von Spaltenfiltern."""
         results = []
-        tokens = [text for text, _, _ in self._tokenize_query(query) if text]
+        tokens = [
+            text for text, _, _ in self._tokenize_query(query)
+            if text and text not in ("(", ")") and text.upper() not in self.OPERATOR_MAP
+        ]
         q_col, q_val = self._split_col(query.strip())
+        if "(" in query or ")" in query:
+            q_col = None
         q_val_clean = q_val.strip('"')
 
         for db_prefix, db_label in [("main", "user"), ("other", "system")]:
@@ -664,28 +733,27 @@ class Gardener:
                 results = self._source_listing(conn, source, type=type, limit=limit,
                                                pinned=pinned)
             else:
-                # 1. Exakte / Standard-FTS5-Suche:
-                #    Versuche zuerst die Roh-Query (erlaubt FTS-Operatoren wie AND, OR, NOT, NEAR
-                #    sowie Spaltenfilter wie name: oder tags:).
-                try:
-                    results = self._fts_query(conn, query, type=type, limit=limit,
-                                              with_snippets=with_snippets,
-                                              source=source, pinned=pinned)
-                except Exception:
-                    results = []
+                # 1. Abgesicherte Operator-Query: Falls boolesche Operatoren (AND, OR, NOT, UND, ODER, NICHT)
+                #    oder Gruppierungsklammern vorliegen, erzeuge eine FTS5-abgesicherte Query mit
+                #    gequoteten Operanden, normalisierten Operatoren und intakter Klammerung.
+                safe_op_query = self._build_fts_safe_operator_query(query)
+                if safe_op_query:
+                    try:
+                        results = self._fts_query(conn, safe_op_query, type=type, limit=limit,
+                                                  with_snippets=with_snippets,
+                                                  source=source, pinned=pinned)
+                    except Exception:
+                        results = []
 
-                # 1b. Abgesicherte Operator-Query: Falls Roh-Query fehlschlug oder 0 Treffer ergab
-                #     und boolesche Operatoren (AND, OR, NOT) enthält, deren Operanden Sonderzeichen
-                #     (wie '-', ':', '/') enthalten.
+                # 1b. Exakte / Standard-FTS5-Suche (falls keine Operator-Query oder diese fehlschlug / 0 Treffer):
+                #     Erlaubt FTS-Spezialsyntax wie NEAR(...) oder unberührte Standard-FTS-Matches.
                 if not results:
-                    safe_op_query = self._build_fts_safe_operator_query(query)
-                    if safe_op_query and safe_op_query != query:
-                        try:
-                            results = self._fts_query(conn, safe_op_query, type=type, limit=limit,
-                                                      with_snippets=with_snippets,
-                                                      source=source, pinned=pinned)
-                        except Exception:
-                            results = []
+                    try:
+                        results = self._fts_query(conn, query, type=type, limit=limit,
+                                                  with_snippets=with_snippets,
+                                                  source=source, pinned=pinned)
+                    except Exception:
+                        results = []
 
                 # 1c. Abgesicherte AND-Query: Falls Roh-Query fehlschlug oder keine Treffer ergab
                 #     (z. B. wegen Bindestrichen wie 'beleg-scanner', Pfaden, Doppelpunkten

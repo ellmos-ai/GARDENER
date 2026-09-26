@@ -319,6 +319,71 @@ class TestGardenerCore(GardenerTempCase):
             'name:"beleg"* OR tags:"rechnung"*'
         )
 
+        # Parentheses grouping & operator normalization (lowercase and German synonyms)
+        self.assertEqual(
+            tokenize("(python OR rust) AND fast"),
+            [("(", False, False), ("python", False, False), ("OR", False, False),
+             ("rust", False, False), (")", False, False), ("AND", False, False),
+             ("fast", False, False)]
+        )
+        self.assertEqual(
+            build_safe_op("(python OR rust) AND fast"),
+            '("python" OR "rust") AND "fast"'
+        )
+        self.assertEqual(
+            build_safe_op("(beleg-scanner OR quittung) AND 2026"),
+            '("beleg-scanner" OR "quittung") AND "2026"'
+        )
+        self.assertEqual(
+            build_safe_op("backend AND (tags:python-script OR tags:rust-crate)"),
+            '"backend" AND (tags:"python-script" OR tags:"rust-crate")'
+        )
+        self.assertEqual(
+            build_safe_op('tags:python AND (fastapi OR "machine learning")'),
+            'tags:"python" AND ("fastapi" OR "machine learning")'
+        )
+        self.assertEqual(
+            build_safe_op("tags:python und (fastapi oder django)"),
+            'tags:"python" AND ("fastapi" OR "django")'
+        )
+        self.assertEqual(
+            build_safe_op("beleg und rechnung"),
+            '"beleg" AND "rechnung"'
+        )
+        self.assertEqual(
+            build_safe_op("beleg oder quittung"),
+            '"beleg" OR "quittung"'
+        )
+        self.assertEqual(
+            build_safe_op("rechnung nicht archiv"),
+            '"rechnung" NOT "archiv"'
+        )
+        self.assertEqual(
+            build_safe_op("(apple OR banana) NOT cherry"),
+            '("apple" OR "banana") NOT "cherry"'
+        )
+        self.assertEqual(
+            build_safe_op("((a OR b) AND (c OR d))"),
+            '(("a" OR "b") AND ("c" OR "d"))'
+        )
+        self.assertEqual(
+            build_safe_op("(python OR rust"),
+            '("python" OR "rust")'
+        )
+        self.assertEqual(
+            build_safe_op("python OR rust)"),
+            '"python" OR "rust"'
+        )
+        self.assertEqual(
+            build_safe_op("(OR python)"),
+            '("python")'
+        )
+        self.assertEqual(
+            build_safe_op("(python OR)"),
+            '("python")'
+        )
+        self.assertIsNone(build_safe_op("()"))
+
     def test_find_with_boolean_operators_and_special_chars(self):
         self.af.put(
             "doc-scanner-rechnung",
@@ -477,6 +542,105 @@ class TestGardenerCore(GardenerTempCase):
         # 8. Präfix-Wildcard am Spaltenwert
         hits_wild = self.af.find("tags:python-script*")
         self.assertEqual(len(hits_wild), 2)
+
+    def test_find_with_grouping_parentheses_and_normalized_operators(self):
+        """Testet FTS5-Gruppierungsklammern und normalisierte Operatoren (Klein-/deutsche Schreibung)."""
+        self.af.put(
+            "doc-scanner-2026",
+            content="Der beleg-scanner verarbeitet Rechnungen für das Jahr 2026.",
+            tags="finanzen,beleg-scanner",
+            type="knowledge",
+        )
+        self.af.put(
+            "doc-quittung-2026",
+            content="Eine wichtige quittung ausgestellt im Jahr 2026.",
+            tags="finanzen,quittung",
+            type="knowledge",
+        )
+        self.af.put(
+            "doc-scanner-2024",
+            content="Alter beleg-scanner Archivbericht aus dem Jahr 2024.",
+            tags="legacy,beleg-scanner",
+            type="knowledge",
+        )
+        self.af.put(
+            "doc-quittung-2024",
+            content="Alte quittung aus dem Jahr 2024.",
+            tags="legacy,quittung",
+            type="knowledge",
+        )
+        self.af.put(
+            "service-fastapi-backend",
+            content="Microservice Backend basierend auf FastAPI.",
+            tags="python-script,backend",
+            type="tool",
+        )
+        self.af.put(
+            "service-rust-backend",
+            content="Hochperformanter Rust Microservice Backend.",
+            tags="rust-crate,backend",
+            type="tool",
+        )
+        self.af.put(
+            "service-python-gui",
+            content="Grafische Benutzeroberfläche für Desktop-Clients.",
+            tags="python-script,frontend",
+            type="tool",
+        )
+
+        # 1. Gruppierung mit Bindestrich-Termen und OR: (beleg-scanner OR quittung) AND 2026
+        hits_grouped1 = self.af.find("(beleg-scanner OR quittung) AND 2026", with_snippets=True)
+        self.assertEqual(len(hits_grouped1), 2)
+        names1 = {h["name"] for h in hits_grouped1}
+        self.assertEqual(names1, {"doc-scanner-2026", "doc-quittung-2026"})
+        for h in hits_grouped1:
+            self.assertIn("snippet", h)
+            self.assertIn(">>>2026<<<", h["snippet"])
+
+        # 2. Umgekehrte Reihenfolge: 2026 AND (beleg-scanner OR quittung)
+        hits_grouped2 = self.af.find("2026 AND (beleg-scanner OR quittung)")
+        self.assertEqual(len(hits_grouped2), 2)
+        names2 = {h["name"] for h in hits_grouped2}
+        self.assertEqual(names2, {"doc-scanner-2026", "doc-quittung-2026"})
+
+        # 3. Gruppierung mit Spaltenfiltern: backend AND (tags:python-script OR tags:rust-crate)
+        hits_col_group = self.af.find("backend AND (tags:python-script OR tags:rust-crate)")
+        self.assertEqual(len(hits_col_group), 2)
+        names_col = {h["name"] for h in hits_col_group}
+        self.assertEqual(names_col, {"service-fastapi-backend", "service-rust-backend"})
+
+        # 4. Normalisierte Kleinschreibung: (beleg-scanner or quittung) and 2026
+        hits_lower = self.af.find("(beleg-scanner or quittung) and 2026")
+        self.assertEqual(len(hits_lower), 2)
+        names_lower = {h["name"] for h in hits_lower}
+        self.assertEqual(names_lower, {"doc-scanner-2026", "doc-quittung-2026"})
+
+        # 5. Deutsche Operatoren: beleg-scanner UND 2026
+        hits_de_and = self.af.find("beleg-scanner UND 2026")
+        self.assertEqual(len(hits_de_and), 1)
+        self.assertEqual(hits_de_and[0]["name"], "doc-scanner-2026")
+
+        # 6. Deutsche Operatoren mit Klammern: (beleg-scanner ODER quittung) UND 2026
+        hits_de_group = self.af.find("(beleg-scanner ODER quittung) UND 2026")
+        self.assertEqual(len(hits_de_group), 2)
+        names_de = {h["name"] for h in hits_de_group}
+        self.assertEqual(names_de, {"doc-scanner-2026", "doc-quittung-2026"})
+
+        # 7. Deutscher Ausschluss-Operator: beleg-scanner NICHT 2024
+        hits_de_not = self.af.find("beleg-scanner NICHT 2024")
+        self.assertEqual(len(hits_de_not), 1)
+        self.assertEqual(hits_de_not[0]["name"], "doc-scanner-2026")
+
+        # 8. Unbalancierte und verwaiste Klammern werfen keinen Fehler, sondern balancieren sicher
+        hits_unbalanced = self.af.find("((beleg-scanner OR quittung) AND 2026")
+        self.assertEqual(len(hits_unbalanced), 2)
+        names_unbal = {h["name"] for h in hits_unbalanced}
+        self.assertEqual(names_unbal, {"doc-scanner-2026", "doc-quittung-2026"})
+
+        hits_orphan = self.af.find("(beleg-scanner OR quittung) AND 2026)")
+        self.assertEqual(len(hits_orphan), 2)
+        names_orphan = {h["name"] for h in hits_orphan}
+        self.assertEqual(names_orphan, {"doc-scanner-2026", "doc-quittung-2026"})
 
     def test_like_query_with_column_filters(self):
         """Testet den gezielten Spaltenabgleich des LIKE-Fallbacks bei Vorliegen von Spaltenfiltern."""

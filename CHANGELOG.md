@@ -2,6 +2,21 @@
  
 ## [Unreleased]
 
+### FTS5 Grouping Parentheses & Normalized Boolean Operators (2026-09-26)
+
+- **FTS5 Grouping Parentheses Precision (`_pad_parens_outside_quotes`, `_build_fts_safe_operator_query`, `Gardener.find`)**:
+  - Implemented parenthesis grouping support for FTS5 queries (`(term1 OR term2) AND term3` or `term1 AND (term2 OR term3)`), preserving operator precedence without dropping or mangling parentheses into quoted word strings.
+  - Automatically isolates unquoted parentheses outside double quotes via `_pad_parens_outside_quotes` and ensures column-filtered tokens inside groups (e.g. `(tags:python-script OR tags:rust-crate) AND backend`) retain their column prefix mapping.
+  - Tolerantly balances unclosed parentheses (e.g. `((beleg-scanner OR quittung) AND 2026` -> `(("beleg-scanner" OR "quittung") AND "2026")`) and safely discards orphan closing or empty parentheses without FTS5 syntax crashes.
+- **Operator Case-Insensitivity & German Synonym Normalization (`OPERATOR_MAP`)**:
+  - Normalized boolean operators across case variants (`and`, `or`, `not`) and German equivalents (`und` -> `AND`, `oder` -> `OR`, `nicht` -> `NOT`) to standard uppercase SQLite FTS5 operators.
+  - Prioritized `safe_op_query` evaluation in `Gardener.find()` when boolean operators or grouping syntax are present, preventing lowercase words from being misprocessed as literal text matching terms.
+- **LIKE Fallback Cleanups (`_like_query`)**:
+  - Stripped structural parentheses and boolean operator keywords from token lists during secondary LIKE fallback queries to eliminate spurious substring matches.
+- **Automated Test Suite Expansion & Badge Parity**:
+  - Added unit test method `test_find_with_grouping_parentheses_and_normalized_operators` and token/query builder assertions in `tests/test_gardener_core.py`.
+  - Synchronized badges and assertions across `README.md`, `README_de.md`, `llms.txt`, and `tests/test_metadata.py` to 189 passing tests (100% green).
+
 ### Pfad A: Repository Hygiene, CI Matrix Hardening, Multi-Host Defense & Contract Tests (2026-09-26)
 
 - **Canonical Root Attribution (`NOTICE`, `pyproject.toml`, `THIRD_PARTY_LICENSES.md`)**:
