@@ -1802,7 +1802,12 @@ class Gardener:
 
         Returns:
             {source_id: {"kind": ..., "indexed": n, "skipped": n}} bzw.
-            {"error": ...} pro Quelle bei Fehlern.
+            {"error": ...} pro Quelle bei Fehlern. Eine fehlkonfigurierte
+            sqlite_table-Quelle (fehlende DB/Tabelle/View/Spalte) landet seit
+            T-20260926-127399982 hier als klarer Grund (z.B. "table-missing:
+            'foo'"), nicht mehr stillschweigend als indexed=0 -- siehe
+            sources.SourceConfigError. Eine echt leere Tabelle bleibt davon
+            unterschieden: sie liefert weiterhin regulaer indexed=0.
         """
         import sources
 
@@ -1913,6 +1918,13 @@ class Gardener:
                         "error": f"{e.__class__.__name__}: {e}",
                         "indexed": indexed, "skipped": skipped,
                     }
+                    # Printed here (not only returned in stats), so a
+                    # misconfigured source (missing DB/table/column,
+                    # T-20260926-127399982) is visible even to callers that
+                    # never inspect the returned dict -- same reasoning as
+                    # the cloud_findings warning above.
+                    print(f"WARNUNG [{sid}]: {e.__class__.__name__}: {e}",
+                          file=sys.stderr)
 
         self._save_observe_source_state(all_state)
         return stats
@@ -2331,11 +2343,14 @@ def main():
         elif sub == "refresh":
             source_id = sys.argv[3] if len(sys.argv) > 3 else None
             result = af.observe_sources(source_id)
+            error_count = 0
             for sid, s in result.items():
                 if sid == "error":
                     print(f"  [FEHLER] {s}")
+                    error_count += 1
                 elif "error" in s:
                     print(f"  [FEHLER] {sid}: {s['error']}")
+                    error_count += 1
                 elif s.get("skipped_disabled"):
                     print(f"  [--] {sid}: deaktiviert")
                 else:
@@ -2343,6 +2358,13 @@ def main():
                           f"{s['indexed']} indexiert, {s['skipped']} unveraendert")
             if not result:
                 print("  Keine observe-sources konfiguriert.")
+            elif error_count:
+                # T-20260926-127399982: a misconfigured sqlite_table source
+                # (missing DB/table/column) now raises instead of silently
+                # reporting indexed=0 -- this counter is the "at a glance"
+                # signal that something needs attention, without having to
+                # scan every per-source line for "[FEHLER]".
+                print(f"  {error_count} von {len(result)} Quelle(n) mit Fehler.")
 
         else:
             print("  Nutzung: gardener observe-source <add|list|remove|refresh> ...")
