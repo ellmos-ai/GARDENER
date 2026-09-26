@@ -200,3 +200,41 @@ Version: 0.4.2
       4. test_third_party_licenses_md_integrity (SPDX, RunAsInvoker, Zero-Copyleft)
       5. test_german_statutory_notice (§ 521 BGB Gefälligkeitsrecht)
       6. Updated URL and file references.
+
+================================================================================
+5. REPOSITORY HYGIENE, CI MATRIX HARDENING & MULTI-HOST DEFENSE (2026-09-26)
+================================================================================
+Operator: Antigravity / Gemini (via GITHUBBOT Pfad A)
+Scope: Technical hygiene, CI hardening, PEP 621 metadata, multi-host sync defense, and contract test expansion
+
+[x] Canonical Root Attribution (NOTICE):
+    - Added canonical root NOTICE attribution file honoring Lukas Geiger, ellmos-ai, and open-bricks.
+    - Updated pyproject.toml license-files to include "NOTICE".
+    - Registered Notice URL under [project.urls] in pyproject.toml.
+    - Re-audited THIRD_PARTY_LICENSES.md with NOTICE cross-reference.
+
+[x] CI Matrix & Workflow Hardening (.github/workflows):
+    - Added timeout-minutes: 5, cancel-in-progress concurrency, and explicit issues/pull-requests permissions to auto-assign.yml.
+    - Added timeout-minutes: 5 and cancel-in-progress concurrency to label-sync.yml.
+    - Added pip install -e . to ci.yml dependencies to ensure package entrypoint and metadata installability on all platforms.
+
+[x] Multi-Host Cloud-Sync & Lock Defense (.gitignore):
+    - Added multi-host tokens: *-WORKSTATION-LG*, *-ASUS-GEI*, *-MacBook*, *-IDEAPAD*, *_WORKSTATION*, *_WORKSTATION-LG*, *-WORKSTATION.*, *-WORKSTATION-LG.*.
+    - Added lock system guards: LOCK.user.*, LOCK.until.*, LOCK.condition.*, LOCK.permissions.json, .automation-lock.
+    - Added test runner temporary directories: .pytest_temp/, .pytest_tmp*/, .tox/.
+    - Added OS/editor artifacts: .DS_Store, Thumbs.db, ehthumbs.db, Desktop.ini, *.swp, *.swo.
+
+[x] PEP 621 Standard URLs & Ruff Linter Expansion (pyproject.toml):
+    - Added "Bug Tracker" and "Source Code" to [project.urls].
+    - Added "SIM" to [tool.ruff.lint] select list.
+    - Hardened [tool.pytest.ini_options] with --basetemp=.pytest_temp and norecursedirs.
+    - Preserved frozen version 0.4.2 per rule T-20260920-167562623.
+
+[x] Pythonic Code Cleanups & CLI Flags:
+    - Supported standard help flags (-h, --help, help) in gardener.py main().
+    - Replaced try-except-pass in gardener.py:1839 with contextlib.suppress(sqlite3.Error).
+    - Modernized nested if statements in sources.py:582 and sources.py:660, and modernized ternary assignment.
+    - Simplified nested with statements in tests/test_gardener_core.py:1492.
+
+[x] Automated Contract Test Expansion (tests/test_metadata.py & tests/test_gardener_core.py):
+    - Added contract tests for NOTICE, multi-host .gitignore patterns, workflow timeouts and concurrency across all 5 workflows, PEP 621 URLs, Ruff SIM rules, and CLI help flag invocations.

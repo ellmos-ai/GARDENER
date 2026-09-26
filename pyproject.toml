@@ -11,7 +11,7 @@ version = "0.4.2"
 description = "Curated memory for agentic systems: Gardener tames wild systems, knows what belongs to the garden, and makes it searchable."
 readme = "README.md"
 license = "MIT"
-license-files = ["LICENSE", "THIRD_PARTY_LICENSES.md"]
+license-files = ["LICENSE", "NOTICE", "THIRD_PARTY_LICENSES.md"]
 authors = [{ name = "Lukas Geiger" }]
 requires-python = ">=3.10"
 keywords = [
@@ -47,9 +47,12 @@ classifiers = [
 Homepage = "https://github.com/ellmos-ai/gardener"
 Documentation = "https://github.com/ellmos-ai/gardener#readme"
 Repository = "https://github.com/ellmos-ai/gardener"
+"Source Code" = "https://github.com/ellmos-ai/gardener"
 Issues = "https://github.com/ellmos-ai/gardener/issues"
+"Bug Tracker" = "https://github.com/ellmos-ai/gardener/issues"
 Changelog = "https://github.com/ellmos-ai/gardener/blob/master/CHANGELOG.md"
 Security = "https://github.com/ellmos-ai/gardener/blob/master/SECURITY.md"
+Notice = "https://github.com/ellmos-ai/gardener/blob/master/NOTICE"
 "Parent Organization" = "https://github.com/ellmos-ai"
 "Umbrella Ecosystem" = "https://github.com/open-bricks"
 Umbrella = "https://github.com/open-bricks"
@@ -66,14 +69,14 @@ py-modules = ["gardener", "i18n", "seed", "sources", "search_gui"]
 [tool.pytest.ini_options]
 pythonpath = "."
 testpaths = ["tests"]
-addopts = "-ra -v"
+addopts = "-ra -v --basetemp=.pytest_temp"
 minversion = "7.0"
-norecursedirs = [".git", ".pytest_cache", ".ruff_cache", "workspace", "blobs"]
+norecursedirs = [".git", ".pytest_cache", ".ruff_cache", "workspace", "blobs", ".pytest_temp", ".hypothesis"]
 
 [tool.ruff]
 line-length = 100
 target-version = "py310"
 
 [tool.ruff.lint]
-select = ["E", "F", "W", "I", "B", "C4"]
+select = ["E", "F", "W", "I", "B", "C4", "SIM"]
 ignore = ["E501"]

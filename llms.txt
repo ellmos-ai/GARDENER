@@ -1,6 +1,6 @@
 # Gardener - Curated Memory for Agentic Systems
 
-Last-checked: 2026-09-22
+Last-checked: 2026-09-26
 Canonical repository: https://github.com/ellmos-ai/gardener
 
 > Gardener is curated memory for agentic systems: it tames wild systems, knows what belongs to the garden, and makes it searchable. Everything -- knowledge, tools, memories, tasks -- lives in a single searchable SQLite database, exposed through four primitive operations (find, get, put, run). A minimalist counterpart to file-centric agent systems like BACH.
@@ -13,7 +13,7 @@ Cross-source observe adapters put every coding agent on a machine into one searc
 
 The opt-in `system` reference tier includes `plans-register`, a read-only observe source over `_control-center/_PLANS/{README.md,PLANS-REPORT.md,plans-register.json}`. Gardener indexes plan metadata for discovery but does not own or rewrite plans.
 
-Testing: run `python -m unittest discover -s tests -v` or `pytest`. CI uses a multi-OS matrix (Ubuntu, Windows, macOS) on Python 3.10, 3.11, 3.12, and 3.13 with Ruff linting. Current local suite: 183 passing tests (100% green).
+Testing: run `python -m unittest discover -s tests -v` or `pytest`. CI uses a multi-OS matrix (Ubuntu, Windows, macOS) on Python 3.10, 3.11, 3.12, and 3.13 with Ruff linting. Current local suite: 188 passing tests (100% green).
 
 ## Target Personas
 
@@ -43,6 +43,7 @@ Gardener is not a plant database, gardening app, botanical software, Sesame Stre
 
 - [README](https://github.com/ellmos-ai/gardener/blob/master/README.md): 18-point comprehensive English specification & quick navigation
 - [README_de](https://github.com/ellmos-ai/gardener/blob/master/README_de.md): 18-point comprehensive German specification & quick navigation
+- [NOTICE](https://github.com/ellmos-ai/gardener/blob/master/NOTICE): Canonical root open-source attribution notice
 - [SECURITY](https://github.com/ellmos-ai/gardener/blob/master/SECURITY.md): Security policy, privacy invariants, and 48h SLA reporting
 - [THIRD_PARTY_LICENSES](https://github.com/ellmos-ai/gardener/blob/master/THIRD_PARTY_LICENSES.md): Full software inventory, SPDX identifiers, RunAsInvoker guarantee, and invariant matrix
 - [CHANGELOG](https://github.com/ellmos-ai/gardener/blob/master/CHANGELOG.md): Version history, release notes, and hygiene audits

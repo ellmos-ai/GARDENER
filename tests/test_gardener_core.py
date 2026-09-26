@@ -13,6 +13,7 @@ import tempfile
 import time
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -1489,10 +1490,9 @@ class TestSQLiteHardeningAndLifecycle(GardenerTempCase):
 
     def test_connection_context_manager_closes_on_exception(self):
         c = None
-        with self.assertRaises(ValueError):
-            with self.af.connection("user") as conn:
-                c = conn
-                raise ValueError("test error")
+        with self.assertRaises(ValueError), self.af.connection("user") as conn:
+            c = conn
+            raise ValueError("test error")
         self.assertIsNotNone(c)
         with self.assertRaises(sqlite3.ProgrammingError):
             c.execute("SELECT 1")
@@ -1536,6 +1536,52 @@ class TestSQLiteHardeningAndLifecycle(GardenerTempCase):
                 self.af._conn("user")
         finally:
             self.af.system_db_path = original_system_db
+
+
+class TestGardenerCli(unittest.TestCase):
+    def setUp(self):
+        import gardener
+        self.gardener_mod = gardener
+        self.temp_home = tempfile.TemporaryDirectory()
+        self.temp_data = tempfile.TemporaryDirectory()
+        self.orig_env = os.environ.copy()
+        os.environ["GARDENER_HOME"] = self.temp_home.name
+        os.environ["GARDENER_DATA"] = self.temp_data.name
+
+    def tearDown(self):
+        self.temp_home.cleanup()
+        self.temp_data.cleanup()
+        os.environ.clear()
+        os.environ.update(self.orig_env)
+
+    def test_cli_help_flags_output_usage(self):
+        for flag in ("-h", "--help", "help"):
+            with patch("sys.argv", ["gardener", flag]):
+                buf = io.StringIO()
+                with patch("sys.stdout", buf):
+                    self.gardener_mod.main()
+                out = buf.getvalue()
+                self.assertIn("Gardener", out)
+                self.assertIn("gardener find", out)
+                self.assertIn("gardener status", out)
+                self.assertNotIn("Unbekannter Befehl", out)
+
+    def test_cli_no_args_outputs_usage(self):
+        with patch("sys.argv", ["gardener"]):
+            buf = io.StringIO()
+            with patch("sys.stdout", buf):
+                self.gardener_mod.main()
+            out = buf.getvalue()
+            self.assertIn("Gardener", out)
+            self.assertIn("gardener find", out)
+
+    def test_cli_unknown_command(self):
+        with patch("sys.argv", ["gardener", "nonexistent-cmd"]):
+            buf = io.StringIO()
+            with patch("sys.stdout", buf):
+                self.gardener_mod.main()
+            out = buf.getvalue()
+            self.assertIn("Unbekannter Befehl: nonexistent-cmd", out)
 
 
 if __name__ == "__main__":

@@ -51,6 +51,11 @@ _after-care/
 LOCK
 LOCK*.txt
 LOCK.*
+LOCK.user.*
+LOCK.until.*
+LOCK.condition.*
+LOCK.permissions.json
+.automation-lock
 *.lock
 uv.lock
 !package-lock.json
@@ -66,9 +71,17 @@ uv.lock
 * (Kopie)*
 *conflicted copy*
 *-WORKSTATION*
+*-WORKSTATION-LG*
+*_WORKSTATION*
+*_WORKSTATION-LG*
+*-WORKSTATION.*
+*-WORKSTATION-LG.*
 *-ASUS*
+*-ASUS-GEI*
 *-LAPTOP*
 *-Mac Studio*
+*-MacBook*
+*-IDEAPAD*
 *.sync-temp-*
 
 # Merge- und Patch-Rückstände
@@ -78,13 +91,24 @@ uv.lock
 # Cache- und temporäre Artefakte
 .ruff_cache/
 .pytest_cache/
+.pytest_temp/
+.pytest_tmp*/
 .coverage
 .coverage.*
 htmlcov/
 .hypothesis/
 .turbo/
 .nyc_output/
+.tox/
 wheelhouse/
 .wheel-smoke/
 *.tmp
 *.bak
+*.swp
+*.swo
+
+# OS Artefakte
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini

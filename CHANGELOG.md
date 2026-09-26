@@ -2,6 +2,34 @@
  
 ## [Unreleased]
 
+### Pfad A: Repository Hygiene, CI Matrix Hardening, Multi-Host Defense & Contract Tests (2026-09-26)
+
+- **Canonical Root Attribution (`NOTICE`, `pyproject.toml`, `THIRD_PARTY_LICENSES.md`)**:
+  - Established canonical root `NOTICE` file documenting copyright attribution to Lukas Geiger, the ellmos-ai family, and the open-bricks open-source umbrella.
+  - Registered `Notice` URL in `[project.urls]` and added `NOTICE` to `license-files` in `pyproject.toml`.
+  - Re-audited `THIRD_PARTY_LICENSES.md` (Audit Date: 2026-09-26) with explicit cross-reference to `NOTICE`.
+- **CI Matrix & Workflow Hardening (`.github/workflows/*.yml`)**:
+  - Hardened `.github/workflows/auto-assign.yml` with `timeout-minutes: 5`, concurrency control (`cancel-in-progress: true`), and explicit permissions (`pull-requests: write`, `issues: write`).
+  - Hardened `.github/workflows/label-sync.yml` with `timeout-minutes: 5` and concurrency control (`cancel-in-progress: true`).
+  - Added editable package installation check (`pip install -e .`) in `.github/workflows/ci.yml` dependencies step to guarantee package metadata and CLI entrypoint integrity on all operating systems (Ubuntu, Windows, macOS) across Python 3.10-3.13.
+- **Multi-Host Cloud-Sync & Defensive Ignore Hardening (`.gitignore`)**:
+  - Added multi-host tokens and conflict protection patterns (`*-WORKSTATION-LG*`, `*-ASUS-GEI*`, `*-MacBook*`, `*-IDEAPAD*`, `*_WORKSTATION*`, `*_WORKSTATION-LG*`, `*-WORKSTATION.*`, `*-WORKSTATION-LG.*`).
+  - Hardened lock-system defense patterns (`LOCK.user.*`, `LOCK.until.*`, `LOCK.condition.*`, `LOCK.permissions.json`, `.automation-lock`).
+  - Added test runner temporary directories (`.pytest_temp/`, `.pytest_tmp*/`, `.tox/`) and OS/editor artifacts (`.DS_Store`, `Thumbs.db`, `ehthumbs.db`, `Desktop.ini`, `*.swp`, `*.swo`).
+- **PEP 621 Standard URLs & Ruff Linter Expansion (`pyproject.toml`)**:
+  - Enriched `[project.urls]` with `"Bug Tracker"` and `"Source Code"` alongside `Issues` and `Repository` for comprehensive PEP 621 tooling compatibility.
+  - Hardened `[tool.pytest.ini_options]` with `addopts = "-ra -v --basetemp=.pytest_temp"` and `norecursedirs` for `.pytest_temp` and `.hypothesis`.
+  - Expanded Ruff linter ruleset `[tool.ruff.lint]` with `"SIM"` (`select = ["E", "F", "W", "I", "B", "C4", "SIM"]`).
+  - Strict version freeze discipline per T-20260920-167562623 maintained: `version = "0.4.2"` preserved unchanged.
+- **Pythonic Code Cleanups & CLI Flags (`gardener.py`, `sources.py`, `tests/test_gardener_core.py`)**:
+  - Upgraded `gardener.py` CLI argument parsing to handle standard help flags (`-h`, `--help`, `help`) cleanly without triggering unknown command errors.
+  - Refactored `try-except-pass` in `gardener.py:1839` to `contextlib.suppress(sqlite3.Error)`.
+  - Refactored nested `if` statements in `sources.py:582` and `sources.py:660` to single combined expressions and modernized ternary assignment.
+  - Modernized nested `with` statements in `tests/test_gardener_core.py:1492`.
+- **Automated Contract Test Suite Expansion (`tests/test_metadata.py`)**:
+  - Added contract tests verifying `NOTICE` presence and attribution, multi-host `.gitignore` patterns, workflow concurrency/timeouts across all 5 workflows, PEP 621 URLs, Ruff SIM rules, and CLI help flag invocations.
+
+
 ### FTS5 Column-Filtered Query Parsing & Hyphen Hardening (2026-09-22)
 
 - **Column-Aware FTS5 & LIKE Search UX (`_tokenize_query`, `_split_col`, `_format_fts_token`, `_like_query`)**:

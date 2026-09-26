@@ -1,12 +1,13 @@
 # Third-Party Licenses & Software Inventory
 
-**Project:** `Gardener OS` (`gardener-os` / `gardener`)  
-**Description:** Database-centric operating system for LLMs: find, get, put, run on a single SQLite substrate.  
-**License:** [MIT License](LICENSE)  
-**Audit Date:** 2026-09-18  
-**Repository:** [ellmos-ai/gardener](https://github.com/ellmos-ai/gardener)  
-**Organization:** [ellmos-ai](https://github.com/ellmos-ai)  
-**Umbrella Collective:** [open-bricks](https://github.com/open-bricks)  
+- **Project:** `Gardener OS` (`gardener-os` / `gardener`)
+- **Description:** Database-centric operating system for LLMs: find, get, put, run on a single SQLite substrate.
+- **License:** [MIT License](LICENSE)
+- **Attribution:** [NOTICE](NOTICE)
+- **Audit Date:** 2026-09-26
+- **Repository:** [ellmos-ai/gardener](https://github.com/ellmos-ai/gardener)
+- **Organization:** [ellmos-ai](https://github.com/ellmos-ai)
+- **Umbrella Collective:** [open-bricks](https://github.com/open-bricks)
 
 ---
 
@@ -41,7 +42,7 @@ The following tools are utilized strictly for local development, code quality en
 ## Licensing Architecture, Dynamic Linking & Unprivileged Execution
 
 ### Permissive Licensing & Zero-Copyleft Contamination
-- **Gardener OS Core:** All application code, SQLite schema blueprints, FTS5 BM25 tokenizers, federated ingestion adapters, and the local search GUI are licensed under the permissive [MIT License](LICENSE).
+- **Gardener OS Core:** All application code, SQLite schema blueprints, FTS5 BM25 tokenizers, federated ingestion adapters, and the local search GUI are licensed under the permissive [MIT License](LICENSE) with formal copyright attribution in [NOTICE](NOTICE).
 - **Standard Library Independence:** Because Gardener relies exclusively on the standard library, no external GPL, AGPL, or restrictive copyleft libraries are statically or dynamically linked into the runtime.
 - **Zero-Copyleft Contamination:** The codebase contains no proprietary-restricting or viral copyleft source code. Developers and organizations can safely embed or bundle Gardener OS into autonomous agent stacks without license pollution.
 

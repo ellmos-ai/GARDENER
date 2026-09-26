@@ -12,7 +12,9 @@
 [![Python 3.10-3.13](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-blue.svg)](https://www.python.org/)
 [![Platforms](https://img.shields.io/badge/platforms-Linux%20%7C%20Windows%20%7C%20macOS-lightgrey.svg)](https://github.com/ellmos-ai/gardener)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Tests: 183 passed](https://img.shields.io/badge/tests-183%20passed-brightgreen.svg)](https://github.com/ellmos-ai/gardener)
+[![Attribution: NOTICE](https://img.shields.io/badge/Attribution-NOTICE-blue.svg)](NOTICE)
+[![Verified: 2026-09-26](https://img.shields.io/badge/verified-2026--09--26-blue.svg)](https://github.com/ellmos-ai/gardener)
+[![Tests: 188 passed](https://img.shields.io/badge/tests-188%20passed-brightgreen.svg)](https://github.com/ellmos-ai/gardener)
 [![Execution: RunAsInvoker](https://img.shields.io/badge/execution-RunAsInvoker-success.svg)](THIRD_PARTY_LICENSES.md)
 [![Privacy: Local-First](https://img.shields.io/badge/privacy-Local--First%20%7C%20Zero--Egress-brightgreen.svg)](SECURITY.md)
 [![Security Policy](https://img.shields.io/badge/security-48h%20SLA-blue.svg)](SECURITY.md)
@@ -24,7 +26,7 @@
 > [!NOTE]
 > **LLM / Agent Integration**: Gardener provides a single-table FTS5 SQLite substrate (`gardener.db` / `user.db`) with `find`, `get`, `put`, and `run` primitives. See [`llms.txt`](llms.txt) for machine-readable context.
 
-**🇩🇪 [Deutsche Version](README_de.md)** | **🛡️ [Security Policy](SECURITY.md)** | **📜 [Third-Party Licenses](THIRD_PARTY_LICENSES.md)** | **📝 [Changelog](CHANGELOG.md)** | **📋 [llms.txt](llms.txt)** | **📊 [Marketing Log](MARKETING-LOG.txt)**
+**🇩🇪 [Deutsche Version](README_de.md)** | **⚖️ [Attribution NOTICE](NOTICE)** | **🛡️ [Security Policy](SECURITY.md)** | **📜 [Third-Party Licenses](THIRD_PARTY_LICENSES.md)** | **📝 [Changelog](CHANGELOG.md)** | **📋 [llms.txt](llms.txt)** | **📊 [Marketing Log](MARKETING-LOG.txt)**
 
 > Status: Prototype (v0.4.2) | Author: Lukas Geiger + Claude
 

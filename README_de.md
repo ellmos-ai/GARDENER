@@ -12,7 +12,9 @@
 [![Python 3.10-3.13](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-blue.svg)](https://www.python.org/)
 [![Plattformen](https://img.shields.io/badge/plattformen-Linux%20%7C%20Windows%20%7C%20macOS-lightgrey.svg)](https://github.com/ellmos-ai/gardener)
 [![Lizenz: MIT](https://img.shields.io/badge/Lizenz-MIT-yellow.svg)](LICENSE)
-[![Tests: 183 bestanden](https://img.shields.io/badge/tests-183%20passed-brightgreen.svg)](https://github.com/ellmos-ai/gardener)
+[![Attribution: NOTICE](https://img.shields.io/badge/Attribution-NOTICE-blue.svg)](NOTICE)
+[![Verifiziert: 2026-09-26](https://img.shields.io/badge/verified-2026--09--26-blue.svg)](https://github.com/ellmos-ai/gardener)
+[![Tests: 188 bestanden](https://img.shields.io/badge/tests-188%20passed-brightgreen.svg)](https://github.com/ellmos-ai/gardener)
 [![Ausführung: RunAsInvoker](https://img.shields.io/badge/execution-RunAsInvoker-success.svg)](THIRD_PARTY_LICENSES.md)
 [![Datenschutz: Local-First](https://img.shields.io/badge/datenschutz-Local--First%20%7C%20Zero--Egress-brightgreen.svg)](SECURITY.md)
 [![Sicherheitsrichtlinie](https://img.shields.io/badge/sicherheit-48h%20SLA-blue.svg)](SECURITY.md)
@@ -24,7 +26,7 @@
 > [!NOTE]
 > **LLM / Agenten-Integration**: Gardener stellt ein Ein-Tabellen-FTS5-SQLite-Substrat (`gardener.db` / `user.db`) mit den Primitiven `find`, `get`, `put` und `run` bereit. Siehe [`llms.txt`](llms.txt) für maschinenlesbare Spezifikationen.
 
-**🇬🇧 [English Version](README.md)** | **🛡️ [Sicherheitsrichtlinie](SECURITY.md)** | **📜 [Drittanbieter-Lizenzen](THIRD_PARTY_LICENSES.md)** | **📝 [Changelog](CHANGELOG.md)** | **📋 [llms.txt](llms.txt)** | **📊 [Marketing-Log](MARKETING-LOG.txt)**
+**🇬🇧 [English Version](README.md)** | **⚖️ [Attribution NOTICE](NOTICE)** | **🛡️ [Sicherheitsrichtlinie](SECURITY.md)** | **📜 [Drittanbieter-Lizenzen](THIRD_PARTY_LICENSES.md)** | **📝 [Changelog](CHANGELOG.md)** | **📋 [llms.txt](llms.txt)** | **📊 [Marketing-Log](MARKETING-LOG.txt)**
 
 > Status: Prototyp (v0.4.2) | Autor: Lukas Geiger + Claude
 

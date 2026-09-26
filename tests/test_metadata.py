@@ -21,6 +21,9 @@ class TestMetadataParity(unittest.TestCase):
         self.ci_workflow_path = ROOT / ".github" / "workflows" / "ci.yml"
         self.stale_workflow_path = ROOT / ".github" / "workflows" / "stale.yml"
         self.welcome_workflow_path = ROOT / ".github" / "workflows" / "welcome.yml"
+        self.auto_assign_workflow_path = ROOT / ".github" / "workflows" / "auto-assign.yml"
+        self.label_sync_workflow_path = ROOT / ".github" / "workflows" / "label-sync.yml"
+        self.notice_path = ROOT / "NOTICE"
         self.llms_txt_path = ROOT / "llms.txt"
         self.changelog_path = ROOT / "CHANGELOG.md"
         self.marketing_log_path = ROOT / "MARKETING-LOG.txt"
@@ -34,6 +37,9 @@ class TestMetadataParity(unittest.TestCase):
         self.ci_workflow = self.ci_workflow_path.read_text(encoding="utf-8")
         self.stale_workflow = self.stale_workflow_path.read_text(encoding="utf-8")
         self.welcome_workflow = self.welcome_workflow_path.read_text(encoding="utf-8")
+        self.auto_assign_workflow = self.auto_assign_workflow_path.read_text(encoding="utf-8")
+        self.label_sync_workflow = self.label_sync_workflow_path.read_text(encoding="utf-8")
+        self.notice = self.notice_path.read_text(encoding="utf-8")
         self.llms_txt = self.llms_txt_path.read_text(encoding="utf-8")
         self.changelog = self.changelog_path.read_text(encoding="utf-8")
         self.marketing_log = self.marketing_log_path.read_text(encoding="utf-8")
@@ -51,9 +57,17 @@ class TestMetadataParity(unittest.TestCase):
         self.assertIn(f"[{version}]", self.changelog)
 
     def test_readme_badges_and_test_count(self):
-        # Assert test badges show 183 passed
-        self.assertIn("tests-183%20passed-brightgreen.svg", self.readme_en)
-        self.assertIn("tests-183%20passed-brightgreen.svg", self.readme_de)
+        # Assert test badges show 188 passed
+        self.assertIn("tests-188%20passed-brightgreen.svg", self.readme_en)
+        self.assertIn("tests-188%20passed-brightgreen.svg", self.readme_de)
+
+        # Assert NOTICE attribution badge
+        self.assertIn("Attribution-NOTICE-blue.svg", self.readme_en)
+        self.assertIn("Attribution-NOTICE-blue.svg", self.readme_de)
+
+        # Assert Verified badge
+        self.assertIn("verified-2026--09--26-blue.svg", self.readme_en)
+        self.assertIn("verified-2026--09--26-blue.svg", self.readme_de)
 
         # Assert code style Ruff
         self.assertIn("code%20style-ruff-000000.svg", self.readme_en)
@@ -81,10 +95,11 @@ class TestMetadataParity(unittest.TestCase):
         self.assertIn("actions/workflows/ci.yml/badge.svg", self.readme_de)
 
     def test_llms_txt_consistency(self):
-        self.assertIn("Last-checked: 2026-09-22", self.llms_txt)
-        self.assertIn("183 passing tests", self.llms_txt)
+        self.assertIn("Last-checked: 2026-09-26", self.llms_txt)
+        self.assertIn("188 passing tests", self.llms_txt)
         self.assertIn("https://github.com/ellmos-ai/gardener", self.llms_txt)
         self.assertIn("ellmos-ai/gardener", self.llms_txt)
+        self.assertIn("NOTICE", self.llms_txt)
         self.assertIn("SECURITY.md", self.llms_txt)
         self.assertIn("MARKETING-LOG", self.llms_txt)
         self.assertIn("THIRD_PARTY_LICENSES", self.llms_txt)
@@ -224,6 +239,7 @@ class TestMetadataParity(unittest.TestCase):
         for py_ver in ("'3.10'", "'3.11'", "'3.12'", "'3.13'"):
             self.assertIn(py_ver, self.ci_workflow)
         self.assertIn("timeout-minutes: 15", self.ci_workflow)
+        self.assertIn("pip install -e .", self.ci_workflow)
         self.assertIn("ruff check .", self.ci_workflow)
         self.assertIn("python -m pytest -ra -v", self.ci_workflow)
 
@@ -235,6 +251,17 @@ class TestMetadataParity(unittest.TestCase):
         self.assertTrue(self.welcome_workflow_path.is_file(), ".github/workflows/welcome.yml must exist")
         self.assertIn("timeout-minutes: 5", self.welcome_workflow)
         self.assertIn("cancel-in-progress: true", self.welcome_workflow)
+
+        self.assertTrue(self.auto_assign_workflow_path.is_file(), ".github/workflows/auto-assign.yml must exist")
+        self.assertIn("timeout-minutes: 5", self.auto_assign_workflow)
+        self.assertIn("cancel-in-progress: true", self.auto_assign_workflow)
+        self.assertIn("issues: write", self.auto_assign_workflow)
+        self.assertIn("pull-requests: write", self.auto_assign_workflow)
+
+        self.assertTrue(self.label_sync_workflow_path.is_file(), ".github/workflows/label-sync.yml must exist")
+        self.assertIn("timeout-minutes: 5", self.label_sync_workflow)
+        self.assertIn("cancel-in-progress: true", self.label_sync_workflow)
+        self.assertIn("issues: write", self.label_sync_workflow)
 
     def test_ci_concurrency_and_bytecode_gate(self):
         self.assertIn("concurrency:", self.ci_workflow)
@@ -263,36 +290,49 @@ class TestMetadataParity(unittest.TestCase):
         self.assertIn("Operating System :: OS Independent", self.pyproject)
         self.assertIn("Programming Language :: Python :: 3.10", self.pyproject)
         self.assertIn("Programming Language :: Python :: 3.13", self.pyproject)
-        self.assertIn('license-files = ["LICENSE", "THIRD_PARTY_LICENSES.md"]', self.pyproject)
+        self.assertIn('license-files = ["LICENSE", "NOTICE", "THIRD_PARTY_LICENSES.md"]', self.pyproject)
 
         for key in (
-            "Homepage", "Documentation", "Repository", "Issues", "Changelog",
-            "Security", "Parent Organization", "Umbrella", "Umbrella Ecosystem",
+            "Homepage", "Documentation", "Repository", "Source Code", "Issues", "Bug Tracker",
+            "Changelog", "Security", "Notice", "Parent Organization", "Umbrella", "Umbrella Ecosystem",
             "LLM Ready", "Marketing Log", "Third-Party Licenses"
         ):
             self.assertIn(f'"{key}" = ' if " " in key else f"{key} = ", self.pyproject)
 
     def test_pyproject_pytest_and_ruff_config(self):
         self.assertIn("[tool.pytest.ini_options]", self.pyproject)
-        self.assertIn('addopts = "-ra -v"', self.pyproject)
+        self.assertIn('addopts = "-ra -v --basetemp=.pytest_temp"', self.pyproject)
         self.assertIn("norecursedirs = [", self.pyproject)
+        self.assertIn(".pytest_temp", self.pyproject)
         self.assertIn("[tool.ruff.lint]", self.pyproject)
         self.assertIn('"B"', self.pyproject)
         self.assertIn('"C4"', self.pyproject)
+        self.assertIn('"SIM"', self.pyproject)
 
     def test_gitignore_hardened_patterns(self):
         self.assertTrue(self.gitignore_path.is_file(), ".gitignore must exist")
         self.assertIn("*.sync-conflict-*", self.gitignore)
         self.assertIn("LOCK.*", self.gitignore)
+        self.assertIn("LOCK.user.*", self.gitignore)
+        self.assertIn("LOCK.until.*", self.gitignore)
+        self.assertIn("LOCK.condition.*", self.gitignore)
+        self.assertIn("LOCK.permissions.json", self.gitignore)
+        self.assertIn(".automation-lock", self.gitignore)
         self.assertIn("*.lock", self.gitignore)
         self.assertIn("uv.lock", self.gitignore)
         self.assertIn("!package-lock.json", self.gitignore)
         self.assertIn("* (copy)*", self.gitignore)
         self.assertIn("* (kopie)*", self.gitignore)
         self.assertIn("*-WORKSTATION*", self.gitignore)
+        self.assertIn("*-WORKSTATION-LG*", self.gitignore)
         self.assertIn("*-ASUS*", self.gitignore)
+        self.assertIn("*-ASUS-GEI*", self.gitignore)
         self.assertIn("*-LAPTOP*", self.gitignore)
+        self.assertIn("*-Mac Studio*", self.gitignore)
+        self.assertIn("*-MacBook*", self.gitignore)
+        self.assertIn("*-IDEAPAD*", self.gitignore)
         self.assertIn("*.sync-temp-*", self.gitignore)
+        self.assertIn(".pytest_temp/", self.gitignore)
         self.assertIn("*.orig", self.gitignore)
         self.assertIn("*.rej", self.gitignore)
         self.assertIn(".ruff_cache/", self.gitignore)
@@ -304,12 +344,14 @@ class TestMetadataParity(unittest.TestCase):
         self.assertIn("2026-09-08", self.marketing_log)
         self.assertIn("2026-09-16", self.marketing_log)
         self.assertIn("2026-09-18", self.marketing_log)
+        self.assertIn("2026-09-26", self.marketing_log)
+        self.assertIn("Pfad A", self.marketing_log)
         self.assertIn("Pfad B", self.marketing_log)
         self.assertIn("ellmos-ai/gardener", self.marketing_log)
         self.assertIn("2026-09-08", self.changelog)
         self.assertIn("2026-09-16", self.changelog)
         self.assertIn("2026-09-18", self.changelog)
-        self.assertIn("Marketing, Discoverability", self.changelog)
+        self.assertIn("2026-09-26", self.changelog)
 
     def test_license_and_liability_notice(self):
         license_path = ROOT / "LICENSE"
@@ -322,6 +364,17 @@ class TestMetadataParity(unittest.TestCase):
         for doc in (self.readme_en, self.readme_de):
             self.assertIn("521 BGB", doc)
             self.assertIn("Liability", doc)
+
+    def test_notice_attribution_file_integrity(self):
+        self.assertTrue(self.notice_path.is_file(), "NOTICE must exist")
+        self.assertIn("gardener (gardener-os)", self.notice)
+        self.assertIn("Lukas Geiger", self.notice)
+        self.assertIn("ellmos-ai", self.notice)
+        self.assertIn("open-bricks", self.notice)
+
+    def test_cli_entrypoint_is_callable(self):
+        import gardener
+        self.assertTrue(callable(gardener.main), "gardener.main must be a callable entrypoint")
 
     def test_offline_zero_egress_contract(self):
         # Assert Invariant #1: Core engine and ingestion modules must never import remote network clients

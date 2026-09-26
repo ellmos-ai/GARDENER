@@ -24,7 +24,7 @@ import sqlite3
 import subprocess
 import sys
 import time
-from contextlib import contextmanager
+from contextlib import contextmanager, suppress
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Union
@@ -1836,13 +1836,11 @@ class Gardener:
                     # Eine kaputte Quellen-Konfiguration darf den Refresh der
                     # anderen Quellen nicht abreissen (gleiches Prinzip wie
                     # sync()'s Fehlerbehandlung pro Datei).
-                    try:
+                    with suppress(sqlite3.Error):
                         # Keep what was already scanned; the per-file offset
                         # state only advances for files that finished, so the
                         # unread remainder is picked up on the next refresh.
                         conn.commit()
-                    except sqlite3.Error:
-                        pass
                     stats[sid] = {
                         "error": f"{e.__class__.__name__}: {e}",
                         "indexed": indexed, "skipped": skipped,
@@ -2046,7 +2044,7 @@ def main():
         sys.stderr.reconfigure(encoding="utf-8", errors="replace")
     af = Gardener()
 
-    if len(sys.argv) < 2:
+    if len(sys.argv) < 2 or sys.argv[1] in ("-h", "--help", "help"):
         print(t("help.title"))
         print()
         s = af.status()

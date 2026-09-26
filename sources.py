@@ -579,10 +579,11 @@ def _extract_claude_code_text(entry: Dict):
         return None, None
 
     # 1. Flat prompt history (~/.claude/history.jsonl)
-    if "display" in entry and isinstance(entry["display"], str):
-        if any(k in entry for k in ("sessionId", "project", "pastedContents", "timestamp")):
-            text = entry["display"].strip()
-            return ("user", text) if text else (None, None)
+    if "display" in entry and isinstance(entry["display"], str) and any(
+        k in entry for k in ("sessionId", "project", "pastedContents", "timestamp")
+    ):
+        text = entry["display"].strip()
+        return ("user", text) if text else (None, None)
 
     # 2. Conversation transcript turn
     if entry.get("type") not in _CLAUDE_CODE_TURN_TYPES:
@@ -657,10 +658,11 @@ def _extract_gemini_antigravity_text(entry: Dict):
         return None, None
 
     # 1. Flat CLI prompt history (~/.gemini/antigravity-cli/history.jsonl)
-    if "display" in entry and isinstance(entry["display"], str):
-        if any(k in entry for k in ("conversationId", "workspace", "sessionId", "timestamp")):
-            text = entry["display"].strip()
-            return ("user", text) if text else (None, None)
+    if "display" in entry and isinstance(entry["display"], str) and any(
+        k in entry for k in ("conversationId", "workspace", "sessionId", "timestamp")
+    ):
+        text = entry["display"].strip()
+        return ("user", text) if text else (None, None)
 
     tp = entry.get("type")
     src = entry.get("source")
@@ -669,10 +671,7 @@ def _extract_gemini_antigravity_text(entry: Dict):
     if tp == "USER_INPUT" or src == "USER_EXPLICIT":
         role = "user"
         content = entry.get("content")
-        if isinstance(content, str):
-            text = content.strip()
-        else:
-            text = ""
+        text = content.strip() if isinstance(content, str) else ""
         return (role, text) if text else (None, None)
 
     # 3. Planner / assistant turn.
