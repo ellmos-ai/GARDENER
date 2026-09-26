@@ -388,19 +388,32 @@ class TestSqliteTableSource(ObserveSourceTestCase):
         hit = self.af.find("rowid")[0]
         self.assertTrue(hit["name"].endswith("/usmc_lessons/7"))
 
+        # T-20260926-127399982: a view configured without an id column is a
+        # misconfiguration (views have no rowid to fall back on), not an
+        # empty result -- it must surface as an "error", never a silent 0.
         self.af.observe_source_add(
             "view-no-id", "sqlite_table", db_path=str(db_path), table="usmc_lessons",
             columns={"content": "solution"},
         )
-        self.assertEqual(self.af.observe_sources("view-no-id")["view-no-id"]["indexed"], 0)
+        result = self.af.observe_sources("view-no-id")["view-no-id"]
+        self.assertIn("error", result)
+        self.assertIn("view-without-id", result["error"])
+        self.assertEqual(result["indexed"], 0)
 
     def test_content_list_refuses_unknown_column(self):
+        # T-20260926-127399982: a configured column that doesn't exist on
+        # the table is a misconfiguration and must surface as an "error",
+        # not a silent indexed=0 (which looked exactly like "source is
+        # empty" and hid the real problem).
         db_path = self._make_foreign_db()
         self.af.observe_source_add(
             "bad-cols", "sqlite_table", db_path=str(db_path), table="tasks",
             columns={"id": "id", "content": ["body", "does_not_exist"]},
         )
         result = self.af.observe_sources("bad-cols")
+        self.assertIn("error", result["bad-cols"])
+        self.assertIn("column-missing", result["bad-cols"]["error"])
+        self.assertIn("does_not_exist", result["bad-cols"]["error"])
         self.assertEqual(result["bad-cols"]["indexed"], 0)
 
     def test_refresh_reindexes_only_changed_rows(self):
@@ -425,6 +438,10 @@ class TestSqliteTableSource(ObserveSourceTestCase):
         self.assertEqual(third["rinnsal-tasks"], {"kind": "sqlite_table", "indexed": 1, "skipped": 1})
 
     def test_unknown_table_or_column_is_refused_not_injected(self):
+        # T-20260926-127399982: a nonexistent (or injection-attempt) table
+        # name is a misconfiguration and must surface as an "error" -- the
+        # security property (no injection, table survives untouched) stays
+        # exactly as before.
         db_path = self._make_foreign_db()
         self.af.observe_source_add(
             "bad", "sqlite_table",
@@ -432,11 +449,102 @@ class TestSqliteTableSource(ObserveSourceTestCase):
             columns={"content": "body"},
         )
         result = self.af.observe_sources("bad")
-        self.assertEqual(result["bad"], {"kind": "sqlite_table", "indexed": 0, "skipped": 0})
+        self.assertIn("error", result["bad"])
+        self.assertIn("table-missing", result["bad"]["error"])
+        self.assertEqual(result["bad"]["indexed"], 0)
+        self.assertEqual(result["bad"]["skipped"], 0)
 
         conn = sqlite3.connect(str(db_path))
         self.assertEqual(conn.execute("SELECT COUNT(*) FROM tasks").fetchone()[0], 2)
         conn.close()
+
+
+class TestSqliteTableMisconfigurationLogging(ObserveSourceTestCase):
+    """T-20260926-127399982: every scan_sqlite_table misconfiguration must
+    surface as an "error" with a source-id-and-reason message, printed as a
+    console warning -- never a silent indexed=0. A genuinely empty (but
+    correctly configured) table is the counter-proof: it must stay a plain,
+    error-free indexed=0."""
+
+    def _make_foreign_db(self):
+        db_path = self.foreign / "rinnsal-like.db"
+        conn = sqlite3.connect(str(db_path))
+        conn.execute("""
+            CREATE TABLE tasks (
+                id INTEGER PRIMARY KEY,
+                title TEXT,
+                body TEXT,
+                labels TEXT
+            )
+        """)
+        conn.commit()
+        conn.close()
+        return db_path
+
+    def test_missing_db_file_is_an_error(self):
+        self.af.observe_source_add(
+            "no-db", "sqlite_table",
+            db_path=str(self.foreign / "does-not-exist.db"), table="tasks",
+            columns={"content": "body"},
+        )
+        result = self.af.observe_sources("no-db")["no-db"]
+        self.assertIn("error", result)
+        self.assertIn("db-missing", result["error"])
+        self.assertEqual(result["indexed"], 0)
+
+    def test_missing_required_config_is_an_error(self):
+        # Neither db_path/table/columns.content is set at all.
+        self.af.observe_source_add("empty-config", "sqlite_table")
+        result = self.af.observe_sources("empty-config")["empty-config"]
+        self.assertIn("error", result)
+
+    def test_warning_is_printed_to_stderr(self):
+        # This codebase prints warnings straight to stderr (see gardener.py's
+        # cloud_findings warning) rather than through `logging`, so stderr is
+        # captured directly instead of using unittest's assertLogs.
+        import contextlib
+        import io
+
+        db_path = self._make_foreign_db()
+        self.af.observe_source_add(
+            "bad-table", "sqlite_table", db_path=str(db_path), table="ghost",
+            columns={"content": "body"},
+        )
+        buf = io.StringIO()
+        with contextlib.redirect_stderr(buf):
+            self.af.observe_sources("bad-table")
+        output = buf.getvalue()
+        self.assertIn("WARNUNG [bad-table]", output)
+        self.assertIn("table-missing", output)
+
+    def test_empty_but_correctly_configured_table_is_not_an_error(self):
+        # The counter-proof: an existing, correctly configured table with
+        # zero rows is a legitimate empty result, not a misconfiguration --
+        # it must stay indistinguishable in kind from any other clean run,
+        # just with indexed=0.
+        db_path = self._make_foreign_db()  # "tasks" exists, 0 rows inserted
+        self.af.observe_source_add(
+            "empty-table", "sqlite_table", db_path=str(db_path), table="tasks",
+            columns={"id": "id", "content": "body"},
+        )
+        result = self.af.observe_sources("empty-table")["empty-table"]
+        self.assertNotIn("error", result)
+        self.assertEqual(result, {"kind": "sqlite_table", "indexed": 0, "skipped": 0})
+
+    def test_optional_db_replica_source_missing_file_is_not_an_error(self):
+        # Counter-proof for the other direction: a replica source's
+        # optional_db=True flag keeps a not-yet-synced snapshot a clean
+        # no-op, not an error (TestReplicaSourceLifecycle covers this at
+        # the higher usmc_replica_source_configs level; this is the direct
+        # unit-level check on the flag itself).
+        self.af.observe_source_add(
+            "maybe-replica", "sqlite_table",
+            db_path=str(self.foreign / "not-synced-yet.db"), table="tasks",
+            columns={"content": "body"}, optional_db=True,
+        )
+        result = self.af.observe_sources("maybe-replica")["maybe-replica"]
+        self.assertNotIn("error", result)
+        self.assertEqual(result, {"kind": "sqlite_table", "indexed": 0, "skipped": 0})
 
 
 class TestAgentTranscriptSource(ObserveSourceTestCase):

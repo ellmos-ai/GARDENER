@@ -433,6 +433,26 @@ def scan_remember_files(source_id: str, config: Dict) -> Iterator[SourceItem]:
 # Adapter: sqlite_table
 # ---------------------------------------------------------------------------
 
+class SourceConfigError(RuntimeError):
+    """A `sqlite_table` source is misconfigured -- missing DB/table/column,
+    not just empty (T-20260926-127399982).
+
+    Raised INSIDE the generator, at the point the misconfiguration is
+    detected, rather than a silent `return`. Because `scan_sqlite_table` (and
+    `scan()`, which wraps it) are generator functions, no code in their body
+    runs until the caller starts iterating -- so this surfaces on the first
+    `next()` in observe_sources()'s `for item in sources.scan(...):` loop,
+    where the existing `except Exception as e:` handler already turns it
+    into `stats[sid] = {"error": f"{e.__class__.__name__}: {e}", ...}`,
+    which the CLI already prints as `[FEHLER] <sid>: ...` (gardener.py
+    "refresh"/"refresh-source"). No changes needed there: the only thing
+    that was missing was this module actually raising instead of returning.
+
+    Deliberately NOT raised for a table/view that exists but has zero rows
+    -- that is a legitimate empty result (`indexed: 0` stays a fact, not an
+    error) and must stay distinguishable from a misconfigured source."""
+
+
 def scan_sqlite_table(source_id: str, config: Dict) -> Iterator[SourceItem]:
     """A single table in a foreign SQLite database, opened strictly
     read-only (URI mode=ro -- Gardener never writes to a foreign DB).
@@ -456,22 +476,38 @@ def scan_sqlite_table(source_id: str, config: Dict) -> Iterator[SourceItem]:
     table = str(config.get("table", ""))
     columns = config.get("columns") or {}
     if not db_path or not table or "content" not in columns:
-        return
+        raise SourceConfigError(
+            f"{source_id}: incomplete config -- db_path, table, and "
+            f"columns.content are all required"
+        )
     raw_content = columns.get("content")
     content_cols = (list(raw_content) if isinstance(raw_content, (list, tuple))
                     else [raw_content])
     content_cols = [c for c in content_cols if c]
     if not content_cols:
-        return
+        raise SourceConfigError(
+            f"{source_id}: columns.content is present but empty"
+        )
     db_file = Path(db_path)
     if not db_file.is_file():
-        return
+        if config.get("optional_db"):
+            # Replica sources (usmc_replica_source_configs /
+            # gardener_replica_source_config) deliberately point at a
+            # transit-sync snapshot that may not have arrived on this host
+            # yet -- that is a normal, transient state, not a
+            # misconfiguration, and must stay the documented clean no-op
+            # (TestReplicaSourceLifecycle). Every other source still raises:
+            # its DB is expected to already exist.
+            return
+        raise SourceConfigError(f"{source_id}: db-missing: {db_file}")
 
     uri = f"file:{db_file.as_posix()}?mode=ro"
     try:
         conn = sqlite3.connect(uri, uri=True, timeout=30.0)
-    except (sqlite3.Error, OSError):
-        return
+    except (sqlite3.Error, OSError) as exc:
+        raise SourceConfigError(
+            f"{source_id}: db-unreadable: {db_file} ({exc})"
+        ) from exc
     conn.row_factory = sqlite3.Row
     try:
         conn.execute("PRAGMA busy_timeout = 30000")
@@ -481,7 +517,7 @@ def scan_sqlite_table(source_id: str, config: Dict) -> Iterator[SourceItem]:
             "SELECT name, type FROM sqlite_master WHERE type IN ('table', 'view')"
         )}
         if table not in object_types:
-            return
+            raise SourceConfigError(f"{source_id}: table-missing: {table!r}")
         is_view = object_types[table] == "view"
         valid_columns = {row["name"] for row in
                           conn.execute('PRAGMA table_info("{}")'.format(table))}
@@ -492,21 +528,27 @@ def scan_sqlite_table(source_id: str, config: Dict) -> Iterator[SourceItem]:
 
         # A view has no rowid; there the configured id column is the key.
         if is_view and not id_col:
-            return
+            raise SourceConfigError(
+                f"{source_id}: view-without-id: {table!r} is a view and "
+                f"needs columns.id configured (views have no rowid)"
+            )
         select_cols = [] if is_view else ["rowid"]
         for col in [id_col, name_col, *content_cols, tags_col]:
             if col and col not in valid_columns:
                 # A configured column that doesn't exist is a config
                 # error -- refuse rather than silently drop it.
-                return
+                raise SourceConfigError(
+                    f"{source_id}: column-missing: {col!r} not found in "
+                    f"{table!r} (have: {sorted(valid_columns)})"
+                )
             if col and col not in select_cols:
                 select_cols.append(col)
 
         quoted = ", ".join('"{}"'.format(c) for c in select_cols)
         sql = 'SELECT {} FROM "{}"'.format(quoted, table)
         rows = conn.execute(sql).fetchall()
-    except (sqlite3.Error, OSError):
-        return
+    except (sqlite3.Error, OSError) as exc:
+        raise SourceConfigError(f"{source_id}: query-failed: {exc}") from exc
     finally:
         conn.close()
 
@@ -1267,7 +1309,10 @@ def usmc_replica_source_configs(host: str, replicas_root=None) -> Dict[str, Dict
             f"duplicate every fact/lesson/session under a second source_id"
         )
     db_path = _replica_db_path(host, "usmc.sqlite", replicas_root)
-    base = {"db_path": db_path, "enabled": False}
+    # optional_db: the transit-sync snapshot may not have arrived on this
+    # host yet -- a missing file here is expected, not a misconfiguration
+    # (T-20260926-127399982; see scan_sqlite_table's optional_db check).
+    base = {"db_path": db_path, "enabled": False, "optional_db": True}
     slug = host.lower()
     return {
         f"replica-{slug}-usmc-facts": {
@@ -1315,6 +1360,7 @@ def gardener_replica_source_config(host: str, replicas_root=None) -> Dict[str, D
     return {
         f"replica-{host.lower()}-gardener": {
             "db_path": db_path, "enabled": False, "table": "everything",
+            "optional_db": True,
             "columns": {"id": "id", "name": "name", "content": "content",
                         "tags": "tags"},
         },
