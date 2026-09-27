@@ -277,6 +277,17 @@
     "ja": "",
     "ru": ""
   },
+  "cmd.sleep": {"de": "Union-Gedächtnis sanft schlafen legen", "en": "Soft sleep for Union memory"},
+  "sleep.db": {"de": "Pfad zur Union-Datenbank", "en": "Path to Union database"},
+  "sleep.agent": {"de": "Nur diesen Agenten bearbeiten", "en": "Process only this agent"},
+  "sleep.if_due": {"de": "Nur bei Fälligkeit ausführen", "en": "Run only when due"},
+  "sleep.dry_run": {"de": "Nur Änderungen berechnen", "en": "Preview changes only"},
+  "sleep.no_decay": {"de": "Konfidenz-Decay auslassen", "en": "Skip confidence decay"},
+  "sleep.report": {"de": "JSONL-Bericht anhängen", "en": "Append JSONL report"},
+  "sleep.error": {"de": "Schlaf-Fehler", "en": "Sleep error"},
+  "sleep.skipped": {"de": "übersprungen", "en": "skipped"},
+  "sleep.deactivated": {"de": "deaktiviert", "en": "deactivated"},
+  "sleep.decayed": {"de": "Decay Fakten/Lektionen", "en": "decayed facts/lessons"},
   "cmd.session_end": {
     "de": "Session-Bericht speichern",
     "en": "Store session report",

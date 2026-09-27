@@ -369,6 +369,7 @@ python gardener.py memo <text>
 python gardener.py lesson <title> [text]
 python gardener.py recall <query>
 python gardener.py consolidate
+python gardener.py sleep --db <union.db> [--agent ID] [--if-due] [--dry-run] [--no-decay] [--report <jsonl>]
 python gardener.py session-end <text>
 python gardener.py task <name> [text]
 python gardener.py tasks [status]
@@ -387,6 +388,8 @@ python gardener.py gui [--port N] [--no-browser]
 ```
 
 CLI help defaults to German. Set `GARDENER_LANG=en` for English help text; unsupported languages cleanly fall back to English.
+
+`sleep` softly expires Union v2 `handoff` (30 days) and `context` (14 days) working entries. Its first pass assigns missing expiry dates; a later pass deactivates expired entries. It never deletes records. Optional fact and lesson confidence decay uses each agent's `decay_config`. Pass `--no-decay` for BACH databases, which have their own decay process. `--if-due` honors the agent cleanup schedule; `--dry-run` previews changes. Override TTLs in `~/.gardener/sleep.toml` under `[ttl_days.default]` and `[ttl_days.<agent_id>]`, or set `GARDENER_SLEEP_CONFIG` to another path.
 
 ---
 

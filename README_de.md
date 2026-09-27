@@ -369,6 +369,7 @@ python gardener.py memo <text>
 python gardener.py lesson <titel> [text]
 python gardener.py recall <query>
 python gardener.py consolidate
+python gardener.py sleep --db <union.db> [--agent ID] [--if-due] [--dry-run] [--no-decay] [--report <jsonl>]
 python gardener.py session-end <text>
 python gardener.py task <name> [text]
 python gardener.py tasks [status]
@@ -387,6 +388,8 @@ python gardener.py gui [--port N] [--no-browser]
 ```
 
 Die CLI-Hilfe ist standardmäßig deutsch. Mit `GARDENER_LANG=en` wird die englische Hilfe ausgegeben.
+
+`sleep` setzt für Union-v2-Arbeitseinträge vom Typ `handoff` (30 Tage) und `context` (14 Tage) zunächst ein Ablaufdatum. Erst ein späterer Lauf deaktiviert abgelaufene Einträge. Es löscht keine Daten. Optional sinkt die Konfidenz von Fakten und Lektionen gemäß `decay_config` des jeweiligen Agenten. Für BACH-Datenbanken `--no-decay` verwenden, da BACH einen eigenen Decay hat. `--if-due` beachtet den Reinigungsplan; `--dry-run` zeigt Änderungen nur an. TTL-Werte stehen optional in `~/.gardener/sleep.toml` unter `[ttl_days.default]` und `[ttl_days.<agent_id>]`; `GARDENER_SLEEP_CONFIG` wählt einen anderen Pfad.
 
 ---
 
