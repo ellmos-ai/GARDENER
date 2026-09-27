@@ -9,6 +9,7 @@ from datetime import datetime
 
 import pytest
 
+import sleep_union
 from sleep_union import sleep
 
 NOW = datetime(2026, 9, 27, 12, 0, 0)
@@ -75,8 +76,14 @@ def test_ttl_override_and_dry_run(db):
     preview = run_sleep(db, dry_run=True, decay=False)
     assert preview["agents"]["a"]["ttl_gesetzt"] == 1
     assert db.read_bytes() == before
-    run_sleep(db, decay=False)
-    assert rows(db, "memory_working")[0][4] == "2026-09-23 00:00:00"
+    if sleep_union.tomllib is None:
+        with pytest.warns(RuntimeWarning, match="sleep.toml ignored"):
+            run_sleep(db, decay=False)
+        expected = "2026-10-20 00:00:00"
+    else:
+        run_sleep(db, decay=False)
+        expected = "2026-09-23 00:00:00"
+    assert rows(db, "memory_working")[0][4] == expected
 
 
 def test_decay_floor_caps_and_no_decay(db):
