@@ -1134,6 +1134,57 @@ def execute(payload):
         db_names = [e["name"] for e in db_entries]
         self.assertEqual(db_names, ["observed/valid_doc.md"])
 
+    def test_observe_and_sync_directory_pruning(self):
+        home = Path(os.environ["GARDENER_HOME"])
+        # Standard internal directory that should be pruned in-place
+        nm_dir = home / "node_modules" / "pkg"
+        nm_dir.mkdir(parents=True, exist_ok=True)
+        (nm_dir / "index.js").write_text("console.log(1)", encoding="utf-8")
+
+        # Custom excluded directory that should be pruned in-place
+        cache_dir = home / "custom_cache" / "nested"
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        (cache_dir / "blob.bin").write_text("cached data", encoding="utf-8")
+
+        normal_file = home / "regular_doc.txt"
+        normal_file.write_text("reguläre Notiz", encoding="utf-8")
+
+        self.af.config["exclude_patterns"] = ["custom_cache/*"]
+
+        items = list(self.af._iter_files_to_observe(home))
+        rel_paths = [rel.as_posix() for _, rel in items]
+
+        self.assertIn("regular_doc.txt", rel_paths)
+        self.assertNotIn("node_modules/pkg/index.js", rel_paths)
+        self.assertNotIn("custom_cache/nested/blob.bin", rel_paths)
+
+    def test_observe_and_sync_file_size_limit_and_custom_config(self):
+        home = Path(os.environ["GARDENER_HOME"])
+        (home / "small_text.txt").write_text("Hello World", encoding="utf-8")
+        large_content = "A" * 500
+        (home / "large_text.txt").write_text(large_content, encoding="utf-8")
+
+        # Set small max_file_size in config
+        self.af.config["max_file_size"] = 100
+
+        observed = self.af.observe()
+        entries_by_name = {e["name"]: e for e in observed}
+
+        self.assertIn("observed/small_text.txt", entries_by_name)
+        self.assertEqual(entries_by_name["observed/small_text.txt"]["content"], "Hello World")
+
+        self.assertIn("observed/large_text.txt", entries_by_name)
+        large_entry = entries_by_name["observed/large_text.txt"]
+        self.assertIn("[Datei überschreitet Größenlimit: 500 Bytes > 100 Bytes]", large_entry["content"])
+        self.assertEqual(large_entry["meta"]["size"], 500)
+
+        # Also test sync with max_file_size
+        sync_res = self.af.sync()
+        self.assertGreaterEqual(sync_res["observed"], 2)
+        synced_large = self.af.get("observed/large_text.txt")
+        self.assertIsNotNone(synced_large)
+        self.assertIn("[Datei überschreitet Größenlimit: 500 Bytes > 100 Bytes]", synced_large["content"])
+
     def test_is_internal_custom_patterns_and_static_call_compatibility(self):
         # Static invocation compatibility
         self.assertTrue(self.gardener.Gardener._is_internal(".absorber/file.txt"))
