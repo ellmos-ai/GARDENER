@@ -1607,6 +1607,26 @@ class TestCliI18n(unittest.TestCase):
                 self.assertNotIn("cmd.consolidate", result.stdout)
                 self.assertNotIn("help.title", result.stdout)
 
+    def test_translations_catalog_completeness(self):
+        """Verifies that locales/translations.json provides 100% complete translations
+        for all declared languages (de, en, es, zh, ja, ru) with 0 empty values.
+        """
+        trans_file = ROOT / "locales" / "translations.json"
+        self.assertTrue(trans_file.is_file(), "locales/translations.json must exist")
+        data = json.loads(trans_file.read_text(encoding="utf-8"))
+        meta = data.get("_meta", {})
+        languages = meta.get("languages", [])
+        self.assertEqual(languages, ["de", "en", "es", "zh", "ja", "ru"])
+        keys = [k for k in data if not k.startswith("_")]
+        self.assertGreaterEqual(len(keys), 57)
+        for lang in languages:
+            for key in keys:
+                val = data[key].get(lang)
+                self.assertTrue(
+                    bool(val and isinstance(val, str) and val.strip()),
+                    f"Translation key '{key}' missing or empty for language '{lang}'",
+                )
+
 
 class TestRepositoryHygiene(unittest.TestCase):
     def setUp(self):

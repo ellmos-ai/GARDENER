@@ -2,386 +2,470 @@
   "_meta": {
     "description": "Gardener translation strings",
     "format": "key -> {de, en, es, zh, ja, ru}",
-    "languages": ["de", "en", "es", "zh", "ja", "ru"],
+    "languages": [
+      "de",
+      "en",
+      "es",
+      "zh",
+      "ja",
+      "ru"
+    ],
     "reference": "ISO 639-1 language codes"
   },
   "help.title": {
     "de": "Gardener -- LLM-natives Betriebssystem",
     "en": "Gardener -- LLM-native operating system",
-    "es": "",
-    "zh": "",
-    "ja": "",
-    "ru": ""
+    "es": "Gardener -- Sistema operativo nativo para LLM",
+    "zh": "Gardener —— LLM 原生操作系统",
+    "ja": "Gardener -- LLMネイティブオペレーティングシステム",
+    "ru": "Gardener -- LLM-нативная операционная система"
   },
   "help.commands": {
     "de": "Befehle:",
     "en": "Commands:",
-    "es": "",
-    "zh": "",
-    "ja": "",
-    "ru": ""
+    "es": "Comandos:",
+    "zh": "命令：",
+    "ja": "コマンド:",
+    "ru": "Команды:"
   },
   "help.home": {
     "de": "Home",
     "en": "Home",
-    "es": "",
-    "zh": "",
-    "ja": "",
-    "ru": ""
+    "es": "Inicio",
+    "zh": "主页",
+    "ja": "ホーム",
+    "ru": "Главная"
   },
   "help.data": {
     "de": "Daten",
     "en": "Data",
-    "es": "",
-    "zh": "",
-    "ja": "",
-    "ru": ""
+    "es": "Datos",
+    "zh": "数据",
+    "ja": "データ",
+    "ru": "Данные"
   },
   "help.system_db": {
     "de": "System-DB",
     "en": "System DB",
-    "es": "",
-    "zh": "",
-    "ja": "",
-    "ru": ""
+    "es": "BD del sistema",
+    "zh": "系统数据库",
+    "ja": "システムDB",
+    "ru": "Системная БД"
   },
   "help.user_db": {
     "de": "User-DB",
     "en": "User DB",
-    "es": "",
-    "zh": "",
-    "ja": "",
-    "ru": ""
+    "es": "BD del usuario",
+    "zh": "用户数据库",
+    "ja": "ユーザーDB",
+    "ru": "Пользовательская БД"
   },
   "help.entries": {
     "de": "Einträge",
     "en": "entries",
-    "es": "",
-    "zh": "",
-    "ja": "",
-    "ru": ""
+    "es": "entradas",
+    "zh": "条目",
+    "ja": "エントリー",
+    "ru": "записи"
   },
   "help.heap": {
     "de": "Halde",
     "en": "Heap",
-    "es": "",
-    "zh": "",
-    "ja": "",
-    "ru": ""
+    "es": "Montón",
+    "zh": "堆",
+    "ja": "ヒープ",
+    "ru": "Куча"
   },
   "help.files": {
     "de": "Dateien",
     "en": "files",
-    "es": "",
-    "zh": "",
-    "ja": "",
-    "ru": ""
+    "es": "archivos",
+    "zh": "文件",
+    "ja": "ファイル",
+    "ru": "файлы"
   },
   "cmd.find": {
     "de": "Suche",
     "en": "Search",
-    "es": "",
-    "zh": "",
-    "ja": "",
-    "ru": ""
+    "es": "Buscar",
+    "zh": "搜索",
+    "ja": "検索",
+    "ru": "Поиск"
   },
   "help.find_filters": {
     "de": "find-Filter (wirken VOR dem Ranking):",
     "en": "find filters (applied before ranking):",
-    "es": "",
-    "zh": "",
-    "ja": "",
-    "ru": ""
+    "es": "Filtros de find (se aplican ANTES de clasificar):",
+    "zh": "find 过滤器（在排序前生效）：",
+    "ja": "findフィルター（ランキング前に適用）:",
+    "ru": "Фильтры find (применяются ДО ранжирования):"
   },
   "help.find_pinned": {
     "de": "nur gepinnte Einträge durchsuchen",
     "en": "restrict search to pinned entries only",
-    "es": "",
-    "zh": "",
-    "ja": "",
-    "ru": ""
+    "es": "buscar solo en entradas fijadas",
+    "zh": "仅在已固定条目中搜索",
+    "ja": "固定されたエントリーのみを検索",
+    "ru": "искать только среди закрепленных записей"
   },
   "help.find_source": {
     "de": "nur diese observe-Quelle(n), Namensraum observed/<id>/...",
     "en": "restrict to these observe-source(s), namespace observed/<id>/...",
-    "es": "",
-    "zh": "",
-    "ja": "",
-    "ru": ""
+    "es": "restringir a estas fuentes de observación, espacio de nombres observed/<id>/...",
+    "zh": "仅限这些观察源，命名空间 observed/<id>/...",
+    "ja": "指定の監視ソースのみ、名前空間 observed/<id>/...",
+    "ru": "только эти источники наблюдения, пространство имен observed/<id>/..."
   },
   "help.find_refresh_source": {
     "de": "diese Quelle(n) vor der Suche inkrementell aktualisieren",
     "en": "incrementally refresh these source(s) before searching",
-    "es": "",
-    "zh": "",
-    "ja": "",
-    "ru": ""
+    "es": "actualizar incrementalmente estas fuentes antes de buscar",
+    "zh": "搜索前增量刷新这些源",
+    "ja": "検索前にこれらのソースを増分更新",
+    "ru": "инкрементально обновить эти источники перед поиском"
   },
   "help.find_type": {
     "de": "nur diesen Typ (observed, knowledge, memory, ...)",
     "en": "restrict to this type (observed, knowledge, memory, ...)",
-    "es": "",
-    "zh": "",
-    "ja": "",
-    "ru": ""
+    "es": "restringir a este tipo (observed, knowledge, memory, ...)",
+    "zh": "仅限此类型（observed, knowledge, memory, ...）",
+    "ja": "このタイプのみに制限 (observed, knowledge, memory, ...)",
+    "ru": "только этот тип (observed, knowledge, memory, ...)"
   },
   "help.find_limit": {
     "de": "max. Treffer (Standard 20)",
     "en": "max. results (default 20)",
-    "es": "",
-    "zh": "",
-    "ja": "",
-    "ru": ""
+    "es": "máx. resultados (por defecto 20)",
+    "zh": "最大结果数（默认 20）",
+    "ja": "最大結果数（デフォルト 20）",
+    "ru": "макс. результатов (по умолчанию 20)"
   },
   "help.find_listing": {
     "de": "Ohne Suchbegriff listet --source die Quelle auf (neueste zuerst).",
     "en": "Without a query, --source lists the source (newest first).",
-    "es": "",
-    "zh": "",
-    "ja": "",
-    "ru": ""
+    "es": "Sin consulta, --source lista la fuente (más recientes primero).",
+    "zh": "没有查询词时，--source 会列出该源（最新在前）。",
+    "ja": "検索語がない場合、--source はソースを一覧表示します（新しい順）。",
+    "ru": "Без запроса --source выводит список источника (сначала новые)."
   },
   "help.find_legacy": {
     "de": "Ältere Versionen ohne --source: Quell-ID als Suchwort mitgeben ('gardener find usmc-working store') -- der Name steht im Volltextindex, rankt aber schwächer als der echte Filter.",
     "en": "Older versions without --source: pass the source id as a search word ('gardener find usmc-working store') -- entry names are in the full-text index, but this ranks weaker than a real filter.",
-    "es": "",
-    "zh": "",
-    "ja": "",
-    "ru": ""
+    "es": "Versiones anteriores sin --source: pase el ID de la fuente como término de búsqueda ('gardener find usmc-working store') -- los nombres están en el índice de texto completo, pero clasifican más bajo que un filtro real.",
+    "zh": "没有 --source 的旧版本：将源 ID 作为搜索词传入 ('gardener find usmc-working store') —— 条目名称包含在全文索引中，但排名低于真正的过滤器。",
+    "ja": "古いバージョン（--source なし）: ソースIDを検索語として指定 ('gardener find usmc-working store') -- 名前は全文インデックスに含まれますが、実際のフィルターよりランクが低くなります。",
+    "ru": "Старые версии без --source: передавайте ID источника как поисковое слово ('gardener find usmc-working store') -- имена есть в полнотекстовом индексе, но ранжируются ниже реального фильтра."
   },
   "cmd.gui": {
     "de": "Such-GUI im Browser (lokal, read-only)",
     "en": "Search GUI in the browser (local, read-only)",
-    "es": "",
-    "zh": "",
-    "ja": "",
-    "ru": ""
+    "es": "GUI de búsqueda en el navegador (local, solo lectura)",
+    "zh": "浏览器中的搜索 GUI（本地，只读）",
+    "ja": "ブラウザ検索GUI（ローカル、読み取り専用）",
+    "ru": "Поисковый веб-интерфейс в браузере (локально, только для чтения)"
   },
   "cmd.get": {
     "de": "Eintrag lesen",
     "en": "Read entry",
-    "es": "",
-    "zh": "",
-    "ja": "",
-    "ru": ""
+    "es": "Leer entrada",
+    "zh": "读取条目",
+    "ja": "エントリーの読み取り",
+    "ru": "Прочитать запись"
   },
   "cmd.put": {
     "de": "Eintrag schreiben",
     "en": "Write entry",
-    "es": "",
-    "zh": "",
-    "ja": "",
-    "ru": ""
+    "es": "Escribir entrada",
+    "zh": "写入条目",
+    "ja": "エントリーの書き込み",
+    "ru": "Записать запись"
   },
   "cmd.run": {
     "de": "Tool ausführen",
     "en": "Run tool",
-    "es": "",
-    "zh": "",
-    "ja": "",
-    "ru": ""
+    "es": "Ejecutar herramienta",
+    "zh": "运行工具",
+    "ja": "ツールを実行",
+    "ru": "Запустить инструмент"
   },
   "cmd.absorb": {
     "de": "Datei absorbieren (Transporter IN)",
     "en": "Absorb file (transporter in)",
-    "es": "",
-    "zh": "",
-    "ja": "",
-    "ru": ""
+    "es": "Absorber archivo (transportador IN)",
+    "zh": "吸收文件（转运 IN）",
+    "ja": "ファイルを取り込む（トランスポーター IN）",
+    "ru": "Поглотить файл (транспортер IN)"
   },
   "cmd.materialize": {
     "de": "Eintrag als Datei (Transporter OUT)",
     "en": "Materialize entry as file (transporter out)",
-    "es": "",
-    "zh": "",
-    "ja": "",
-    "ru": ""
+    "es": "Materializar entrada como archivo (transportador OUT)",
+    "zh": "将条目实体化为文件（转运 OUT）",
+    "ja": "エントリーをファイルとして具現化（トランスポーター OUT）",
+    "ru": "Материализовать запись как файл (транспортер OUT)"
   },
   "cmd.sync": {
     "de": "Absorber leeren + Ordner beobachten",
     "en": "Empty absorber + observe folders",
-    "es": "",
-    "zh": "",
-    "ja": "",
-    "ru": ""
+    "es": "Vaciar absorbedor + observar carpetas",
+    "zh": "清空吸收器 + 观察文件夹",
+    "ja": "アブソーバーを空にしてフォルダを監視",
+    "ru": "Очистить поглотитель + наблюдать за папками"
   },
   "cmd.observe": {
     "de": "Ordner scannen (nur beobachten)",
     "en": "Scan folders (observe only)",
-    "es": "",
-    "zh": "",
-    "ja": "",
-    "ru": ""
+    "es": "Escanear carpetas (solo observar)",
+    "zh": "扫描文件夹（仅观察）",
+    "ja": "フォルダをスキャン（監視のみ）",
+    "ru": "Сканировать папки (только наблюдение)"
   },
   "cmd.observe_source_add": {
     "de": "Cross-Source-Quelle registrieren",
     "en": "Register a cross-source knowledge source",
-    "es": "",
-    "zh": "",
-    "ja": "",
-    "ru": ""
+    "es": "Registrar una fuente de conocimiento cruzada",
+    "zh": "注册跨源知识库",
+    "ja": "クロスソース知識ソースを登録",
+    "ru": "Зарегистрировать межсистемный источник знаний"
   },
   "cmd.observe_source_list": {
     "de": "Cross-Source-Quellen auflisten",
     "en": "List cross-source knowledge sources",
-    "es": "",
-    "zh": "",
-    "ja": "",
-    "ru": ""
+    "es": "Listar fuentes de conocimiento cruzadas",
+    "zh": "列出跨源知识库",
+    "ja": "クロスソース知識ソースを一覧表示",
+    "ru": "Список межсистемных источников знаний"
   },
   "cmd.observe_source_remove": {
     "de": "Cross-Source-Quelle entfernen",
     "en": "Remove a cross-source knowledge source",
-    "es": "",
-    "zh": "",
-    "ja": "",
-    "ru": ""
+    "es": "Eliminar una fuente de conocimiento cruzada",
+    "zh": "移除跨源知识库",
+    "ja": "クロスソース知識ソースを削除",
+    "ru": "Удалить межсистемный источник знаний"
   },
   "cmd.observe_source_refresh": {
     "de": "Cross-Source-Quellen neu indexieren",
     "en": "Re-index cross-source knowledge sources",
-    "es": "",
-    "zh": "",
-    "ja": "",
-    "ru": ""
+    "es": "Reindexar fuentes de conocimiento cruzadas",
+    "zh": "重新索引跨源知识库",
+    "ja": "クロスソース知識ソースを再インデックス",
+    "ru": "Переиндексировать межсистемные источники знаний"
   },
   "cmd.memo": {
     "de": "Notiz ins Arbeitsgedächtnis",
     "en": "Store note in working memory",
-    "es": "",
-    "zh": "",
-    "ja": "",
-    "ru": ""
+    "es": "Guardar nota en memoria de trabajo",
+    "zh": "将笔记存入工作记忆",
+    "ja": "作業メモリーにメモを保存",
+    "ru": "Сохранить заметку в рабочей памяти"
   },
   "cmd.lesson": {
     "de": "Lektion speichern (Best Practice)",
     "en": "Store lesson (best practice)",
-    "es": "",
-    "zh": "",
-    "ja": "",
-    "ru": ""
+    "es": "Guardar lección (mejores prácticas)",
+    "zh": "保存教训（最佳实践）",
+    "ja": "教訓を保存（ベストプラクティス）",
+    "ru": "Сохранить урок (лучшая практика)"
   },
   "cmd.recall": {
     "de": "Erinnern (sucht in Memory/Lessons/Sessions)",
     "en": "Recall (searches memory, lessons, sessions)",
-    "es": "",
-    "zh": "",
-    "ja": "",
-    "ru": ""
+    "es": "Recordar (busca en memoria, lecciones, sesiones)",
+    "zh": "回忆（搜索记忆、教训和会话）",
+    "ja": "想起（メモリー、教訓、セッションを検索）",
+    "ru": "Вспомнить (поиск в памяти, уроках, сессиях)"
   },
   "cmd.consolidate": {
     "de": "Gedächtnis konsolidieren (Decay/Forget)",
     "en": "Consolidate memory (decay/forget)",
-    "es": "",
-    "zh": "",
-    "ja": "",
-    "ru": ""
+    "es": "Consolidar memoria (decaimiento/olvido)",
+    "zh": "整合记忆（衰减/遗忘）",
+    "ja": "メモリーの統合（減衰/忘却）",
+    "ru": "Консолидировать память (затухание/забывание)"
   },
-  "cmd.sleep": {"de": "Union-Gedächtnis sanft schlafen legen", "en": "Soft sleep for Union memory"},
-  "sleep.db": {"de": "Pfad zur Union-Datenbank", "en": "Path to Union database"},
-  "sleep.agent": {"de": "Nur diesen Agenten bearbeiten", "en": "Process only this agent"},
-  "sleep.if_due": {"de": "Nur bei Fälligkeit ausführen", "en": "Run only when due"},
-  "sleep.dry_run": {"de": "Nur Änderungen berechnen", "en": "Preview changes only"},
-  "sleep.no_decay": {"de": "Konfidenz-Decay auslassen", "en": "Skip confidence decay"},
-  "sleep.report": {"de": "JSONL-Bericht anhängen", "en": "Append JSONL report"},
-  "sleep.error": {"de": "Schlaf-Fehler", "en": "Sleep error"},
-  "sleep.skipped": {"de": "übersprungen", "en": "skipped"},
-  "sleep.deactivated": {"de": "deaktiviert", "en": "deactivated"},
-  "sleep.decayed": {"de": "Decay Fakten/Lektionen", "en": "decayed facts/lessons"},
+  "cmd.sleep": {
+    "de": "Union-Gedächtnis sanft schlafen legen",
+    "en": "Soft sleep for Union memory",
+    "es": "Suspensión suave para memoria Union",
+    "zh": "平滑休眠 Union 记忆",
+    "ja": "Unionメモリーのソフトスリープ",
+    "ru": "Мягкий сон для памяти Union"
+  },
+  "sleep.db": {
+    "de": "Pfad zur Union-Datenbank",
+    "en": "Path to Union database",
+    "es": "Ruta a la base de datos Union",
+    "zh": "Union 数据库路径",
+    "ja": "Unionデータベースへのパス",
+    "ru": "Путь к базе данных Union"
+  },
+  "sleep.agent": {
+    "de": "Nur diesen Agenten bearbeiten",
+    "en": "Process only this agent",
+    "es": "Procesar solo este agente",
+    "zh": "仅处理该智能体",
+    "ja": "このエージェントのみを処理",
+    "ru": "Обрабатывать только этого агента"
+  },
+  "sleep.if_due": {
+    "de": "Nur bei Fälligkeit ausführen",
+    "en": "Run only when due",
+    "es": "Ejecutar solo cuando venza",
+    "zh": "仅在到期时运行",
+    "ja": "期日が到来した場合のみ実行",
+    "ru": "Выполнять только по истечении срока"
+  },
+  "sleep.dry_run": {
+    "de": "Nur Änderungen berechnen",
+    "en": "Preview changes only",
+    "es": "Solo previsualizar cambios",
+    "zh": "仅预览更改",
+    "ja": "変更のプレビューのみ",
+    "ru": "Только предварительный просмотр изменений"
+  },
+  "sleep.no_decay": {
+    "de": "Konfidenz-Decay auslassen",
+    "en": "Skip confidence decay",
+    "es": "Omitir decaimiento de confianza",
+    "zh": "跳过置信度衰减",
+    "ja": "信頼度の減衰をスキップ",
+    "ru": "Пропустить затухание уверенности"
+  },
+  "sleep.report": {
+    "de": "JSONL-Bericht anhängen",
+    "en": "Append JSONL report",
+    "es": "Adjuntar informe JSONL",
+    "zh": "附加 JSONL 报告",
+    "ja": "JSONLレポートを追加",
+    "ru": "Добавить отчет JSONL"
+  },
+  "sleep.error": {
+    "de": "Schlaf-Fehler",
+    "en": "Sleep error",
+    "es": "Error de suspensión",
+    "zh": "休眠错误",
+    "ja": "スリープエラー",
+    "ru": "Ошибка сна"
+  },
+  "sleep.skipped": {
+    "de": "übersprungen",
+    "en": "skipped",
+    "es": "omitido",
+    "zh": "已跳过",
+    "ja": "スキップ",
+    "ru": "пропущено"
+  },
+  "sleep.deactivated": {
+    "de": "deaktiviert",
+    "en": "deactivated",
+    "es": "desactivado",
+    "zh": "已停用",
+    "ja": "無効化",
+    "ru": "деактивировано"
+  },
+  "sleep.decayed": {
+    "de": "Decay Fakten/Lektionen",
+    "en": "decayed facts/lessons",
+    "es": "hechos/lecciones decaídos",
+    "zh": "衰减的事实/教训",
+    "ja": "減衰した事実/教训",
+    "ru": "затухшие факты/уроки"
+  },
   "cmd.session_end": {
     "de": "Session-Bericht speichern",
     "en": "Store session report",
-    "es": "",
-    "zh": "",
-    "ja": "",
-    "ru": ""
+    "es": "Guardar informe de sesión",
+    "zh": "保存会话报告",
+    "ja": "セッションレポートを保存",
+    "ru": "Сохранить отчет о сессии"
   },
   "cmd.tasks": {
     "de": "Tasks auflisten (open/doing/done)",
     "en": "List tasks (open/doing/done)",
-    "es": "",
-    "zh": "",
-    "ja": "",
-    "ru": ""
+    "es": "Listar tareas (open/doing/done)",
+    "zh": "列出任务（open/doing/done）",
+    "ja": "タスクを一覧表示 (open/doing/done)",
+    "ru": "Список задач (open/doing/done)"
   },
   "cmd.task": {
     "de": "Task erstellen",
     "en": "Create task",
-    "es": "",
-    "zh": "",
-    "ja": "",
-    "ru": ""
+    "es": "Crear tarea",
+    "zh": "创建任务",
+    "ja": "タスクを作成",
+    "ru": "Создать задачу"
   },
   "cmd.done": {
     "de": "Task als erledigt markieren",
     "en": "Mark task done",
-    "es": "",
-    "zh": "",
-    "ja": "",
-    "ru": ""
+    "es": "Marcar tarea como completada",
+    "zh": "标记任务为已完成",
+    "ja": "タスクを完了としてマーク",
+    "ru": "Отметить задачу как выполненную"
   },
   "cmd.list": {
     "de": "Alle Einträge auflisten",
     "en": "List all entries",
-    "es": "",
-    "zh": "",
-    "ja": "",
-    "ru": ""
+    "es": "Listar todas las entradas",
+    "zh": "列出所有条目",
+    "ja": "すべてのエントリーを一覧表示",
+    "ru": "Список всех записей"
   },
   "cmd.delete": {
     "de": "Eintrag löschen",
     "en": "Delete entry",
-    "es": "",
-    "zh": "",
-    "ja": "",
-    "ru": ""
+    "es": "Eliminar entrada",
+    "zh": "删除条目",
+    "ja": "エントリーを削除",
+    "ru": "Удалить запись"
   },
   "cmd.pin": {
     "de": "Eintrag anpinnen (dauerhafter Schutz)",
     "en": "Pin entry (permanent protection)",
-    "es": "",
-    "zh": "",
-    "ja": "",
-    "ru": ""
+    "es": "Fijar entrada (protección permanente)",
+    "zh": "固定条目（永久保护）",
+    "ja": "エントリーを固定（恒久的な保護）",
+    "ru": "Закрепить запись (постоянная защита)"
   },
   "cmd.unpin": {
     "de": "Pinnadel von Eintrag entfernen",
     "en": "Unpin entry",
-    "es": "",
-    "zh": "",
-    "ja": "",
-    "ru": ""
+    "es": "Desfijar entrada",
+    "zh": "取消固定条目",
+    "ja": "エントリーの固定を解除",
+    "ru": "Открепить запись"
   },
   "cmd.status": {
     "de": "System-Status",
     "en": "System status",
-    "es": "",
-    "zh": "",
-    "ja": "",
-    "ru": ""
+    "es": "Estado del sistema",
+    "zh": "系统状态",
+    "ja": "システムステータス",
+    "ru": "Состояние системы"
   },
   "cmd.clean_workspace": {
     "de": "Workspace aufräumen (temporäre Tool-Dateien)",
     "en": "Clean workspace (temporary tool files)",
-    "es": "",
-    "zh": "",
-    "ja": "",
-    "ru": ""
+    "es": "Limpiar espacio de trabajo (archivos temporales de herramientas)",
+    "zh": "清理工作区（临时工具文件）",
+    "ja": "ワークスペースのクリーンアップ（一時ツールファイル）",
+    "ru": "Очистить рабочее пространство (временные файлы инструментов)"
   },
   "help.workspace": {
     "de": "Workspace",
     "en": "Workspace",
-    "es": "",
-    "zh": "",
-    "ja": "",
-    "ru": ""
+    "es": "Espacio de trabajo",
+    "zh": "工作区",
+    "ja": "ワークスペース",
+    "ru": "Рабочее пространство"
   },
   "help.pinned": {
     "de": "Gepinnt",
     "en": "Pinned",
-    "es": "",
-    "zh": "",
-    "ja": "",
-    "ru": ""
+    "es": "Fijado",
+    "zh": "已固定",
+    "ja": "固定済み",
+    "ru": "Закреплено"
   }
 }

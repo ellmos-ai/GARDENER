@@ -2,6 +2,14 @@
  
 ## [Unreleased]
 
+### Internationalization Tier-2 Complete Catalogs (2026-09-29)
+
+- **Comprehensive 6-Language Coverage (`locales/translations.json`)**:
+  - Populated complete translations for all 57 keys across all declared languages (`de`, `en`, `es`, `zh`, `ja`, `ru`), eliminating empty placeholder values and fallback reliance for Spanish, Chinese, Japanese, and Russian CLI consumers.
+- **Contract Test & Metadata Parity (`tests/test_gardener_core.py`, `tests/test_metadata.py`)**:
+  - Added `test_translations_catalog_completeness` contract test asserting 100% non-empty values across all declared languages in `locales/translations.json`.
+  - Updated measured test suite to 210 passed tests across `README.md`, `README_de.md`, `llms.txt`, and metadata contract tests.
+
 ### Documentation & Roadmap Parity (2026-09-29)
 
 - **Repository Layout & Local Storage Documentation**:
