@@ -2,6 +2,18 @@
  
 ## [Unreleased]
 
+### Configurable Observe/Sync Excludes Directory Pruning & Size Limit (2026-09-29)
+
+- **In-place Directory Pruning in Observe / Sync (`Gardener._iter_files_to_observe`)**:
+  - Introduced `_iter_files_to_observe(directory)` replacing naive `rglob("*")` tree walks with in-place subdirectory pruning via `os.walk`.
+  - Excluded subtrees (`node_modules`, `.git`, `.gardener`, `.absorber`, `.output`, or custom `exclude_patterns` such as `build/*`, `cache/`) are pruned immediately at the directory level, preventing expensive deep filesystem traversals on large project trees or cloud-synced folders.
+- **Configurable `max_file_size` Text Limit in `observe()` and `sync()`**:
+  - Added configurable `max_file_size` (default: `10_000_000` / 10MB, `DEFAULT_MAX_FILE_SIZE`).
+  - Text files exceeding the size limit avoid loading massive payloads into memory or SQLite FTS5 index; instead, a clean placeholder `[Datei überschreitet Größenlimit: <size> Bytes > <max_size> Bytes]` is indexed while retaining accurate file metadata (`path`, `size`, `modified`).
+- **Tests & Parity**:
+  - Added `test_observe_and_sync_directory_pruning` and `test_observe_and_sync_file_size_limit_and_custom_config` in `tests/test_gardener_core.py`.
+  - Metadata, badges, and documentation updated to 209 passing tests (100% green).
+
 ### Atomic Upsert in `put()` (2026-09-28)
 
 - **Atomic SQLite Upsert (`Gardener.put` in `gardener.py`)**:

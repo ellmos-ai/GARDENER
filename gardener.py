@@ -27,7 +27,7 @@ import time
 from contextlib import contextmanager, suppress
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, Iterator, List, Optional, Tuple, Union
 
 # ---------------------------------------------------------------------------
 # Konfiguration
@@ -49,6 +49,7 @@ DEFAULT_HOME = Path(os.environ.get(
 BLOB_THRESHOLD_DIRECT = 1_000_000      # < 1MB: direkt in DB
 BLOB_THRESHOLD_WARN   = 50_000_000     # < 50MB: BLOB in DB mit Warnung
 # > 50MB: nur Index + Halde
+DEFAULT_MAX_FILE_SIZE = 10_000_000     # 10MB: Textdateien > 10MB bei observe()/sync() nicht einlesen
 
 # Path segments that observe()/sync() must never index. Derived from the
 # never-index list in sources.py so there is exactly one list to maintain:
@@ -1212,6 +1213,32 @@ class Gardener:
         out_path.write_text(entry["content"], encoding="utf-8")
         return out_path
 
+    def _iter_files_to_observe(self, directory: Optional[Path] = None) -> Iterator[Tuple[Path, Path]]:
+        """Yields (file_path, rel_path) for non-internal, non-excluded files.
+
+        Prunes internal and excluded directory subtrees in-place during traversal
+        so that expensive subtrees (e.g. node_modules, .git, or custom excludes)
+        are never walked.
+        """
+        base_dir = Path(directory or self.home)
+        if not base_dir.exists():
+            return
+        for root, dirs, files in os.walk(base_dir):
+            rel_root = Path(root).relative_to(base_dir)
+            pruned_dirs = []
+            for d in sorted(dirs):
+                rel_dir = rel_root / d if str(rel_root) != "." else Path(d)
+                if not self._is_internal(rel_dir):
+                    pruned_dirs.append(d)
+            dirs[:] = pruned_dirs
+
+            for f in sorted(files):
+                rel_file = rel_root / f if str(rel_root) != "." else Path(f)
+                if not self._is_internal(rel_file):
+                    file_path = base_dir / rel_file
+                    if file_path.is_file():
+                        yield file_path, rel_file
+
     def observe(self, directory: Optional[Path] = None) -> List[Dict]:
         """Beobachtet den Ordner und aktualisiert die DB (Blick aus dem Fenster).
 
@@ -1220,35 +1247,31 @@ class Gardener:
         Returns:
             Liste der beobachteten Dateien
         """
-        directory = directory or self.home
         observed = []
+        max_size = self.config.get("max_file_size", DEFAULT_MAX_FILE_SIZE)
 
-        for file_path in directory.rglob("*"):
-            if not file_path.is_file():
-                continue
-            # Interne Ordner überspringen
-            rel = file_path.relative_to(directory)
-            if self._is_internal(str(rel)):
-                continue
-
+        for file_path, rel in self._iter_files_to_observe(directory):
             # as_posix(): plattformstabile Entry-Namen (Windows-Backslashes
             # würden bei Cross-System-Sync Duplikate statt Updates erzeugen)
             name = f"observed/{rel.as_posix()}"
             content = ""
+            size = file_path.stat().st_size
 
             # Text extrahieren wenn moeglich
-            if file_path.suffix.lower() in ('.txt', '.md', '.py', '.json', '.csv',
+            if max_size and size > max_size:
+                content = f"[Datei überschreitet Größenlimit: {size} Bytes > {max_size} Bytes]"
+            elif file_path.suffix.lower() in ('.txt', '.md', '.py', '.json', '.csv',
                                              '.yaml', '.yml', '.xml', '.html'):
                 try:
                     content = file_path.read_text(encoding="utf-8", errors="replace")
                 except Exception:
                     content = f"[Datei nicht lesbar: {file_path.suffix}]"
             else:
-                content = f"[Binärdatei: {file_path.name}, {file_path.stat().st_size} Bytes]"
+                content = f"[Binärdatei: {file_path.name}, {size} Bytes]"
 
             meta = {
                 "path": str(file_path),
-                "size": file_path.stat().st_size,
+                "size": size,
                 "modified": datetime.fromtimestamp(
                     file_path.stat().st_mtime
                 ).isoformat(timespec="seconds"),
@@ -1292,15 +1315,8 @@ class Gardener:
                              type="memory", tags="error,sync")
 
         # --- 2. Ordner beobachten oder absorbieren ---
-        for file_path in self.home.rglob("*"):
-            if not file_path.is_file():
-                continue
-
-            # Interne Ordner überspringen
-            rel = file_path.relative_to(self.home)
-            if self._is_internal(str(rel)):
-                continue
-
+        max_size = self.config.get("max_file_size", DEFAULT_MAX_FILE_SIZE)
+        for file_path, rel in self._iter_files_to_observe(self.home):
             if mode == "always_absorb":
                 try:
                     self.absorb(file_path)
@@ -1312,19 +1328,22 @@ class Gardener:
                 # Beobachten (nur Text extrahieren, Datei nicht anfassen)
                 name = f"observed/{rel.as_posix()}"
                 content = ""
+                size = file_path.stat().st_size
 
-                if file_path.suffix.lower() in ('.txt', '.md', '.py', '.json', '.csv',
+                if max_size and size > max_size:
+                    content = f"[Datei überschreitet Größenlimit: {size} Bytes > {max_size} Bytes]"
+                elif file_path.suffix.lower() in ('.txt', '.md', '.py', '.json', '.csv',
                                                  '.yaml', '.yml', '.xml', '.html'):
                     try:
                         content = file_path.read_text(encoding="utf-8", errors="replace")
                     except Exception:
                         content = f"[Nicht lesbar: {file_path.suffix}]"
                 else:
-                    content = f"[Binärdatei: {file_path.name}, {file_path.stat().st_size} Bytes]"
+                    content = f"[Binärdatei: {file_path.name}, {size} Bytes]"
 
                 meta = {
                     "path": str(file_path),
-                    "size": file_path.stat().st_size,
+                    "size": size,
                     "modified": datetime.fromtimestamp(
                         file_path.stat().st_mtime
                     ).isoformat(timespec="seconds"),
@@ -1827,7 +1846,8 @@ class Gardener:
                 "observe_only": "Nichts absorbieren, nur beobachten"
             },
             "run_timeout": 60,
-            "exclude_patterns": []
+            "exclude_patterns": [],
+            "max_file_size": 10_000_000
         }
         config_path.write_text(
             json.dumps(default, indent=2, ensure_ascii=False) + "\n",
@@ -2159,7 +2179,15 @@ class Gardener:
         if patterns:
             rel_posix = rel_path.replace("\\", "/")
             for pat in patterns:
-                if fnmatch.fnmatch(rel_posix, pat) or fnmatch.fnmatch(parts[-1], pat) or any(fnmatch.fnmatch(p, pat) for p in parts):
+                pat_clean = pat.rstrip("/*")
+                if (fnmatch.fnmatch(rel_posix, pat) or
+                    fnmatch.fnmatch(parts[-1], pat) or
+                    any(fnmatch.fnmatch(p, pat) for p in parts) or
+                    (pat_clean and (
+                        fnmatch.fnmatch(rel_posix, pat_clean) or
+                        fnmatch.fnmatch(parts[-1], pat_clean) or
+                        any(fnmatch.fnmatch(p, pat_clean) for p in parts)
+                    ))):
                     return True
 
         return False
