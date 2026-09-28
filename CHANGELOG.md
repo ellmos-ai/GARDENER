@@ -16,7 +16,7 @@
   - Vollständige FTS5-Kompatibilität bei Bindestrich-Werten (z. B. `tag:python-script` -> `tags:"python-script"`), Phrasen und logischen Verknüpfungen (z. B. `(tag:python OR tag:rust) AND title:scanner`).
 - **Tests & Parität**:
   - Neue Vertragstests `test_find_with_inline_filters_and_column_aliases` und erweiterte Tokenizer-/Builder-Assertions in `tests/test_gardener_core.py`.
-  - Badges und Metadaten auf 203 passed aktualisiert.
+  - Badges und Metadaten auf 206 passed aktualisiert.
 
 ### Sleep Stats `uebersprungen` List Type Fix (2026-09-28)
 
@@ -31,6 +31,19 @@
 ### Union memory soft sleep (2026-09-27)
 
 - Added `gardener sleep --db` for Union v2 databases with a TTL grace pass, optional confidence decay, due gating, dry-run, per-agent TOML TTL overrides, and JSONL reports. No records are deleted; BACH callers can disable decay with `--no-decay`.
+
+### Recall Multi-Word Query UX, FTS5 Safe-Operator Alignment & Observed-Awareness (2026-09-28)
+
+- **FTS5 Multi-Word & Safe-Operator Recall Hardening (`Gardener.recall`)**:
+  - Aligned `recall()` with `find()`'s multi-stage query architecture: Exact MATCH -> Safe Operator (`_build_fts_safe_operator_query`) -> Safe AND (`_build_fts_and_query`) -> Multi-word OR Fallback (`_build_fts_or_query`) -> Tokenized LIKE Fallback.
+  - Consolidated single-pass retrieval across target types via `WHERE everything_fts MATCH ? AND e.type IN (...)` within `@contextmanager connection("user")`, eliminating redundant queries and ensuring safe connection lifecycles.
+  - Targeted score boost: `self._boost(conn, item["id"])` is strictly limited to recalled items belonging to memory types (`memory`, `lesson`, `session`), preventing unwanted boosts on observed sources.
+- **Observed-Awareness & Parameter Expansion (`include_observed`, CLI `gardener recall`)**:
+  - Added optional parameter `include_observed: bool = False` to `Gardener.recall()` and exposed via `--include-observed` / `-o` in CLI `main()`.
+  - Added intelligent observed-awareness hint in CLI `recall`: If 0 memory hits are returned, but hits exist in other observed types or external sources via `find()`, the user receives a helpful tip: `(Hinweis: X Treffer in anderen Quellen/Typen vorhanden — nutze 'gardener find')`.
+- **Automated Test Suite Expansion & Badge Parity**:
+  - Added 3 unit tests in `tests/test_gardener_core.py`: `test_recall_multi_word_query_ux_or_fallback_and_ranking`, `test_recall_include_observed_parameter`, and `test_cli_recall_observed_awareness_hint`.
+  - Synchronized test badges and assertions across `README.md`, `README_de.md`, `llms.txt`, and `tests/test_metadata.py` to 206 passing tests (100% green).
 
 ### FTS5 Grouping Parentheses & Normalized Boolean Operators (2026-09-26)
 
@@ -73,7 +86,6 @@
   - Modernized nested `with` statements in `tests/test_gardener_core.py:1492`.
 - **Automated Contract Test Suite Expansion (`tests/test_metadata.py`)**:
   - Added contract tests verifying `NOTICE` presence and attribution, multi-host `.gitignore` patterns, workflow concurrency/timeouts across all 5 workflows, PEP 621 URLs, Ruff SIM rules, and CLI help flag invocations.
-
 
 ### FTS5 Column-Filtered Query Parsing & Hyphen Hardening (2026-09-22)
 
