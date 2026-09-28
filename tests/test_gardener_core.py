@@ -2011,6 +2011,180 @@ class TestSQLiteHardeningAndLifecycle(GardenerTempCase):
             self.af.system_db_path = original_system_db
 
 
+class TestCorePathsContract(GardenerTempCase):
+    """Vertragstests für die Kernpfade: absorb, materialize, sync, consolidate, recall, delete, list."""
+
+    def test_absorb_storage_levels_inline_blob_halde(self):
+        # 1. Inline: normale Textdatei unter BLOB_THRESHOLD_DIRECT
+        txt_file = self.af.home / "small.txt"
+        txt_file.write_text("Hello inline content", encoding="utf-8")
+        entry_inline = self.af.absorb(txt_file)
+        self.assertEqual(entry_inline["meta"]["storage"], "inline")
+        self.assertEqual(entry_inline["content"], "Hello inline content")
+
+        # 2. Blob: Datei über BLOB_THRESHOLD_DIRECT (per Patch simuliert)
+        blob_file = self.af.home / "medium.bin"
+        blob_file.write_bytes(b"blob data " * 10)
+        with patch.object(self.gardener, "BLOB_THRESHOLD_DIRECT", 20), \
+             patch.object(self.gardener, "BLOB_THRESHOLD_WARN", 5000):
+            entry_blob = self.af.absorb(blob_file)
+            self.assertEqual(entry_blob["meta"]["storage"], "blob")
+            self.assertTrue(Path(entry_blob["meta"]["blob_path"]).exists())
+            self.assertEqual(entry_blob["content"], "")
+
+        # 3. Halde: Datei über BLOB_THRESHOLD_WARN (per Patch simuliert)
+        halde_file = self.af.home / "huge.bin"
+        halde_file.write_bytes(b"huge halde data " * 10)
+        with patch.object(self.gardener, "BLOB_THRESHOLD_WARN", 50):
+            entry_halde = self.af.absorb(halde_file)
+            self.assertEqual(entry_halde["meta"]["storage"], "halde")
+            self.assertTrue(Path(entry_halde["meta"]["blob_path"]).exists())
+            self.assertEqual(entry_halde["content"], "")
+
+    def test_materialize_inline_and_blob_storage(self):
+        # Inline materialisieren
+        self.af.put("doc_inline", content="Materialized inline text", type="document",
+                    meta={"format": "txt", "filename": "doc_inline.txt"})
+        out_inline = self.af.materialize("doc_inline")
+        self.assertIsNotNone(out_inline)
+        self.assertTrue(out_inline.exists())
+        self.assertEqual(out_inline.read_text(encoding="utf-8"), "Materialized inline text")
+
+        # Blob materialisieren
+        blob_file = self.af.blob_dir / "test_blob.bin"
+        blob_file.write_bytes(b"binary payload 12345")
+        self.af.put("doc_blob", content="", type="document",
+                    meta={"blob_path": str(blob_file), "original_name": "restored.bin"})
+        out_blob = self.af.materialize("doc_blob")
+        self.assertIsNotNone(out_blob)
+        self.assertTrue(out_blob.exists())
+        self.assertEqual(out_blob.name, "restored.bin")
+        self.assertEqual(out_blob.read_bytes(), b"binary payload 12345")
+
+        # Nicht-existenter Eintrag gibt None
+        self.assertIsNone(self.af.materialize("does_not_exist_entry"))
+
+    def test_sync_modes_selective_and_always_absorb(self):
+        # 1. Selective Mode (Standard)
+        # Absorber-Datei wird absorbiert und gelöscht
+        self.af.absorber_dir.mkdir(parents=True, exist_ok=True)
+        absorber_file = self.af.absorber_dir / "to_absorb.txt"
+        absorber_file.write_text("Absorb me", encoding="utf-8")
+
+        # Home-Datei wird nur beobachtet und bleibt auf der Festplatte
+        home_file = self.af.home / "to_observe.txt"
+        home_file.write_text("Observe me", encoding="utf-8")
+
+        res_sel = self.af.sync()
+        self.assertEqual(res_sel["mode"], "selective")
+        self.assertEqual(res_sel["absorbed"], 1)
+        self.assertGreaterEqual(res_sel["observed"], 1)
+        self.assertFalse(absorber_file.exists())  # Unlinked nach Absorb
+        self.assertTrue(home_file.exists())      # Bleibt bei Observe intakt
+
+        # 2. Always-Absorb Mode
+        self.af.config["mode"] = "always_absorb"
+        home_file_2 = self.af.home / "auto_absorb.txt"
+        home_file_2.write_text("Auto absorb me", encoding="utf-8")
+        res_always = self.af.sync()
+        self.assertEqual(res_always["mode"], "always_absorb")
+        self.assertGreaterEqual(res_always["absorbed"], 1)
+        self.assertFalse(home_file_2.exists())   # In always_absorb wird auch die Home-Datei unlinked
+
+    def test_sync_absorber_error_handling_resilience(self):
+        # Wenn im Absorber eine fehlerhafte Datei liegt, loggt sync() in sync-error/ und läuft weiter.
+        self.af.absorber_dir.mkdir(parents=True, exist_ok=True)
+        bad_file = self.af.absorber_dir / "broken.txt"
+        bad_file.write_text("broken", encoding="utf-8")
+
+        with patch.object(self.af, "absorb", side_effect=OSError("Disk read error")):
+            res = self.af.sync()
+            self.assertEqual(res["absorbed"], 0)
+            err_entry = self.af.get("sync-error/broken.txt")
+            self.assertIsNotNone(err_entry)
+            self.assertIn("Disk read error", err_entry["content"])
+
+    def test_consolidate_decay_forget_and_keep_statistics(self):
+        # 1. Eintrag mit geringem Gewicht (< 0.05 nach Decay) -> wird vergessen (gelöscht)
+        self.af.put("mem_low", content="fading out", type="memory",
+                    meta={"weight": 0.04, "decay_rate": 0.9})
+
+        # 2. Eintrag mit mittlerem Gewicht -> decayt normal
+        self.af.put("mem_med", content="persisting memory", type="memory",
+                    meta={"weight": 0.8, "decay_rate": 0.95})
+
+        # 3. Gepinnter Eintrag -> unberührt
+        self.af.put("mem_pinned", content="pinned memory", type="memory",
+                    meta={"weight": 0.8, "decay_rate": 0.95}, pinned=True)
+
+        stats = self.af.consolidate()
+        self.assertEqual(stats["forgotten"], 1)
+        self.assertEqual(stats["decayed"], 1)
+
+        # Verifikation: mem_low wurde gelöscht
+        self.assertIsNone(self.af.get("mem_low"))
+
+        # mem_med existiert mit neuem Gewicht 0.76 (0.8 * 0.95)
+        med = self.af.get("mem_med")
+        self.assertIsNotNone(med)
+        self.assertAlmostEqual(med["meta"]["weight"], 0.76, places=2)
+
+        # mem_pinned ist unverändert
+        pinned = self.af.get("mem_pinned")
+        self.assertIsNotNone(pinned)
+        self.assertEqual(pinned["meta"]["weight"], 0.8)
+
+    def test_recall_access_counter_and_weight_boost(self):
+        self.af.put("recall_target", content="important finding for boosting", type="memory",
+                    meta={"weight": 0.5, "accessed": 0})
+
+        # Vor Recall: accessed = 0, weight = 0.5
+        before = self.af.get("recall_target")
+        self.assertEqual(before["meta"].get("accessed", 0), 0)
+        self.assertEqual(before["meta"].get("weight", 0.5), 0.5)
+
+        # Recall abrufen
+        results = self.af.recall("boosting")
+        self.assertTrue(any(r["name"] == "recall_target" for r in results))
+
+        # Nach Recall: accessed inkrementiert, weight erhöht
+        after = self.af.get("recall_target")
+        self.assertGreaterEqual(after["meta"].get("accessed", 0), 1)
+        self.assertGreater(after["meta"].get("weight", 0.5), 0.5)
+        self.assertIn("last_accessed", after["meta"])
+
+    def test_delete_user_system_and_missing_entries(self):
+        # User-Eintrag löschen
+        self.af.put("user_to_delete", content="delete me", type="memory", target="user")
+        self.assertIsNotNone(self.af.get("user_to_delete"))
+        self.assertTrue(self.af.delete("user_to_delete"))
+        self.assertIsNone(self.af.get("user_to_delete"))
+
+        # System-Eintrag löschen
+        self.af.put("sys_to_delete", content="delete sys", type="knowledge", target="system")
+        self.assertIsNotNone(self.af.get("sys_to_delete"))
+        self.assertTrue(self.af.delete("sys_to_delete"))
+        self.assertIsNone(self.af.get("sys_to_delete"))
+
+        # Nicht-existenter Eintrag
+        self.assertFalse(self.af.delete("never_existed_entry"))
+
+    def test_list_type_filter_and_limit(self):
+        for i in range(5):
+            self.af.put(f"task_{i}", content=f"Task content {i}", type="task")
+        for i in range(3):
+            self.af.put(f"mem_{i}", content=f"Memory content {i}", type="memory")
+
+        # Nach Typ filtern
+        tasks = self.af.list(type="task")
+        self.assertEqual(len(tasks), 5)
+        self.assertTrue(all(t["type"] == "task" for t in tasks))
+
+        # Limit testen
+        limited = self.af.list(type="task", limit=2)
+        self.assertEqual(len(limited), 2)
+
+
 class TestGardenerCli(unittest.TestCase):
     def setUp(self):
         import gardener

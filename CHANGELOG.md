@@ -2,6 +2,21 @@
  
 ## [Unreleased]
 
+### Core Paths Contract Tests (2026-09-29)
+
+- **Comprehensive Core Engine Contract Tests (`TestCorePathsContract` in `tests/test_gardener_core.py`)**:
+  - Implemented 8 dedicated contract tests covering all fundamental lifecycle operations:
+    - `absorb()`: Verified all 3 storage levels (inline for text <= 1MB, blob storage for binary/1MB-50MB, and halde storage for > 50MB) with correct metadata tagging (`meta["storage"]`, `blob_path`, `blob_hash`).
+    - `materialize()`: Verified restoration of inline documents and blob/halde binaries to destination paths with safe filenames, as well as `None` handling for missing records.
+    - `sync()`: Verified `selective` mode (clears absorber, unlinks absorbed files, observes home without unlinking) and `always_absorb` mode (absorbs and unlinks home files); verified error handling resilience when bad absorber files fail to absorb (logs to `sync-error/...` memory entry without crashing sync loop).
+    - `consolidate()`: Verified decay arithmetic (`weight * decay_rate`), automatic pruning/forgetting of entries with weight < 0.05, keeping entries, preserving pinned entries, and returning accurate execution statistics (`decayed`, `forgotten`, `kept`).
+    - `recall()`: Verified retrieval boosting, ensuring accessed count increments, weight increases, and `last_accessed` is recorded.
+    - `delete()`: Verified deleting entries from `user.db` and attached `system.db` with boolean confirmation and clean removal, as well as `False` return on missing entries.
+    - `list()`: Verified filtering by `type`, result limits, and ordering by `updated DESC`.
+- **Test Suite & Parity**:
+  - Expanded test suite from 210 to 218 passing tests (35 subtests, 100% green).
+  - Synchronized `README.md`, `README_de.md`, `llms.txt`, and `tests/test_metadata.py`.
+
 ### Internationalization Tier-2 Complete Catalogs (2026-09-29)
 
 - **Comprehensive 6-Language Coverage (`locales/translations.json`)**:
