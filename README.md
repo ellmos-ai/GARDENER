@@ -13,8 +13,8 @@
 [![Platforms](https://img.shields.io/badge/platforms-Linux%20%7C%20Windows%20%7C%20macOS-lightgrey.svg)](https://github.com/ellmos-ai/gardener)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Attribution: NOTICE](https://img.shields.io/badge/Attribution-NOTICE-blue.svg)](NOTICE)
-[![Verified: 2026-09-26](https://img.shields.io/badge/verified-2026--09--26-blue.svg)](https://github.com/ellmos-ai/gardener)
-[![Tests: 189 passed](https://img.shields.io/badge/tests-189%20passed-brightgreen.svg)](https://github.com/ellmos-ai/gardener)
+[![Verified: 2026-09-28](https://img.shields.io/badge/verified-2026--09--28-blue.svg)](https://github.com/ellmos-ai/gardener)
+[![Tests: 203 passed](https://img.shields.io/badge/tests-203%20passed-brightgreen.svg)](https://github.com/ellmos-ai/gardener)
 [![Execution: RunAsInvoker](https://img.shields.io/badge/execution-RunAsInvoker-success.svg)](THIRD_PARTY_LICENSES.md)
 [![Privacy: Local-First](https://img.shields.io/badge/privacy-Local--First%20%7C%20Zero--Egress-brightgreen.svg)](SECURITY.md)
 [![Security Policy](https://img.shields.io/badge/security-48h%20SLA-blue.svg)](SECURITY.md)
@@ -62,7 +62,7 @@
 
 An operating system built specifically for LLMs. Everything lives in a searchable SQLite database. Four functions are all you need:
 
-- **`find(query, ...)`**: Full-text search with BM25 ranking, snippet extraction, and namespace filtering across memories, tasks, knowledge, and tools.
+- **`find(query, ...)`**: Full-text search with BM25 ranking, snippet extraction, and namespace filtering across memories, tasks, knowledge, and tools. Supports natural inline filters (`type:task`, `type:tool`, `source:<id>`, `is:pinned`, `not:pinned`) and column aliases (`tag:`, `title:`, `body:`).
 - **`get(name)`**: Retrieve an entry by key or path, inspect metadata, and load structured state.
 - **`put(name, content, ...)`**: Persist memories, lessons, tasks, documents, or executable tools directly into SQLite.
 - **`run(name, input=...)`**: Ephemerally materialize and execute tool code in unprivileged user space.

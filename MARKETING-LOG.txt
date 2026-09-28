@@ -238,3 +238,21 @@ Scope: Technical hygiene, CI hardening, PEP 621 metadata, multi-host sync defens
 
 [x] Automated Contract Test Expansion (tests/test_metadata.py & tests/test_gardener_core.py):
     - Added contract tests for NOTICE, multi-host .gitignore patterns, workflow timeouts and concurrency across all 5 workflows, PEP 621 URLs, Ruff SIM rules, and CLI help flag invocations.
+
+================================================================================
+6. FTS5 INLINE-FILTER & COLUMN ALIASES UX (2026-09-28)
+================================================================================
+Operator: Antigravity / Gemini (via Sidecar GARDENER)
+Canonical Path: C:\_Local_DEV\repos\gardener
+Version: 0.4.2
+
+[x] Inline-Filter & Column Aliases Search UX (gardener.py):
+    - Added inline query filter extraction for `type:<typ>`, `source:<id>`, and `is:pinned`/`not:pinned`/`pinned:1`/`pinned:0`.
+    - Added column aliases `tag:` (tags), `title:` (name), and `body:` (content) for natural search queries across FTS5 and LIKE fallbacks.
+    - Quoted occurrences inside phrases remain untouched as literal search text.
+    - Handled clean operator trimming when inline filters are removed from boolean expressions.
+    - Pure filter queries (e.g. `type:task` without text) immediately list corresponding entries via LIKE fallback without failing on empty FTS5 MATCH queries.
+
+[x] Automated Contract Test Expansion:
+    - Added test_find_with_inline_filters_and_column_aliases and extended test_tokenize_query_and_build_fts_and_query_helpers in tests/test_gardener_core.py.
+    - All 203 tests passed with 35 subtests (100% green).

@@ -378,6 +378,53 @@ class TestGardenerCore(GardenerTempCase):
             build_safe_op("(OR python)"),
             '("python")'
         )
+
+        # Column aliases (tag -> tags, title -> name, body -> content)
+        self.assertEqual(tokenize("tag:python-script"), [("tags:python-script", False, False)])
+        self.assertEqual(tokenize("title:mein-titel"), [("name:mein-titel", False, False)])
+        self.assertEqual(tokenize("body:mein-text"), [("content:mein-text", False, False)])
+        self.assertEqual(build_and("tag:python-script"), 'tags:"python-script"')
+        self.assertEqual(build_and("title:mein-titel"), 'name:"mein-titel"')
+        self.assertEqual(build_and("body:mein-text"), 'content:"mein-text"')
+        self.assertEqual(
+            build_safe_op("(tag:python OR tag:rust) AND title:scanner"),
+            '(tags:"python" OR tags:"rust") AND name:"scanner"'
+        )
+
+        # Inline filter extraction (_extract_inline_filters)
+        extract_filters = self.gardener.Gardener._extract_inline_filters
+        self.assertEqual(
+            extract_filters("type:task rechnung"),
+            ("task", None, None, "rechnung")
+        )
+        self.assertEqual(
+            extract_filters('type:"my task" "hello world"'),
+            ("my task", None, None, '"hello world"')
+        )
+        self.assertEqual(
+            extract_filters("source:usmc-working memory"),
+            (None, "usmc-working", None, "memory")
+        )
+        self.assertEqual(
+            extract_filters("is:pinned python"),
+            (None, None, True, "python")
+        )
+        self.assertEqual(
+            extract_filters("not:pinned python"),
+            (None, None, False, "python")
+        )
+        self.assertEqual(
+            extract_filters("type:tool source:usmc-working is:pinned backup"),
+            ("tool", "usmc-working", True, "backup")
+        )
+        self.assertEqual(
+            extract_filters('"type:task inside quotes"'),
+            (None, None, None, '"type:task inside quotes"')
+        )
+        self.assertEqual(
+            extract_filters("type:task AND rechnung"),
+            ("task", None, None, "rechnung")
+        )
         self.assertEqual(
             build_safe_op("(python OR)"),
             '("python")'
@@ -641,6 +688,101 @@ class TestGardenerCore(GardenerTempCase):
         self.assertEqual(len(hits_orphan), 2)
         names_orphan = {h["name"] for h in hits_orphan}
         self.assertEqual(names_orphan, {"doc-scanner-2026", "doc-quittung-2026"})
+
+    def test_find_with_inline_filters_and_column_aliases(self):
+        """Testet Inline-Filter (type:, source:, is:pinned, not:pinned, pinned:1/0)
+        sowie Spaltenaliase (tag -> tags, title -> name, body -> content)."""
+        self.af.put(
+            "tool-py-backup",
+            content="Automatisches Backup Skript fuer lokale SQLite Datenbanken.",
+            tags="python-script,backup,sqlite",
+            type="tool",
+            pinned=True,
+        )
+        self.af.put(
+            "tool-rust-backup",
+            content="Kompiliertes Rust Tool fuer schnelles Datei Backup.",
+            tags="rust-crate,backup",
+            type="tool",
+            pinned=False,
+        )
+        self.af.put(
+            "doc-backup-policy",
+            content="Richtlinie fuer woechentliche Backups und Desaster Recovery.",
+            tags="backup,policy",
+            type="knowledge",
+            pinned=False,
+        )
+        self.af.put(
+            "task-do-backup",
+            content="Fuer das Hauptsystem ein Offline Backup anlegen.",
+            tags="backup,todo",
+            type="task",
+            pinned=False,
+        )
+
+        # 1. Spaltenaliase: tag: (tags), title: (name), body: (content)
+        hits_tag = self.af.find("tag:python-script")
+        self.assertEqual(len(hits_tag), 1)
+        self.assertEqual(hits_tag[0]["name"], "tool-py-backup")
+
+        hits_title = self.af.find("title:tool-rust-backup")
+        self.assertEqual(len(hits_title), 1)
+        self.assertEqual(hits_title[0]["name"], "tool-rust-backup")
+
+        hits_body = self.af.find("body:Richtlinie")
+        self.assertEqual(len(hits_body), 1)
+        self.assertEqual(hits_body[0]["name"], "doc-backup-policy")
+
+        # 2. Spaltenaliase in Gruppen mit boolescher Verknüpfung
+        hits_group = self.af.find("(tag:python-script OR tag:rust-crate) AND body:Backup")
+        self.assertEqual(len(hits_group), 2)
+        group_names = {h["name"] for h in hits_group}
+        self.assertEqual(group_names, {"tool-py-backup", "tool-rust-backup"})
+
+        # 3. Inline-Filter type:task
+        hits_type_task = self.af.find("type:task")
+        self.assertEqual(len(hits_type_task), 1)
+        self.assertEqual(hits_type_task[0]["name"], "task-do-backup")
+
+        # 4. Inline-Filter type:tool mit Suchbegriff
+        hits_type_tool = self.af.find("type:tool backup")
+        self.assertEqual(len(hits_type_tool), 2)
+        tool_names = {h["name"] for h in hits_type_tool}
+        self.assertEqual(tool_names, {"tool-py-backup", "tool-rust-backup"})
+
+        # 5. Inline-Filter type mit Phrasen und Spaltenalias: type:tool tag:python-script
+        hits_combo = self.af.find("type:tool tag:python-script")
+        self.assertEqual(len(hits_combo), 1)
+        self.assertEqual(hits_combo[0]["name"], "tool-py-backup")
+
+        # 6. Inline-Filter is:pinned und not:pinned
+        hits_pinned = self.af.find("is:pinned backup")
+        self.assertEqual(len(hits_pinned), 1)
+        self.assertEqual(hits_pinned[0]["name"], "tool-py-backup")
+
+        hits_not_pinned = self.af.find("not:pinned type:tool backup")
+        self.assertEqual(len(hits_not_pinned), 1)
+        self.assertEqual(hits_not_pinned[0]["name"], "tool-rust-backup")
+
+        hits_pinned_numeric = self.af.find("pinned:1 backup")
+        self.assertEqual(len(hits_pinned_numeric), 1)
+        self.assertEqual(hits_pinned_numeric[0]["name"], "tool-py-backup")
+
+        hits_pinned_false = self.af.find("pinned:false type:tool backup")
+        self.assertEqual(len(hits_pinned_false), 1)
+        self.assertEqual(hits_pinned_false[0]["name"], "tool-rust-backup")
+
+        # 7. Expliziter type-Parameter hat Vorrang vor inline type:
+        hits_override = self.af.find("type:knowledge backup", type="task")
+        self.assertEqual(len(hits_override), 1)
+        self.assertEqual(hits_override[0]["name"], "task-do-backup")
+
+        # 8. Quotiertes type:task innerhalb einer Phrase wird nicht extrahiert
+        self.af.put("doc-phrase", content="Hier steht der String type:task im Text.", type="knowledge")
+        hits_quoted = self.af.find('"type:task"')
+        self.assertEqual(len(hits_quoted), 1)
+        self.assertEqual(hits_quoted[0]["name"], "doc-phrase")
 
     def test_like_query_with_column_filters(self):
         """Testet den gezielten Spaltenabgleich des LIKE-Fallbacks bei Vorliegen von Spaltenfiltern."""

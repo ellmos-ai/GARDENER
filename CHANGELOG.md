@@ -2,6 +2,22 @@
  
 ## [Unreleased]
 
+### FTS5 Inline-Filter & Spalten-Aliase UX (2026-09-28)
+
+- **Inline-Filter in Suchanfragen (`_extract_inline_filters`, `find()` in `gardener.py`)**:
+  - Unterstützt direkte Angabe von `type:<typ>` (z. B. `type:task`, `type:tool`) und `source:<id>` (z. B. `source:usmc-working`) direkt im Suchstring.
+  - Unterstützt Pinned-Filter direkt in der Query: `is:pinned`, `not:pinned`, `pinned:1`, `pinned:0`, `pinned:true`, `pinned:false`.
+  - Filter außerhalb von Anführungszeichen werden sauber extrahiert und auf SQL-Ebene als präzise Filterbedingungen angewendet, während bereinigte Suchbegriffe an die FTS5-Engine übergeben werden.
+  - Quotierte Vorkommen wie `"type:task in doc"` bleiben als wörtliche Phrasen erhalten und werden nicht versehentlich als Filter interpretiert.
+  - Vollständige Toleranz: Nach dem Entfernen führender oder nachlaufender Operatoren (`type:task AND rechnung` -> `rechnung`) bleibt die Abfragesyntax fehlerfrei.
+  - Reines Filter-Listing: Anfragen wie `find("type:task")` ohne zusätzlichen Suchtext listen direkt alle passenden Einträge ohne fehlerhafte FTS5-Leermatches auf.
+- **FTS5 Spalten-Aliase (`COLUMN_ALIASES`, `_split_col`, `_tokenize_query`)**:
+  - Aliase für natürliche Suche eingeführt: `tag:` -> `tags:`, `title:` -> `name:`, `body:` -> `content:`.
+  - Vollständige FTS5-Kompatibilität bei Bindestrich-Werten (z. B. `tag:python-script` -> `tags:"python-script"`), Phrasen und logischen Verknüpfungen (z. B. `(tag:python OR tag:rust) AND title:scanner`).
+- **Tests & Parität**:
+  - Neue Vertragstests `test_find_with_inline_filters_and_column_aliases` und erweiterte Tokenizer-/Builder-Assertions in `tests/test_gardener_core.py`.
+  - Badges und Metadaten auf 203 passed aktualisiert.
+
 ### Sleep Stats `uebersprungen` List Type Fix (2026-09-28)
 
 - **Consistent `stats["uebersprungen"]` list semantics (`sleep_union.py` `sleep()`)**:

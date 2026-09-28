@@ -13,8 +13,8 @@
 [![Plattformen](https://img.shields.io/badge/plattformen-Linux%20%7C%20Windows%20%7C%20macOS-lightgrey.svg)](https://github.com/ellmos-ai/gardener)
 [![Lizenz: MIT](https://img.shields.io/badge/Lizenz-MIT-yellow.svg)](LICENSE)
 [![Attribution: NOTICE](https://img.shields.io/badge/Attribution-NOTICE-blue.svg)](NOTICE)
-[![Verifiziert: 2026-09-26](https://img.shields.io/badge/verified-2026--09--26-blue.svg)](https://github.com/ellmos-ai/gardener)
-[![Tests: 189 bestanden](https://img.shields.io/badge/tests-189%20passed-brightgreen.svg)](https://github.com/ellmos-ai/gardener)
+[![Verifiziert: 2026-09-28](https://img.shields.io/badge/verified-2026--09--28-blue.svg)](https://github.com/ellmos-ai/gardener)
+[![Tests: 203 bestanden](https://img.shields.io/badge/tests-203%20passed-brightgreen.svg)](https://github.com/ellmos-ai/gardener)
 [![Ausführung: RunAsInvoker](https://img.shields.io/badge/execution-RunAsInvoker-success.svg)](THIRD_PARTY_LICENSES.md)
 [![Datenschutz: Local-First](https://img.shields.io/badge/datenschutz-Local--First%20%7C%20Zero--Egress-brightgreen.svg)](SECURITY.md)
 [![Sicherheitsrichtlinie](https://img.shields.io/badge/sicherheit-48h%20SLA-blue.svg)](SECURITY.md)
@@ -62,7 +62,7 @@
 
 Ein Betriebssystem, das speziell für LLMs entwickelt wurde. Alles lebt in einer durchsuchbaren SQLite-Datenbank. Vier Grundfunktionen genügen für die gesamte Agenten-Interaktion:
 
-- **`find(query, ...)`**: Volltextsuche mit deterministischem FTS5-BM25-Ranking, Snippet-Extraktion und Namensraum-Filtern über Erinnerungen, Aufgaben, Wissen und Werkzeuge.
+- **`find(query, ...)`**: Volltextsuche mit deterministischem FTS5-BM25-Ranking, Snippet-Extraktion und Namensraum-Filtern über Erinnerungen, Aufgaben, Wissen und Werkzeuge. Unterstützt intuitive Inline-Filter (`type:task`, `type:tool`, `source:<id>`, `is:pinned`, `not:pinned`) und Spalten-Aliase (`tag:`, `title:`, `body:`).
 - **`get(name)`**: Abruf von Einträgen anhand von Schlüssel oder Pfad zur Inspektion von Metadaten und Nutzlasten.
 - **`put(name, content, ...)`**: Dauerhafte Speicherung von Notizen, Lektionen, Aufgaben, Dokumenten oder Werkzeugen direkt in SQLite.
 - **`run(name, input=...)`**: Flüchtige Materialisierung und Ausführung von Python-Tools im unprivilegierten Benutzerraum.

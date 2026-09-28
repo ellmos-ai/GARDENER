@@ -140,6 +140,14 @@ class Gardener:
     """Das LLM-native Betriebssystem. Vier Funktionen, eine Suche."""
 
     FTS_COLUMNS = frozenset({"name", "content", "tags"})
+    COLUMN_ALIASES = {
+        "tag": "tags",
+        "tags": "tags",
+        "title": "name",
+        "name": "name",
+        "body": "content",
+        "content": "content",
+    }
     OPERATOR_MAP = {
         "AND": "AND",
         "UND": "AND",
@@ -149,7 +157,11 @@ class Gardener:
         "NICHT": "NOT",
     }
     _TOKEN_PATTERN = re.compile(
-        r'(?:(?P<col>name|content|tags):\s*)?(?:\"(?P<qphrase>[^\"]*)\"(?P<qstar>\*)?|(?P<bare>\S+))',
+        r'(?:(?P<col>name|title|content|body|tags|tag):\s*)?(?:\"(?P<qphrase>[^\"]*)\"(?P<qstar>\*)?|(?P<bare>\S+))',
+        re.IGNORECASE,
+    )
+    _FILTER_TOKEN_RE = re.compile(
+        r'(?:(?P<filter>type|source|pinned|is|not):\s*)?(?:\"(?P<qphrase>[^\"]*)\"(?P<qstar>\*)?|(?P<bare>\S+))',
         re.IGNORECASE,
     )
 
@@ -239,11 +251,15 @@ class Gardener:
 
     @classmethod
     def _split_col(cls, token_text: str) -> Tuple[Optional[str], str]:
-        """Trennt ein Token in FTS-Spaltenname (name, content, tags) und Wert."""
+        """Trennt ein Token in kanonischen FTS-Spaltennamen (name, content, tags) und Wert.
+
+        Unterstützt Spalten-Aliase: tag -> tags, title -> name, body -> content.
+        """
         if ":" in token_text:
             prefix, val = token_text.split(":", 1)
-            if prefix.lower() in cls.FTS_COLUMNS:
-                return prefix.lower(), val.strip()
+            pref_lower = prefix.lower()
+            if pref_lower in cls.COLUMN_ALIASES:
+                return cls.COLUMN_ALIASES[pref_lower], val.strip()
         return None, token_text
 
     @classmethod
@@ -303,7 +319,8 @@ class Gardener:
                 match.group("bare"),
             )
 
-            col_prefix = f"{col.lower()}:" if col and col.lower() in cls.FTS_COLUMNS else ""
+            canonical_col = cls.COLUMN_ALIASES.get(col.lower()) if col else None
+            col_prefix = f"{canonical_col}:" if canonical_col else ""
 
             if quoted_text is not None:
                 q_clean = quoted_text.strip()
@@ -692,6 +709,68 @@ class Gardener:
                 results.append(self._row_to_dict(row))
         return results
 
+    @classmethod
+    def _extract_inline_filters(cls, query: str) -> Tuple[Optional[str], Optional[str], Optional[bool], str]:
+        """Extrahiert Inline-Filter (type:, source:, pinned:, is:pinned, not:pinned)
+        außerhalb von reinen Phrasen und liefert (type, source, pinned, cleaned_query) zurück.
+        """
+        if not query or not query.strip():
+            return None, None, None, query
+
+        extracted_type = None
+        extracted_source = None
+        extracted_pinned = None
+
+        remaining_tokens = []
+
+        for m in cls._FILTER_TOKEN_RE.finditer(query):
+            filt, qphrase, qstar, bare = (
+                m.group("filter"),
+                m.group("qphrase"),
+                m.group("qstar"),
+                m.group("bare")
+            )
+
+            filt_lower = filt.lower() if filt else None
+
+            if filt_lower == "type" and extracted_type is None:
+                extracted_type = qphrase if qphrase is not None else bare
+                continue
+            elif filt_lower == "source" and extracted_source is None:
+                extracted_source = qphrase if qphrase is not None else bare
+                continue
+            elif filt_lower == "pinned" and extracted_pinned is None:
+                val = (qphrase if qphrase is not None else bare).lower()
+                if val in ("true", "1"):
+                    extracted_pinned = True
+                    continue
+                elif val in ("false", "0"):
+                    extracted_pinned = False
+                    continue
+            elif filt_lower == "is" and extracted_pinned is None:
+                val = (qphrase if qphrase is not None else bare).lower()
+                if val == "pinned":
+                    extracted_pinned = True
+                    continue
+            elif filt_lower == "not" and extracted_pinned is None:
+                val = (qphrase if qphrase is not None else bare).lower()
+                if val == "pinned":
+                    extracted_pinned = False
+                    continue
+
+            col_prefix = f"{filt}:" if filt else ""
+            if qphrase is not None:
+                star = "*" if qstar else ""
+                remaining_tokens.append(f'{col_prefix}"{qphrase}"{star}')
+            elif bare:
+                remaining_tokens.append(f'{col_prefix}{bare}')
+
+        cleaned = " ".join(remaining_tokens)
+        cleaned = re.sub(r'^\s*(?:AND|OR|UND|ODER)\s+', '', cleaned, flags=re.IGNORECASE)
+        cleaned = re.sub(r'\s+(?:AND|OR|NOT|UND|ODER|NICHT)\s*$', '', cleaned, flags=re.IGNORECASE)
+        cleaned = cleaned.strip()
+        return extracted_type, extracted_source, extracted_pinned, cleaned
+
     def find(self, query: str, type: Optional[str] = None,
              limit: int = 20, with_snippets: bool = False,
              source=None, pinned: Optional[bool] = None) -> List[Dict]:
@@ -702,9 +781,14 @@ class Gardener:
         automatisch ein Fallback auf eine OR-Verknüpfung der Einzelbegriffe mit
         FTS5-BM25-Ranking (Treffer mit allen/mehreren Begriffen stehen höher).
 
+        Unterstützt Inline-Filter direkt in der Suchanfrage (z. B. 'type:task rechnung',
+        'type:tool (tag:python OR tag:rust)', 'source:usmc-working memory', 'is:pinned zebra',
+        'tag:python-script', 'title:scanner', 'body:vertrag').
+
         Args:
             query: Suchbegriff (Volltextsuche). Leer erlaubt, wenn `source`
-                gesetzt ist -- dann wird die Quelle schlicht aufgelistet.
+                oder `type` gesetzt ist -- dann wird die Quelle bzw. der Typ
+                aufgelistet.
             type: Optional filtern nach Typ (knowledge, tool, task, memory, ...)
             limit: Max. Ergebnisse
             with_snippets: Bei True enthalten FTS-Treffer ein 'snippet'-Feld
@@ -723,6 +807,16 @@ class Gardener:
         Returns:
             Liste von Einträgen als Dicts
         """
+        # 0. Inline-Filter extrahieren (type:, source:, pinned:, is:pinned, not:pinned)
+        in_type, in_src, in_pinned, cleaned_query = self._extract_inline_filters(query)
+        if type is None and in_type is not None:
+            type = in_type
+        if source is None and in_src is not None:
+            source = in_src
+        if pinned is None and in_pinned is not None:
+            pinned = in_pinned
+        query = cleaned_query
+
         results = []
         # Nur-Quelle-Auflistung: leere Query UND gesetzte Quelle. Ohne Quelle
         # bleibt die leere Query wie bisher der LIKE-Stufe überlassen (dort
@@ -732,6 +826,13 @@ class Gardener:
             if source_only:
                 results = self._source_listing(conn, source, type=type, limit=limit,
                                                pinned=pinned)
+            elif not query or not query.strip():
+                # Reiner Filter-Lauf ohne Suchbegriff (z. B. find("type:task")): Direkt über LIKE
+                try:
+                    results = self._like_query(conn, "", type=type, limit=limit,
+                                               source=source, pinned=pinned)
+                except Exception:
+                    results = []
             else:
                 # 1. Abgesicherte Operator-Query: Falls boolesche Operatoren (AND, OR, NOT, UND, ODER, NICHT)
                 #    oder Gruppierungsklammern vorliegen, erzeuge eine FTS5-abgesicherte Query mit
