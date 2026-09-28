@@ -57,9 +57,9 @@ class TestMetadataParity(unittest.TestCase):
         self.assertIn(f"[{version}]", self.changelog)
 
     def test_readme_badges_and_test_count(self):
-        # Assert test badges show 206 passed
-        self.assertIn("tests-206%20passed-brightgreen.svg", self.readme_en)
-        self.assertIn("tests-206%20passed-brightgreen.svg", self.readme_de)
+        # Assert test badges show 207 passed
+        self.assertIn("tests-207%20passed-brightgreen.svg", self.readme_en)
+        self.assertIn("tests-207%20passed-brightgreen.svg", self.readme_de)
 
         # Assert NOTICE attribution badge
         self.assertIn("Attribution-NOTICE-blue.svg", self.readme_en)
@@ -96,7 +96,7 @@ class TestMetadataParity(unittest.TestCase):
 
     def test_llms_txt_consistency(self):
         self.assertIn("Last-checked: 2026-09-28", self.llms_txt)
-        self.assertIn("206 passing tests", self.llms_txt)
+        self.assertIn("207 passing tests", self.llms_txt)
         self.assertIn("https://github.com/ellmos-ai/gardener", self.llms_txt)
         self.assertIn("ellmos-ai/gardener", self.llms_txt)
         self.assertIn("NOTICE", self.llms_txt)
