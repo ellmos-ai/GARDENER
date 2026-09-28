@@ -2,6 +2,17 @@
  
 ## [Unreleased]
 
+### Atomic Upsert in `put()` (2026-09-28)
+
+- **Atomic SQLite Upsert (`Gardener.put` in `gardener.py`)**:
+  - Replaced non-atomic `SELECT`-then-`INSERT`/`UPDATE` pattern with single atomic `INSERT INTO ... ON CONFLICT(name) DO UPDATE SET ...` statement (SQLite >= 3.24).
+  - Eliminates TOCTOU race conditions where concurrent writers attempting to write the same entry name could fail with an unhandled `sqlite3.IntegrityError`.
+  - Preserves original `created` timestamp while cleanly updating `content`, `type`, `tags`, `meta`, `pinned`, and `updated`.
+  - Seamlessly triggers SQLite `everything_au` update trigger for full FTS5 index consistency.
+- **Tests & Verification**:
+  - Added `test_put_atomic_upsert_preserves_created_and_updates_content` to `tests/test_gardener_core.py`.
+  - Test suite verified: 207 passed (100% green).
+
 ### FTS5 Inline-Filter & Spalten-Aliase UX (2026-09-28)
 
 - **Inline-Filter in Suchanfragen (`_extract_inline_filters`, `find()` in `gardener.py`)**:

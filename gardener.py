@@ -961,24 +961,19 @@ class Gardener:
         with self.connection(target) as conn:
             db = "main"  # Immer in die primäre DB schreiben
 
-            # Upsert
-            existing = conn.execute(
-                f"SELECT id FROM {db}.everything WHERE name = ?", (name,)
-            ).fetchone()
-
-            if existing:
-                conn.execute(f"""
-                    UPDATE {db}.everything
-                    SET content = ?, type = ?, tags = ?, meta = ?,
-                        pinned = ?, updated = ?
-                    WHERE name = ?
-                """, (content, type, tags, meta_json, int(pinned), now, name))
-            else:
-                conn.execute(f"""
-                    INSERT INTO {db}.everything
-                        (name, content, type, tags, meta, pinned, created, updated)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                """, (name, content, type, tags, meta_json, int(pinned), now, now))
+            # Atomarer Upsert gegen TOCTOU-Race-Conditions
+            conn.execute(f"""
+                INSERT INTO {db}.everything
+                    (name, content, type, tags, meta, pinned, created, updated)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(name) DO UPDATE SET
+                    content = excluded.content,
+                    type = excluded.type,
+                    tags = excluded.tags,
+                    meta = excluded.meta,
+                    pinned = excluded.pinned,
+                    updated = excluded.updated
+            """, (name, content, type, tags, meta_json, int(pinned), now, now))
 
             conn.commit()
 

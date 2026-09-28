@@ -58,6 +58,24 @@ class TestGardenerCore(GardenerTempCase):
         results = self.af.find("Rechnungen")
         self.assertEqual(results[0]["name"], "beleg-scanner")
 
+    def test_put_atomic_upsert_preserves_created_and_updates_content(self):
+        first = self.af.put("config-entry", content="v1", type="config")
+        created_at = first["created"]
+        self.assertEqual(first["content"], "v1")
+
+        # Update via put
+        second = self.af.put("config-entry", content="v2", type="config")
+        self.assertEqual(second["content"], "v2")
+        self.assertEqual(second["created"], created_at)
+        self.assertEqual(second["id"], first["id"])
+
+        # Verify FTS index updated correctly
+        hits = self.af.find("v2")
+        self.assertEqual(len(hits), 1)
+        self.assertEqual(hits[0]["name"], "config-entry")
+        old_hits = self.af.find("v1")
+        self.assertEqual(len(old_hits), 0)
+
     def test_task_lifecycle_uses_everything_table(self):
         self.af.task("steuer-2026", "Unterlagen prüfen", priority="high")
         open_tasks = self.af.tasks(status="open")
