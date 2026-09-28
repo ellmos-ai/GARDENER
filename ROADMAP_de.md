@@ -2,8 +2,8 @@
 
 **🇬🇧 [English Version](ROADMAP.md)**
 
-> Aktualisiert: 2026-08-13
-> Aktuelle Version: v0.4.0 (Prototyp)
+> Aktualisiert: 2026-09-29
+> Aktuelle Version: v0.4.2
 
 ## Prototyp (v0.1) — ERLEDIGT
 
@@ -59,6 +59,8 @@ und das Schlechtere vergessen lassen.
 ### Weitere Themen v0.2
 
 - [x] Pinning sinnvoll nutzen (pinned=1 verhindert Decay; pin/unpin API & CLI-Befehle, list --pinned-Filter, Status-Reporting)
+- [x] Internationalisierung & CLI-Übersetzungen (`i18n.py` mit de/en Übersetzungskatalogen und Fallbacks)
+- [x] Umfassende Test-Suite & Multi-OS CI (Python 3.10–3.13 auf Linux, macOS, Windows)
 - [ ] Fachtabellen bei Bedarf (shelves-Registry ist vorbereitet)
 - [ ] Mehr Bridge-Tools nach Bedarf portieren (aus BACH)
 
@@ -72,6 +74,7 @@ und das Schlechtere vergessen lassen.
 - [ ] Versionierung (Änderungshistorie in DB)
 - [ ] Rechte-Modell (wer darf gardener.db ändern?)
 - [x] Workspace-Verwaltung (aufräumen, max. Größe)
+- [x] Konfigurierbares Observe Verzeichnis-Pruning & Dateigrößen-Limits (`_iter_files_to_observe`, `max_file_size`)
 - [ ] Externe Anbindungen (MCP, APIs)
 - [ ] Multi-LLM (mehrere LLMs teilen sich user.db)
 
@@ -92,6 +95,9 @@ und das Schlechtere vergessen lassen.
 | 2026-03-12 | Sketchboard-Modell | LLM IST das Haus (Kontext), DB ist Fotoalbum (Gedächtnis) |
 | 2026-03-12 | Decay für alles (geplant) | Tools/Knowledge sollen auch altern können |
 | 2026-09-10 | FTS5-Query-Tokenisierung & abgesichertes AND | Quotiert/maskiert Sonderzeichen (-, :, /, \, ()), verhindert FTS5-Syntaxfehler, sichert Mehrwort-AND, Präfixe und Snippets |
+| 2026-09-28 | Atomare put-Upserts (SQLite >= 3.24) | Verhindert TOCTOU-Gleichzeitigkeitskonflikte mittels INSERT INTO ... ON CONFLICT(name) DO UPDATE SET |
+| 2026-09-28 | FTS5 Inline-Filter & Spalten-Aliase | Unterstützt type:<typ>, source:<src> und is:pinned/not:pinned direkt im Suchtext sowie natürliche Aliase (tag:, title:, body:) |
+| 2026-09-29 | In-Place Verzeichnis-Pruning & Größenbegrenzung | Ersetzt rglob durch in-place os.walk Pruning für ausgeschlossene Ordner und ergänzt 10MB Textdateien-Limit |
 
 ---
 

@@ -91,14 +91,13 @@ Gardener/
   README.md            # Canonical English specification & documentation
   README_de.md         # Canonical German specification & documentation
   THIRD_PARTY_LICENSES.md # Comprehensive software inventory & SPDX SBOM
-  workspace/           # Ephemeral materialized code execution sandbox
-  blobs/               # Storage repository for large binary assets (>50MB)
 
 Local Storage (Local-First, Override with GARDENER_DATA):
   ~/.gardener/
     gardener.db        # System Substrate: Base knowledge, tools, blueprints
     user.db            # User Substrate: Memories, tasks, federated observations
-    blobs/             # Large local blob files
+    blobs/             # Storage repository for large binary assets (>50MB)
+    workspace/         # Ephemeral materialized code execution sandbox
 
 User Sync Directory (Cloud-Ready, Override with GARDENER_HOME):
   ~/gardener/

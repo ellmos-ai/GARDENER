@@ -2,8 +2,8 @@
 
 **🇩🇪 [Deutsche Version](ROADMAP_de.md)**
 
-> Updated: 2026-08-13
-> Current release: v0.4.0 (prototype)
+> Updated: 2026-09-29
+> Current release: v0.4.2
 
 ## Prototype (v0.1) — DONE
 
@@ -59,6 +59,8 @@ and letting the worse be forgotten.
 ### Further Topics v0.2
 
 - [x] Use pinning meaningfully (pinned=1 prevents decay; pin/unpin API & CLI commands, list --pinned filter, status reporting)
+- [x] Internationalization & CLI translations (`i18n.py` with de/en translation catalogs and built-in fallbacks)
+- [x] Comprehensive test suite & multi-OS CI (Python 3.10–3.13 on Linux, macOS, Windows)
 - [ ] Specialized tables as needed (shelves registry is prepared)
 - [ ] Port more bridge tools as needed (from BACH)
 
@@ -72,6 +74,7 @@ and letting the worse be forgotten.
 - [ ] Versioning (change history in DB)
 - [ ] Permissions model (who can change what in gardener.db?)
 - [x] Workspace management (cleanup, max size)
+- [x] Configurable observe directory pruning & file size limits (`_iter_files_to_observe`, `max_file_size`)
 - [ ] External integrations (MCP, APIs)
 - [ ] Multi-LLM (multiple LLMs share user.db)
 
@@ -92,6 +95,9 @@ and letting the worse be forgotten.
 | 2026-03-12 | Sketchboard model | LLM IS the house (context), DB is photo album (memory) |
 | 2026-03-12 | Decay for everything (planned) | Tools/knowledge should also age |
 | 2026-09-10 | FTS5 Query Tokenization & Sanitized AND | Quotes/escapes special chars (-, :, /, \, ()) to prevent FTS5 syntax errors and preserve exact multi-word AND precision, prefixes, and snippets |
+| 2026-09-28 | Atomic put upserts (SQLite >= 3.24) | Eliminates TOCTOU concurrency race conditions using INSERT INTO ... ON CONFLICT(name) DO UPDATE SET |
+| 2026-09-28 | FTS5 Inline-Filters & Column Aliases | Direct type:<typ>, source:<src>, and is:pinned/not:pinned inline query filters and natural aliases (tag:, title:, body:) |
+| 2026-09-29 | In-place Directory Pruning & Size Limits | Replaced rglob with in-place os.walk pruning for excluded directories and added 10MB text file limits |
 
 
 ---

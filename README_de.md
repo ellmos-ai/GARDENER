@@ -91,14 +91,13 @@ Gardener/
   README.md            # Kanonische englische Spezifikation
   README_de.md         # Kanonische deutsche Dokumentation
   THIRD_PARTY_LICENSES.md # Vollständiges Software-Inventar & SPDX-SBOM
-  workspace/           # Flüchtige Sandbox für materialisierte Werkzeugausführung
-  blobs/               # Lokale Ablage für große Dateien (>50MB)
 
 Lokale Datenablage (Local-First, anpassbar mit GARDENER_DATA):
   ~/.gardener/
     gardener.db        # System-Substrat: Basiswissen, Werkzeuge, Baupläne
     user.db            # Benutzer-Substrat: Notizen, Aufgaben, beobachtete Fremddaten
-    blobs/             # Große lokale Binärdateien
+    blobs/             # Lokale Ablage für große Dateien (>50MB)
+    workspace/         # Flüchtige Sandbox für materialisierte Werkzeugausführung
 
 Benutzer-Sync-Ordner (Cloud-fähig, anpassbar mit GARDENER_HOME):
   ~/gardener/
