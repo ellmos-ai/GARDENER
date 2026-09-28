@@ -2143,7 +2143,9 @@ def main():
         for agent_id, item in outcome["agents"].items():
             skipped = item["uebersprungen"]
             if isinstance(skipped, str):
-                print(f"{agent_id}: {t('sleep.skipped')} ({skipped})")
+                skipped = [skipped]
+            if skipped:
+                print(f"{agent_id}: {t('sleep.skipped')} ({', '.join(skipped)})")
             else:
                 print(f"{agent_id}: TTL {item['ttl_gesetzt']}, {t('sleep.deactivated')} "
                       f"{item['deaktiviert']}, {t('sleep.decayed')} "

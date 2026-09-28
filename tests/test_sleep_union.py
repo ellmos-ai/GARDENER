@@ -111,12 +111,12 @@ def test_if_due_report_and_no_delete(db, tmp_path):
         conn.execute("INSERT INTO memory_working VALUES (2, 'b', 'context', '2026-08-01 00:00:00', NULL, 1)")
         conn.execute("INSERT INTO decay_config (agent_id, auto_cleanup_enabled) VALUES ('a', 0)")
     result = run_sleep(db, if_due=True, decay=False, report=report)
-    assert result["agents"]["a"]["uebersprungen"] == "auto_cleanup_disabled"
+    assert result["agents"]["a"]["uebersprungen"] == ["auto_cleanup_disabled"]
     assert result["agents"]["b"]["ttl_gesetzt"] == 1
     assert rows(db, "decay_config")[1][-1] == "2026-09-27 12:00:00"
     assert len(rows(db, "memory_working")) == 2
     again = run_sleep(db, if_due=True, decay=False, report=report)
-    assert again["agents"]["b"]["uebersprungen"] == "not_due"
+    assert again["agents"]["b"]["uebersprungen"] == ["not_due"]
     assert len(report.read_text(encoding="utf-8").splitlines()) == 2
     assert json.loads(report.read_text(encoding="utf-8").splitlines()[0])["db_path"] == str(db)
 

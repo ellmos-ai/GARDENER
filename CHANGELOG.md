@@ -2,6 +2,16 @@
  
 ## [Unreleased]
 
+### Sleep Stats `uebersprungen` List Type Fix (2026-09-28)
+
+- **Consistent `stats["uebersprungen"]` list semantics (`sleep_union.py` `sleep()`)**:
+  - Fixed the three `if_due` skip paths (`decay_config_unavailable`, `auto_cleanup_disabled`, `not_due`) that overwrote the `uebersprungen` list with a plain string, destroying the previously appended `decay_config missing required columns` message and breaking list consumers.
+  - Skip reasons now accumulate via `.append(...)` on the initial `[]`, so `uebersprungen` is always a list across all code paths.
+- **CLI skip reporting (`gardener.py` sleep handler)**:
+  - Normalized `uebersprungen` defensively (`isinstance(str)` check) and joined multiple skip reasons with `", "` in the `sleep.skipped` output line; agents without skips keep the plain TTL/deactivated/decayed summary line.
+- **Tests (`tests/test_sleep_union.py`)**:
+  - Updated the `auto_cleanup_disabled` and `not_due` assertions to expect list values, matching the always-list `uebersprungen` stats key.
+
 ### Union memory soft sleep (2026-09-27)
 
 - Added `gardener sleep --db` for Union v2 databases with a TTL grace pass, optional confidence decay, due gating, dry-run, per-agent TOML TTL overrides, and JSONL reports. No records are deleted; BACH callers can disable decay with `--no-decay`.

@@ -106,16 +106,16 @@ def sleep(db_path, *, agent=None, if_due=False, dry_run=False, decay=True,
                 else:
                     stats["uebersprungen"].append("decay_config missing required columns")
                     if if_due:
-                        stats["uebersprungen"] = "decay_config_unavailable"
+                        stats["uebersprungen"].append("decay_config_unavailable")
                         continue
                 if if_due:
                     if not cfg["auto_cleanup_enabled"]:
-                        stats["uebersprungen"] = "auto_cleanup_disabled"
+                        stats["uebersprungen"].append("auto_cleanup_disabled")
                         continue
                     if cfg["last_cleanup_at"]:
                         elapsed = (current - _time(cfg["last_cleanup_at"])).total_seconds() / 86400
                         if elapsed < cfg["cleanup_interval_days"]:
-                            stats["uebersprungen"] = "not_due"
+                            stats["uebersprungen"].append("not_due")
                             continue
 
                 # Deactivate only pre-existing expirations. Newly assigned TTLs wait
