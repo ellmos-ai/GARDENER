@@ -2,6 +2,14 @@
  
 ## [Unreleased]
 
+### Documentation & Roadmap Parity (2026-09-29)
+
+- **Repository Layout & Local Storage Documentation**:
+  - Aligned repository directory trees in both canonical English (`README.md`) and German (`README_de.md`) documentation: `workspace/` and `blobs/` correctly moved to the `~/.gardener/` local storage section, reflecting that runtime sandboxes and large binary blobs reside exclusively in user data storage rather than repository checkouts.
+- **Roadmap Synchronization (`ROADMAP.md` & `ROADMAP_de.md`)**:
+  - Synchronized release versions and dates to `v0.4.2` (Stand 2026-09-29).
+  - Recorded recent architectural milestones and decisions: atomic upsert in `put()` (SQLite >= 3.24), FTS5 query tokenization & safe operator sanitization, inline query filters (`type:`, `source:`, `is:pinned`/`not:pinned`), natural column aliases (`tag:`, `title:`, `body:`), and in-place directory pruning with 10MB text limits.
+
 ### Configurable Observe/Sync Excludes Directory Pruning & Size Limit (2026-09-29)
 
 - **In-place Directory Pruning in Observe / Sync (`Gardener._iter_files_to_observe`)**:
