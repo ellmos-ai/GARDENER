@@ -2122,6 +2122,34 @@ def main():
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
         sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    if len(sys.argv) > 1 and sys.argv[1] == "sleep":
+        import argparse
+
+        from sleep_union import sleep
+
+        parser = argparse.ArgumentParser(prog="gardener sleep", description=t("cmd.sleep"))
+        parser.add_argument("--db", required=True, help=t("sleep.db"))
+        parser.add_argument("--agent", help=t("sleep.agent"))
+        parser.add_argument("--if-due", action="store_true", help=t("sleep.if_due"))
+        parser.add_argument("--dry-run", action="store_true", help=t("sleep.dry_run"))
+        parser.add_argument("--no-decay", action="store_true", help=t("sleep.no_decay"))
+        parser.add_argument("--report", help=t("sleep.report"))
+        args = parser.parse_args(sys.argv[2:])
+        try:
+            outcome = sleep(args.db, agent=args.agent, if_due=args.if_due,
+                            dry_run=args.dry_run, decay=not args.no_decay, report=args.report)
+        except (OSError, ValueError, sqlite3.Error) as exc:
+            parser.exit(1, f"{t('sleep.error')}: {exc}\n")
+        for agent_id, item in outcome["agents"].items():
+            skipped = item["uebersprungen"]
+            if isinstance(skipped, str):
+                print(f"{agent_id}: {t('sleep.skipped')} ({skipped})")
+            else:
+                print(f"{agent_id}: TTL {item['ttl_gesetzt']}, {t('sleep.deactivated')} "
+                      f"{item['deaktiviert']}, {t('sleep.decayed')} "
+                      f"{item['facts_decayed']}/{item['lessons_decayed']}")
+        return
+
     af = Gardener()
 
     if len(sys.argv) < 2 or sys.argv[1] in ("-h", "--help", "help"):
@@ -2155,6 +2183,7 @@ def main():
             ("gardener lesson <titel> [text]", "cmd.lesson"),
             ("gardener recall <query>", "cmd.recall"),
             ("gardener consolidate", "cmd.consolidate"),
+            ("gardener sleep --db <path> [options]", "cmd.sleep"),
             ("gardener session-end <text>", "cmd.session_end"),
             ("gardener tasks [status]", "cmd.tasks"),
             ("gardener task <name> [text]", "cmd.task"),

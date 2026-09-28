@@ -2,6 +2,10 @@
  
 ## [Unreleased]
 
+### Union memory soft sleep (2026-09-27)
+
+- Added `gardener sleep --db` for Union v2 databases with a TTL grace pass, optional confidence decay, due gating, dry-run, per-agent TOML TTL overrides, and JSONL reports. No records are deleted; BACH callers can disable decay with `--no-decay`.
+
 ### FTS5 Grouping Parentheses & Normalized Boolean Operators (2026-09-26)
 
 - **FTS5 Grouping Parentheses Precision (`_pad_parens_outside_quotes`, `_build_fts_safe_operator_query`, `Gardener.find`)**:
