@@ -91,8 +91,13 @@ INDEX_HTML = """<!DOCTYPE html>
 </header>
 <main>
   <div class="searchbar">
-    <input type="text" id="q" placeholder="Suchbegriff …" autocomplete="off" autofocus>
+    <input type="text" id="q" placeholder="Suchbegriff oder Filter (z. B. type:task, tag:python, is:pinned, limit:10) …" autocomplete="off" autofocus>
     <select id="type"><option value="">alle Typen</option></select>
+    <select id="pinned">
+      <option value="">alle Status</option>
+      <option value="true">nur gepinnt</option>
+      <option value="false">ungepinnt</option>
+    </select>
     <select id="limit">
       <option value="10">10</option>
       <option value="20" selected>20</option>
@@ -142,6 +147,8 @@ async function search() {
     limit: document.getElementById("limit").value });
   const ty = typeSel.value;
   if (ty) params.set("type", ty);
+  const pin = document.getElementById("pinned").value;
+  if (pin) params.set("pinned", pin);
   const box = document.getElementById("results");
   box.innerHTML = '<div class="empty">suche …</div>';
   document.getElementById("detail").style.display = "none";
@@ -241,6 +248,7 @@ class SearchGuiHandler(BaseHTTPRequestHandler):
         if path == "/api/search":
             query = (params.get("q", [""])[0] or "").strip()
             type_filter = (params.get("type", [""])[0] or "").strip() or None
+            source_filter = (params.get("source", [""])[0] or "").strip() or None
             try:
                 limit = int(params.get("limit", ["20"])[0])
                 limit = max(1, min(limit, 100))
@@ -250,11 +258,12 @@ class SearchGuiHandler(BaseHTTPRequestHandler):
             pinned_filter = None
             if pinned_val is not None and pinned_val.strip() != "":
                 pinned_filter = pinned_val.strip().lower() in ("1", "true", "yes", "ja")
-            if not query:
+            if not query and not type_filter and not source_filter and pinned_filter is None:
                 self._send_json({"results": [], "query": query})
                 return
             results = self.gardener.find(query, type=type_filter,
                                          limit=limit, with_snippets=True,
+                                         source=source_filter,
                                          pinned=pinned_filter)
             self._send_json({"results": results, "query": query})
             return

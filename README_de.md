@@ -13,8 +13,8 @@
 [![Plattformen](https://img.shields.io/badge/plattformen-Linux%20%7C%20Windows%20%7C%20macOS-lightgrey.svg)](https://github.com/ellmos-ai/gardener)
 [![Lizenz: MIT](https://img.shields.io/badge/Lizenz-MIT-yellow.svg)](LICENSE)
 [![Attribution: NOTICE](https://img.shields.io/badge/Attribution-NOTICE-blue.svg)](NOTICE)
-[![Verifiziert: 2026-09-28](https://img.shields.io/badge/verified-2026--09--28-blue.svg)](https://github.com/ellmos-ai/gardener)
-[![Tests: 219 bestanden](https://img.shields.io/badge/tests-219%20passed-brightgreen.svg)](https://github.com/ellmos-ai/gardener)
+[![Verifiziert: 2026-09-29](https://img.shields.io/badge/verified-2026--09--29-blue.svg)](https://github.com/ellmos-ai/gardener)
+[![Tests: 222 bestanden](https://img.shields.io/badge/tests-222%20passed-brightgreen.svg)](https://github.com/ellmos-ai/gardener)
 [![Ausführung: RunAsInvoker](https://img.shields.io/badge/execution-RunAsInvoker-success.svg)](THIRD_PARTY_LICENSES.md)
 [![Datenschutz: Local-First](https://img.shields.io/badge/datenschutz-Local--First%20%7C%20Zero--Egress-brightgreen.svg)](SECURITY.md)
 [![Sicherheitsrichtlinie](https://img.shields.io/badge/sicherheit-48h%20SLA-blue.svg)](SECURITY.md)
@@ -296,7 +296,7 @@ Angeheftete Einträge (`pinned = 1`) werden direkt auf Datenbankebene an die Spi
 - **100% Offline & Privat**: Bindet strikt nur an `127.0.0.1`.
 - **Reine Standardbibliothek**: Basiert auf `http.server` ohne externe npm-Pakete oder CDN-Abhängigkeiten.
 - **Garantiert schreibgeschützt**: Schließt jegliche Mutation an `gardener.db` oder `user.db` aus.
-- **Interaktive Inspektion**: Suchfeld, Typ-Filterung (`memory`, `task`, `observed`), Anheft-Indikatoren, Snippet-Hervorhebung und JSON-Detailansicht.
+- **Interaktive Inspektion**: Volltext-Suchfeld mit Inline-Filter-Unterstützung (`type:`, `typ:`, `tag:`, `source:`, `quelle:`, `is:pinned`, `ist:gepinnt`, `limit:`, `max:`), Typ- und Anheft-Status-Filterauswahl, quellenspezifische Eingrenzung, Treffer-Snippet-Hervorhebung und JSON-Detailansicht.
 
 ```bash
 # Startet die lokale GUI auf Standardport 8420

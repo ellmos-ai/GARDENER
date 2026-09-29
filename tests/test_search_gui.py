@@ -144,6 +144,28 @@ class TestSearchGuiHttp(SearchGuiTempCase):
         self.assertEqual(status, 200)
         self.assertEqual(data["results"], [])
 
+    def test_api_search_empty_query_browse_mode(self):
+        status, data = self._get_json("/api/search?q=&type=memory")
+        self.assertEqual(status, 200)
+        names = [r["name"] for r in data["results"]]
+        self.assertIn("notiz-einkauf", names)
+
+    def test_api_search_source_filter(self):
+        self.af.put("observed/my-src/item1.md", content="Dokument aus externer Quelle", type="knowledge")
+        status, data = self._get_json("/api/search?q=Dokument&source=my-src")
+        self.assertEqual(status, 200)
+        names = [r["name"] for r in data["results"]]
+        self.assertEqual(names, ["observed/my-src/item1.md"])
+
+    def test_api_search_inline_filters_in_gui(self):
+        status, data = self._get_json("/api/search?q=typ:memory%20Brot")
+        self.assertEqual(status, 200)
+        self.assertEqual([r["name"] for r in data["results"]], ["notiz-einkauf"])
+
+        status, data = self._get_json("/api/search?q=type:memory%20limit:1")
+        self.assertEqual(status, 200)
+        self.assertEqual(len(data["results"]), 1)
+
     def test_api_entry_detail_and_404(self):
         status, data = self._get_json("/api/entry?name=beleg-scanner")
         self.assertEqual(status, 200)

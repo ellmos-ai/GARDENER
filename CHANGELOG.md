@@ -2,6 +2,22 @@
  
 ## [Unreleased]
 
+### Deutsche Filter-Aliase, Inline Limit-Parsing & Search-GUI-Härtung (2026-09-29)
+
+- **Deutsche Filter-Aliase & `limit:` / `max:` Inline-Parsing (`gardener.py`)**:
+  - `_FILTER_TOKEN_RE` und `_extract_inline_filters()` um deutsche Aliase erweitert: `typ:` (Alias für `type:`), `quelle:` (Alias für `source:`), `gepinnt:` (Alias für `pinned:` mit `ja/true/1` bzw. `nein/false/0`), `ist:gepinnt` und `nicht:gepinnt`.
+  - Inline `limit:<Zahl>` und `max:<Zahl>` Parsing implementiert: Ermöglicht z. B. `find("backup limit:5")` oder `find("typ:task limit:3")`. Extrahiert das Limit, bereinigt den Suchstring und setzt das Limit in `find()`, falls nicht explizit anders übergeben.
+  - Ermöglicht nahtlose kombinierte Abfragen wie `find("typ:tool quelle:usmc-working ist:gepinnt limit:5 backup")`.
+- **Search-GUI Erweiterung & Härtung (`search_gui.py`)**:
+  - `/api/search` um `source`-Parameter erweitert: Reicht `source` an `gardener.find(..., source=source_filter)` durch.
+  - Browse-Modus bei leerem Suchbegriff: Wenn `type`, `source` oder `pinned` gesetzt sind, führt `/api/search` die gefilterte Suche auch ohne Freitextbegriff aus, statt sofort ein leeres Array zurückzugeben.
+  - HTML & Frontend-Erweiterung: Neues `<select id="pinned">`-Dropdown (`alle Status`, `nur gepinnt`, `ungepinnt`) in der Suchleiste integriert und im JavaScript an die Such-API angebunden.
+  - Suchfeld-Platzhalter um nützliche Beispiele für Inline-Filter (`z. B. type:task, tag:python, is:pinned, limit:10`) ergänzt.
+- **Tests & Parität**:
+  - Neue Vertragstests `test_api_search_empty_query_browse_mode`, `test_api_search_source_filter` und `test_api_search_inline_filters_in_gui` in `tests/test_search_gui.py`.
+  - Erweiterte Assertions für deutsche Filter-Aliase und Inline-Limits in `tests/test_gardener_core.py`.
+  - Testsuite-Vollständigkeit auf **222 passed, 35 subtests passed** (100% grün) erhöht; Badges und Metadaten synchronisiert.
+
 ### Federated Ingestion & Custody Architecture Parity (2026-09-29)
 
 - **Comprehensive Bilingual Documentation of Federated observe_source Architecture (`DESIGN.md`, `KONZEPT.md`)**:
@@ -66,8 +82,6 @@
   - Seamlessly triggers SQLite `everything_au` update trigger for full FTS5 index consistency.
 - **Tests & Verification**:
   - Added `test_put_atomic_upsert_preserves_created_and_updates_content` to `tests/test_gardener_core.py`.
-  - Test suite verified: 207 passed (100% green).
-
 ### FTS5 Inline-Filter & Spalten-Aliase UX (2026-09-28)
 
 - **Inline-Filter in Suchanfragen (`_extract_inline_filters`, `find()` in `gardener.py`)**:

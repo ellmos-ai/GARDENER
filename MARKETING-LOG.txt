@@ -256,3 +256,33 @@ Version: 0.4.2
 [x] Automated Contract Test Expansion:
     - Added test_find_with_inline_filters_and_column_aliases and extended test_tokenize_query_and_build_fts_and_query_helpers in tests/test_gardener_core.py.
     - All 203 tests passed with 35 subtests (100% green).
+
+================================================================================
+7. GERMAN FILTER ALIASES, INLINE LIMIT PARSING & SEARCH GUI HARDENING (2026-09-29)
+================================================================================
+Operator: Antigravity / Gemini (via Sidecar GARDENER)
+Canonical Path: C:\_Local_DEV\repos\gardener
+Version: 0.4.2
+
+[x] German Filter Aliases & Inline Limit/Max Parsing (gardener.py):
+    - Extended _FILTER_TOKEN_RE and _extract_inline_filters() with German aliases:
+      * `typ:` -> type
+      * `quelle:` -> source
+      * `gepinnt:ja/true/1/nein/false/0` -> pinned
+      * `ist:gepinnt` / `nicht:gepinnt` -> pinned boolean
+    - Added inline `limit:<N>` and `max:<N>` query extraction:
+      * e.g. `find("backup limit:5")` or `find("typ:task limit:3")`
+      * Safely extracts limit, normalizes query, and passes limit to find() when not explicitly overridden
+    - Fully supports compound search queries: e.g. `find("typ:tool quelle:usmc-working ist:gepinnt limit:5 backup")`.
+
+[x] Search GUI Hardening & Feature Expansion (search_gui.py):
+    - Added `source` parameter extraction to `/api/search` routing directly to `gardener.find(..., source=source_filter)`.
+    - Added filtered browse mode: when query is empty, but `type`, `source`, or `pinned` is set, results are returned instead of returning an empty array.
+    - Updated web companion HTML searchbar with `<select id="pinned">` dropdown (`alle Status`, `nur gepinnt`, `ungepinnt`).
+    - Extended input placeholder to illustrate inline filters (`type:task, tag:python, is:pinned, limit:10`).
+
+[x] Automated Contract Test Expansion & Verification:
+    - Added `test_api_search_empty_query_browse_mode`, `test_api_search_source_filter`, and `test_api_search_inline_filters_in_gui` in `tests/test_search_gui.py`.
+    - Extended token and find assertions in `tests/test_gardener_core.py`.
+    - Synchronized `tests/test_metadata.py` assertions to 206 passed.
+    - All 206 tests passed with 35 subtests (100% green).

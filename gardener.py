@@ -162,7 +162,7 @@ class Gardener:
         re.IGNORECASE,
     )
     _FILTER_TOKEN_RE = re.compile(
-        r'(?:(?P<filter>type|source|pinned|is|not):\s*)?(?:\"(?P<qphrase>[^\"]*)\"(?P<qstar>\*)?|(?P<bare>\S+))',
+        r'(?:(?P<filter>type|typ|source|quelle|pinned|gepinnt|is|ist|not|nicht|limit|max):\s*)?(?:\"(?P<qphrase>[^\"]*)\"(?P<qstar>\*)?|(?P<bare>\S+))',
         re.IGNORECASE,
     )
 
@@ -711,16 +711,17 @@ class Gardener:
         return results
 
     @classmethod
-    def _extract_inline_filters(cls, query: str) -> Tuple[Optional[str], Optional[str], Optional[bool], str]:
-        """Extrahiert Inline-Filter (type:, source:, pinned:, is:pinned, not:pinned)
-        außerhalb von reinen Phrasen und liefert (type, source, pinned, cleaned_query) zurück.
+    def _extract_inline_filters(cls, query: str) -> Tuple[Optional[str], Optional[str], Optional[bool], Optional[int], str]:
+        """Extrahiert Inline-Filter (type:, typ:, source:, quelle:, pinned:, gepinnt:, is:pinned, ist:gepinnt, not:pinned, nicht:gepinnt, limit:, max:)
+        außerhalb von reinen Phrasen und liefert (type, source, pinned, limit, cleaned_query) zurück.
         """
         if not query or not query.strip():
-            return None, None, None, query
+            return None, None, None, None, query
 
         extracted_type = None
         extracted_source = None
         extracted_pinned = None
+        extracted_limit = None
 
         remaining_tokens = []
 
@@ -734,29 +735,34 @@ class Gardener:
 
             filt_lower = filt.lower() if filt else None
 
-            if filt_lower == "type" and extracted_type is None:
+            if filt_lower in ("type", "typ") and extracted_type is None:
                 extracted_type = qphrase if qphrase is not None else bare
                 continue
-            elif filt_lower == "source" and extracted_source is None:
+            elif filt_lower in ("source", "quelle") and extracted_source is None:
                 extracted_source = qphrase if qphrase is not None else bare
                 continue
-            elif filt_lower == "pinned" and extracted_pinned is None:
+            elif filt_lower in ("pinned", "gepinnt") and extracted_pinned is None:
                 val = (qphrase if qphrase is not None else bare).lower()
-                if val in ("true", "1"):
+                if val in ("true", "1", "ja", "yes"):
                     extracted_pinned = True
                     continue
-                elif val in ("false", "0"):
+                elif val in ("false", "0", "nein", "no"):
                     extracted_pinned = False
                     continue
-            elif filt_lower == "is" and extracted_pinned is None:
+            elif filt_lower in ("is", "ist") and extracted_pinned is None:
                 val = (qphrase if qphrase is not None else bare).lower()
-                if val == "pinned":
+                if val in ("pinned", "gepinnt"):
                     extracted_pinned = True
                     continue
-            elif filt_lower == "not" and extracted_pinned is None:
+            elif filt_lower in ("not", "nicht") and extracted_pinned is None:
                 val = (qphrase if qphrase is not None else bare).lower()
-                if val == "pinned":
+                if val in ("pinned", "gepinnt"):
                     extracted_pinned = False
+                    continue
+            elif filt_lower in ("limit", "max") and extracted_limit is None:
+                val = qphrase if qphrase is not None else bare
+                if val.isdigit():
+                    extracted_limit = max(1, int(val))
                     continue
 
             col_prefix = f"{filt}:" if filt else ""
@@ -770,7 +776,7 @@ class Gardener:
         cleaned = re.sub(r'^\s*(?:AND|OR|UND|ODER)\s+', '', cleaned, flags=re.IGNORECASE)
         cleaned = re.sub(r'\s+(?:AND|OR|NOT|UND|ODER|NICHT)\s*$', '', cleaned, flags=re.IGNORECASE)
         cleaned = cleaned.strip()
-        return extracted_type, extracted_source, extracted_pinned, cleaned
+        return extracted_type, extracted_source, extracted_pinned, extracted_limit, cleaned
 
     def find(self, query: str, type: Optional[str] = None,
              limit: int = 20, with_snippets: bool = False,
@@ -783,7 +789,7 @@ class Gardener:
         FTS5-BM25-Ranking (Treffer mit allen/mehreren Begriffen stehen höher).
 
         Unterstützt Inline-Filter direkt in der Suchanfrage (z. B. 'type:task rechnung',
-        'type:tool (tag:python OR tag:rust)', 'source:usmc-working memory', 'is:pinned zebra',
+        'typ:task limit:5', 'source:usmc-working memory', 'ist:gepinnt zebra',
         'tag:python-script', 'title:scanner', 'body:vertrag').
 
         Args:
@@ -808,14 +814,16 @@ class Gardener:
         Returns:
             Liste von Einträgen als Dicts
         """
-        # 0. Inline-Filter extrahieren (type:, source:, pinned:, is:pinned, not:pinned)
-        in_type, in_src, in_pinned, cleaned_query = self._extract_inline_filters(query)
+        # 0. Inline-Filter extrahieren (type:, typ:, source:, quelle:, pinned:, gepinnt:, is:pinned, ist:gepinnt, not:pinned, nicht:gepinnt, limit:, max:)
+        in_type, in_src, in_pinned, in_limit, cleaned_query = self._extract_inline_filters(query)
         if type is None and in_type is not None:
             type = in_type
         if source is None and in_src is not None:
             source = in_src
         if pinned is None and in_pinned is not None:
             pinned = in_pinned
+        if in_limit is not None and (limit is None or limit == 20):
+            limit = in_limit
         query = cleaned_query
 
         results = []

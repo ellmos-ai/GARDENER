@@ -13,8 +13,8 @@
 [![Platforms](https://img.shields.io/badge/platforms-Linux%20%7C%20Windows%20%7C%20macOS-lightgrey.svg)](https://github.com/ellmos-ai/gardener)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Attribution: NOTICE](https://img.shields.io/badge/Attribution-NOTICE-blue.svg)](NOTICE)
-[![Verified: 2026-09-28](https://img.shields.io/badge/verified-2026--09--28-blue.svg)](https://github.com/ellmos-ai/gardener)
-[![Tests: 219 passed](https://img.shields.io/badge/tests-219%20passed-brightgreen.svg)](https://github.com/ellmos-ai/gardener)
+[![Verified: 2026-09-29](https://img.shields.io/badge/verified-2026--09--29-blue.svg)](https://github.com/ellmos-ai/gardener)
+[![Tests: 222 passed](https://img.shields.io/badge/tests-222%20passed-brightgreen.svg)](https://github.com/ellmos-ai/gardener)
 [![Execution: RunAsInvoker](https://img.shields.io/badge/execution-RunAsInvoker-success.svg)](THIRD_PARTY_LICENSES.md)
 [![Privacy: Local-First](https://img.shields.io/badge/privacy-Local--First%20%7C%20Zero--Egress-brightgreen.svg)](SECURITY.md)
 [![Security Policy](https://img.shields.io/badge/security-48h%20SLA-blue.svg)](SECURITY.md)
@@ -296,7 +296,7 @@ Pinned entries (`pinned = 1`) are promoted to the top at the SQL level, ensuring
 - **100% Offline & Private**: Binds exclusively to `127.0.0.1`.
 - **Pure Python Standard Library**: Built directly on `http.server` without external JavaScript frameworks or external CDN dependencies.
 - **Strictly Read-Only**: Guarantees zero writes or state mutations against `gardener.db` or `user.db`.
-- **Interactive Inspection**: Full-text search box, type filtering (`memory`, `task`, `observed`, etc.), pinned entry badges, match snippet highlights, and JSON detail viewer.
+- **Interactive Inspection**: Full-text search box with inline filter support (`type:`, `tag:`, `source:`, `is:pinned`, `limit:`), type and pinned status dropdown filters, source-aware filtering, match snippet highlights, and JSON detail viewer.
 
 ```bash
 # Launch the local GUI on default port 8420

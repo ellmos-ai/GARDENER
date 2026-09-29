@@ -413,35 +413,55 @@ class TestGardenerCore(GardenerTempCase):
         extract_filters = self.gardener.Gardener._extract_inline_filters
         self.assertEqual(
             extract_filters("type:task rechnung"),
-            ("task", None, None, "rechnung")
+            ("task", None, None, None, "rechnung")
+        )
+        self.assertEqual(
+            extract_filters("typ:task rechnung"),
+            ("task", None, None, None, "rechnung")
         )
         self.assertEqual(
             extract_filters('type:"my task" "hello world"'),
-            ("my task", None, None, '"hello world"')
+            ("my task", None, None, None, '"hello world"')
         )
         self.assertEqual(
             extract_filters("source:usmc-working memory"),
-            (None, "usmc-working", None, "memory")
+            (None, "usmc-working", None, None, "memory")
+        )
+        self.assertEqual(
+            extract_filters("quelle:usmc-working memory"),
+            (None, "usmc-working", None, None, "memory")
         )
         self.assertEqual(
             extract_filters("is:pinned python"),
-            (None, None, True, "python")
+            (None, None, True, None, "python")
+        )
+        self.assertEqual(
+            extract_filters("ist:gepinnt python"),
+            (None, None, True, None, "python")
         )
         self.assertEqual(
             extract_filters("not:pinned python"),
-            (None, None, False, "python")
+            (None, None, False, None, "python")
         )
         self.assertEqual(
-            extract_filters("type:tool source:usmc-working is:pinned backup"),
-            ("tool", "usmc-working", True, "backup")
+            extract_filters("nicht:gepinnt python"),
+            (None, None, False, None, "python")
+        )
+        self.assertEqual(
+            extract_filters("type:tool quelle:usmc-working ist:gepinnt limit:5 backup"),
+            ("tool", "usmc-working", True, 5, "backup")
+        )
+        self.assertEqual(
+            extract_filters("max:10 python"),
+            (None, None, None, 10, "python")
         )
         self.assertEqual(
             extract_filters('"type:task inside quotes"'),
-            (None, None, None, '"type:task inside quotes"')
+            (None, None, None, None, '"type:task inside quotes"')
         )
         self.assertEqual(
             extract_filters("type:task AND rechnung"),
-            ("task", None, None, "rechnung")
+            ("task", None, None, None, "rechnung")
         )
         self.assertEqual(
             build_safe_op("(python OR)"),
@@ -801,6 +821,30 @@ class TestGardenerCore(GardenerTempCase):
         hits_quoted = self.af.find('"type:task"')
         self.assertEqual(len(hits_quoted), 1)
         self.assertEqual(hits_quoted[0]["name"], "doc-phrase")
+
+        # 9. Deutsche Filter-Aliase (typ:, ist:gepinnt, nicht:gepinnt, gepinnt:ja)
+        hits_german_typ = self.af.find("typ:task")
+        self.assertEqual(len(hits_german_typ), 1)
+        self.assertEqual(hits_german_typ[0]["name"], "task-do-backup")
+
+        hits_german_pinned = self.af.find("ist:gepinnt backup")
+        self.assertEqual(len(hits_german_pinned), 1)
+        self.assertEqual(hits_german_pinned[0]["name"], "tool-py-backup")
+
+        hits_german_not_pinned = self.af.find("nicht:gepinnt typ:tool backup")
+        self.assertEqual(len(hits_german_not_pinned), 1)
+        self.assertEqual(hits_german_not_pinned[0]["name"], "tool-rust-backup")
+
+        hits_german_pinned_ja = self.af.find("gepinnt:ja backup")
+        self.assertEqual(len(hits_german_pinned_ja), 1)
+        self.assertEqual(hits_german_pinned_ja[0]["name"], "tool-py-backup")
+
+        # 10. Inline limit: / max: Filter
+        hits_limit = self.af.find("backup limit:1")
+        self.assertEqual(len(hits_limit), 1)
+
+        hits_max = self.af.find("type:tool backup max:1")
+        self.assertEqual(len(hits_max), 1)
 
     def test_like_query_with_column_filters(self):
         """Testet den gezielten Spaltenabgleich des LIKE-Fallbacks bei Vorliegen von Spaltenfiltern."""
