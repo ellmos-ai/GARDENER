@@ -57,9 +57,9 @@ class TestMetadataParity(unittest.TestCase):
         self.assertIn(f"[{version}]", self.changelog)
 
     def test_readme_badges_and_test_count(self):
-        # Assert test badges show 218 passed
-        self.assertIn("tests-218%20passed-brightgreen.svg", self.readme_en)
-        self.assertIn("tests-218%20passed-brightgreen.svg", self.readme_de)
+        # Assert test badges show 219 passed
+        self.assertIn("tests-219%20passed-brightgreen.svg", self.readme_en)
+        self.assertIn("tests-219%20passed-brightgreen.svg", self.readme_de)
 
         # Assert NOTICE attribution badge
         self.assertIn("Attribution-NOTICE-blue.svg", self.readme_en)
@@ -96,7 +96,7 @@ class TestMetadataParity(unittest.TestCase):
 
     def test_llms_txt_consistency(self):
         self.assertIn("Last-checked: 2026-09-28", self.llms_txt)
-        self.assertIn("218 passing tests", self.llms_txt)
+        self.assertIn("219 passing tests", self.llms_txt)
         self.assertIn("https://github.com/ellmos-ai/gardener", self.llms_txt)
         self.assertIn("ellmos-ai/gardener", self.llms_txt)
         self.assertIn("NOTICE", self.llms_txt)
@@ -384,6 +384,40 @@ class TestMetadataParity(unittest.TestCase):
             mod_code = (ROOT / module_name).read_text(encoding="utf-8")
             for forbidden in ("urllib.request", "requests", "httpx", "aiohttp"):
                 self.assertNotIn(forbidden, mod_code, f"{module_name} must not import {forbidden}")
+
+    def test_bilingual_architecture_docs_parity(self):
+        design_path = ROOT / "DESIGN.md"
+        konzept_path = ROOT / "KONZEPT.md"
+        self.assertTrue(design_path.is_file(), "DESIGN.md must exist")
+        self.assertTrue(konzept_path.is_file(), "KONZEPT.md must exist")
+
+        design = design_path.read_text(encoding="utf-8")
+        konzept = konzept_path.read_text(encoding="utf-8")
+
+        # Assert reciprocal cross-links
+        self.assertIn("KONZEPT.md", design)
+        self.assertIn("DESIGN.md", konzept)
+
+        # Assert federated cross-source index section and 4 adapters documented in both
+        for adapter in ("markdown_dir", "remember_files", "sqlite_table", "agent_transcripts"):
+            self.assertIn(adapter, design)
+            self.assertIn(adapter, konzept)
+
+        # Assert provenance and query scoping
+        self.assertIn("source_ref", design)
+        self.assertIn("source_ref", konzept)
+        self.assertIn("--source", design)
+        self.assertIn("--source", konzept)
+
+        # Assert absorb vs. observe custody distinction table and mental model
+        self.assertIn("absorb", design)
+        self.assertIn("absorb", konzept)
+        self.assertIn("observe_source", design)
+        self.assertIn("observe_source", konzept)
+        self.assertIn("Mailbox", design)
+        self.assertIn("Telescope", design)
+        self.assertIn("Briefkasten", konzept)
+        self.assertIn("Fernrohr", konzept)
 
 
 if __name__ == "__main__":

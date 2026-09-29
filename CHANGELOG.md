@@ -2,6 +2,18 @@
  
 ## [Unreleased]
 
+### Federated Ingestion & Custody Architecture Parity (2026-09-29)
+
+- **Comprehensive Bilingual Documentation of Federated observe_source Architecture (`DESIGN.md`, `KONZEPT.md`)**:
+  - Documented the architectural evolution from local single-directory observation to the cross-source federated index substrate across multi-agent environments.
+  - Formally specified the four adapter kinds (`markdown_dir`, `remember_files`, `sqlite_table`, `agent_transcripts`) and streaming byte-offset mechanics for multi-gigabyte JSONL chat transcripts (`claude_code`, `gemini_antigravity`, `codex`, `kimi`).
+  - Added the definitive comparison between **Curated Custody** (`absorb()`, physical ingestion into the house, `.absorber/` mailbox model, lifecycle decay & pruning) and **Federated Ingestion** (`observe()` / `observe_source`, read-only non-intrusive lens, telescope model, `source_ref` back-citations).
+  - Updated architectural open questions, marking cross-source adapters and workspace management as resolved.
+- **Bilingual Documentation Parity Contract Test (`tests/test_metadata.py`)**:
+  - Added `test_bilingual_architecture_docs_parity` asserting existence, reciprocal links, adapter definitions, provenance metadata, query scoping, and custody distinction across `DESIGN.md` and `KONZEPT.md`.
+  - Expanded test suite from 218 to 219 passing tests (35 subtests, 100% green).
+  - Synchronized `README.md`, `README_de.md`, `llms.txt`, and `tests/test_metadata.py`.
+
 ### Core Paths Contract Tests (2026-09-29)
 
 - **Comprehensive Core Engine Contract Tests (`TestCorePathsContract` in `tests/test_gardener_core.py`)**:

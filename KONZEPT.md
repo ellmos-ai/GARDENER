@@ -260,6 +260,87 @@ SQLite-Datenbanken).
 
 ---
 
+## Quellenübergreifender föderierter Index & Adapter-Architektur (observe_source)
+
+### Architektonische Evolution: Vom Einzelordner zum föderierten Substrat
+
+Im ursprünglichen Entwurf (v0.1–v0.2) war Gardeners Dateischnittstelle auf das eigene Arbeitsverzeichnis (`~/.gardener` bzw. Repo-Home) begrenzt: Dateien im Briefkasten (`.absorber/`) wurden ins Haus geholt, und Dateien im Stammverzeichnis wurden beobachtet.
+
+Mit dem Anwachsen des Multi-Agenten-Ökosystems (v0.3.0+ / v0.4.0+) entwickelte sich Gardener zum **föderierten Wissenssubstrat** des gesamten Entwicklerarbeitsplatzes. Wissen existiert nicht an einem einzigen isolierten Ort:
+- Agenten führen laufende Gesprächsprotokolle in streaming-basierten JSONL-Transkripten (`claude`, `antigravity`/Gemini, `codex`, `kimi`).
+- Werkzeuge und Entwicklungsumgebungen verwalten verteilte Markdown-Gedächtnisse über mehrere Projektbäume.
+- Partnersysteme (wie Rinnsal oder BACH) halten fachspezifische Tabellen in eigenen SQLite-Datenbanken vor.
+
+Statt fremde Teilsysteme dazu zu zwingen, ihre Datenbestände in Gardeners interne Tabellen zu migrieren, agiert Gardener als **föderierte, nicht-invasive Beobachtungsinstanz**. Es indiziert externes Wissen direkt an Ort und Stelle und macht es über die einheitliche FTS5-BM25-Volltextsuche auffindbar, ohne die Quellsysteme zu berühren oder zu verändern.
+
+```
+┌────────────────────────────────────────────────────────────────────────┐
+│                      GARDENER FÖDERIERTER INDEX                        │
+│                                                                        │
+│   ┌────────────────────┐   ┌──────────────────┐   ┌────────────────┐   │
+│   │   user.db (Haus)   │   │  gardener.db     │   │ Externer Index │   │
+│   │  type='memory'     │   │  type='knowledge'│   │ observed/...   │   │
+│   │  type='task'       │   │  type='tool'     │   │ source_ref     │   │
+│   │  type='document'   │   │  type='blueprint'│   │ nur lesend     │   │
+│   └─────────┬──────────┘   └────────┬─────────┘   └───────┬────────┘   │
+│             │                       │                     │            │
+│             └───────────────────────┼─────────────────────┘            │
+│                                     │                                  │
+│                           ┌─────────▼─────────┐                        │
+│                           │   everything_fts  │                        │
+│                           │   (FTS5 + BM25)   │                        │
+│                           └─────────┬─────────┘                        │
+│                                     │                                  │
+│                     gardener find [--source <id>] <suchbegriff>        │
+└────────────────────────────────────────────────────────────────────────┘
+          ▲                           ▲                          ▲
+          │                           │                          │
+   [markdown_dir]             [agent_transcripts]          [sqlite_table]
+          │                           │                          │
+~/.claude/projects/*/mem       ~/.gemini/.../transcript    fremde.db (mode=ro)
+```
+
+### Die vier Adapter-Typen (`sources.py`)
+
+1. **`markdown_dir`**: Durchsucht Verzeichnisse von Markdown-Notizen oder Dokumentationsbäumen (z. B. Claude-Code-Gedächtnisordner). Unterstützt Glob-Muster (`patterns: ["*.md", "*.txt"]`) und `extra_tags`, um indizierte Streams für nachgelagerte Suchfilter sauber abzugrenzen.
+2. **`remember_files`**: Erfasst dezentrale `.remember`-Notizen und Merkzettel über rekursive Pfadmuster.
+3. **`sqlite_table`**: Bindet beliebige externe SQLite-Datenbanken strikt schreibgeschützt an (`mode=ro`, `PRAGMA query_only = ON`). Mappt externe Tabellenspalten dynamisch auf Gardeners Schema (`name`, `content`, `tags`), ohne dass Gardener deren Gesamtschema kennen muss.
+4. **`agent_transcripts`**: Indiziert Multi-Agenten-Sitzungstranskripte aus fortlaufenden JSONL-Logs (mit eingebauten Format-Presets für `claude_code`, `gemini_antigravity`, `codex` und `kimi`).
+   - **Inkrementelles Byte-Tailing**: Vermeidet das wiederholte Einlesen gigabytegroßer Protokolldateien durch Fortsetzen ab dem gespeicherten Byte-Offset.
+   - **Dialog-Filterung**: Extrahiert ausschließlich echte Gesprächsbeiträge von Nutzer und Assistent; interne Denkprozesse („thinking"), Werkzeugaufrufe und Prozessausgaben werden herausgefiltert.
+
+### Architektonische Invarianten der föderierten Indizierung
+
+- **Zero-Egress & Lokale Ausführung**: Sämtliche Adapter laufen rein lokal im Hostprozess; keine Netzwerk-Bibliotheken oder Remote-Aufrufe.
+- **Never-Index-Ausschlussliste**: Eine feste, nicht überschreibbare Ausschlussliste sperrt Zugangsdaten, `.env`-Dateien, private Schlüssel, SSH-Konfigurationen und gelockte Datenbankdateien zuverlässig aus.
+- **Automatische Geheimnis-Schwärzung**: Vor dem Schreiben in den FTS5-Index laufen alle Adapter-Texte durch eine Regex-Bereinigung, die API-Schlüssel und Tokens unkenntlich macht.
+- **Quellen-Zitat (`source_ref`)**: Jeder Treffer führt in `meta.source_ref` den exakten Herkunftsnachweis (Dateipfad, Zeilennummer, SQLite-Tabelle + Primärschlüssel oder Transkript-UUID).
+- **Gezielte Quellfilterung (`--source`)**: Massenhafte Transkriptzeilen können über `gardener find --source <id> <suchbegriff>` isoliert oder ausgeblendet werden, damit sie kompaktes Fachwissen im BM25-Ranking nicht überlagern.
+
+---
+
+### Abgrenzung: Kuratierte Obhut (`absorb`) vs. Föderierter Index (`observe` / `observe_source`)
+
+Eine fundamentale architektonische Leitlinie von Gardener ist die klare Trennung zwischen **kuratierter Obhut** und **föderierter Indizierung**:
+
+| Dimension | Kuratierte Obhut (`absorb`) | Föderierter Index (`observe` / `observe_source`) |
+|:---|:---|:---|
+| **Primärer Zweck** | Dateien ins Haus holen für dauerhafte, verwaltete Aufbewahrung. | Einheitliche Such- und Orientierungssicht auf externe Daten schaffen. |
+| **Physischer Speicherort** | In Gardeners Datenbank (`user.db` inline, `blobs/` oder `halde/`). | Bleibt unverändert am ursprünglichen externen Ort auf der Festplatte liegen. |
+| **Eingangskanal** | Ablegen im Ordner `.absorber/` (Briefkasten) oder Aufruf von `absorb(pfad)`. | Konfiguration von Pfaden, Datenbanktabellen oder Logs in `sources.py`. |
+| **Auswirkung auf Originaldatei** | **Konsumiert und aus `.absorber/` entfernt**; Gardener wird Eigentümer. | **Vollständig unangetastet**; wird weder verändert, umbenannt noch gelöscht. |
+| **Lebenszyklus & Pflege** | Von Gardener verwaltet: editierbar, Decay-Verfall, Konsolidierung, Löschung. | Vom Quellsystem verwaltet; Gardener aktualisiert lediglich den Suchindex. |
+| **Ausgang / Materialisierung** | Kann bei Bedarf über `materialize()` in `.output/` exportiert werden. | Keine Materialisierung durch Gardener nötig (Original existiert unverändert). |
+| **Namensraum im Index** | `type='document'`, `name='<dateiname>'` | `type='observed'`, `name='observed/<source_id>/<relativer_pfad>'` |
+| **Provenienz-Metadaten** | `meta.original_path`, `meta.storage_tier`, `meta.content_hash` | `meta.source_ref`, `meta.source_id`, `meta.fingerprint` |
+
+#### Das Denkmodell: Der Briefkasten vs. Das Fernrohr
+
+- **`absorb()` ist der Briefkasten**: Wird eine Rechnung oder ein Dokument in den `.absorber/` geworfen, entspricht das dem Einwurf in den Hausbriefkasten. Gardener leert den Kasten, liest das Dokument ein, archiviert es im Tresor (`user.db` bzw. Blobspeicher) und räumt den Briefkasten auf. Die Datei wohnt nun im Haus. Wird sie wieder auf der Festplatte gebraucht, ruft man `materialize()` auf, und Gardener druckt sie nach `.output/` aus.
+- **`observe()` / `observe_source` ist das Fernrohr**: Wenn Gardener Projektordner, externe Datenbanken oder Chatlogs beobachtet, schaut er vom Balkon mit dem Fernrohr in den Garten. Er liest und kartiert die Inhalte, damit das LLM genau weiß, was im gesamten Ökosystem existiert und wo es zu finden ist. Aber er greift niemals in die Beete hinein, um Blumen umzupflanzen oder abzuschneiden.
+
+---
+
 ## Datenmodell
 
 ### Kern-Tabelle (90% aller Daten)
@@ -799,11 +880,11 @@ Die Wahrheit bleibt in der DB. Die Datei ist nur ein Snapshot für menschliche A
 - ~~Konsolidierung?~~ → Einfach: Decay + Forget, keine Pipeline
 - ~~DB-Viewer?~~ → Wird aus BACH portiert
 - ~~Fachtabellen?~~ → Füllen sich bei Portierung von Skills/Tools aus BACH
-- ~~Selbstheilung?~~ → Später; wichtige Daten sind in DB gesichert, materialize() reicht
+- ~~Self-healing?~~ → Später; wichtige Daten sind in DB gesichert, materialize() reicht
+- ~~Externe Werkzeuge & quellenübergreifende Suche?~~ → Föderierte observe-source-Adapter in sources.py (markdown_dir, remember_files, sqlite_table, agent_transcripts) mit schreibgeschützter FTS5-Indizierung
+- ~~Workspace-Ordnerverwaltung?~~ → clean_workspace(max_age_seconds) in gardener.py
 
 ### Offen
 - Wie funktioniert Versionierung innerhalb der DB (Änderungshistorie)?
 - Braucht es ein Rechte-Modell (wer darf was in gardener.db ändern)?
 - Evolution von BACH (v4) oder eigenständiges Projekt?
-- Wie interagiert Gardener mit externen Tools (MCP, APIs, Shell)?
-- Wie wird der Workspace-Ordner verwaltet (aufräumen, max. Größe)?
