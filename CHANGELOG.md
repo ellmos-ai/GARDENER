@@ -2,6 +2,28 @@
  
 ## [Unreleased]
 
+### Bilingual 18-Point Navigation Parity, ASCII Architecture Topology & Level 1 SBOM Companion (2026-09-30)
+
+- **Level 1 Software Bill of Materials (SBOM) Companion (`THIRD_PARTY_LICENSES.txt`)**:
+  - Authored canonical plain-text companion file `THIRD_PARTY_LICENSES.txt` Stand 2026-09-30 with all 10 governance and runtime invariants (`INV-LOCAL-01` to `INV-SLA-10`), `RunAsInvoker` unprivileged execution guarantee, zero runtime dependencies (100% Python Standard Library PSF-2.0), development tooling (pytest, ruff, setuptools), and complete license texts.
+  - Linked `THIRD_PARTY_LICENSES.txt` in `NOTICE`, `THIRD_PARTY_LICENSES.md`, `README.md`, `README_de.md`, `llms.txt`, and `pyproject.toml`.
+- **ASCII Four-View Architectural Topology Projection (`README.md`, `README_de.md`)**:
+  - Embedded high-clarity 4-view ASCII architectural diagrams in Section 2 across both English and German README specifications:
+    - View 1: Layered System Topology (User Surfaces -> Orchestration -> Engine & Filter -> Substrate & Storage).
+    - View 2: Data Flow & Mutation Isolation (`RunAsInvoker` unprivileged execution boundary, `workspace/` sandbox lifecycle, zero-egress SQLite).
+    - View 3: Federated Ingestion vs. Curated Custody (Telescope Observe vs. House Ingestion).
+    - View 4: Everything Substrat Dual-Database Physical Layout (`gardener.db` system blueprints vs. `user.db` userland state).
+- **Bilingual 18-Point Direct Anchor Navigation Parity**:
+  - Standardized explicit HTML target anchors `<a id="sec-01">` through `<a id="sec-18">` across all 18 numbered sections in both `README.md` and `README_de.md`.
+  - Harmonized Quick Navigation overview tables with direct anchor links (`[#sec-01](#sec-01)` .. `[#sec-18](#sec-18)`).
+- **PEP 621 Metadata & GitHub Discoverability Standardization (`pyproject.toml`)**:
+  - Added `THIRD_PARTY_LICENSES.txt` to `project.license-files`.
+  - Saturated `keywords` to 20 canonical topics aligning 1:1 with GitHub remote topics.
+  - Added `[project.urls]` entries for `"Level 1 SBOM"`, `"Third-Party Licenses (Text)"`, and `"Plain-Text License"`.
+- **Contract Tests**:
+  - Added assertions in `tests/test_metadata.py` verifying bilingual 18-point anchor parity (`sec-01` .. `sec-18`), ASCII topology projections, Level 1 SBOM invariants, and PEP 621 URL/keyword alignment.
+  - Test suite expanded to **224 passed, 35 subtests passed** (100% green); badges and metadata synchronized.
+
 ### Deutsche Filter-Aliase, Inline Limit-Parsing & Search-GUI-Härtung (2026-09-29)
 
 - **Deutsche Filter-Aliase & `limit:` / `max:` Inline-Parsing (`gardener.py`)**:

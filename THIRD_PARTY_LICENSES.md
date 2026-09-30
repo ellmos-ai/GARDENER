@@ -4,7 +4,8 @@
 - **Description:** Database-centric operating system for LLMs: find, get, put, run on a single SQLite substrate.
 - **License:** [MIT License](LICENSE)
 - **Attribution:** [NOTICE](NOTICE)
-- **Audit Date:** 2026-09-26
+- **Plain-Text Companion:** [THIRD_PARTY_LICENSES.txt](THIRD_PARTY_LICENSES.txt)
+- **Audit Date:** 2026-09-30
 - **Repository:** [ellmos-ai/gardener](https://github.com/ellmos-ai/gardener)
 - **Organization:** [ellmos-ai](https://github.com/ellmos-ai)
 - **Umbrella Collective:** [open-bricks](https://github.com/open-bricks)

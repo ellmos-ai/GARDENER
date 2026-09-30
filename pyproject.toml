@@ -11,20 +11,30 @@ version = "0.4.2"
 description = "Curated memory for agentic systems: Gardener tames wild systems, knows what belongs to the garden, and makes it searchable."
 readme = "README.md"
 license = "MIT"
-license-files = ["LICENSE", "NOTICE", "THIRD_PARTY_LICENSES.md"]
+license-files = ["LICENSE", "NOTICE", "THIRD_PARTY_LICENSES.md", "THIRD_PARTY_LICENSES.txt"]
 authors = [{ name = "Lukas Geiger" }]
 requires-python = ">=3.10"
 keywords = [
-    "llm",
-    "agent",
-    "sqlite",
-    "memory",
-    "operating-system",
+    "agent-framework",
+    "ai-agent",
+    "automation",
+    "cli",
+    "database-os",
     "fts5",
-    "bm25",
+    "knowledge-management",
+    "llm",
+    "llm-agents",
+    "llm-native",
+    "llm-operating-system",
     "local-first",
-    "zero-egress",
-    "knowledge-base",
+    "memory-system",
+    "open-source",
+    "operating-system",
+    "python",
+    "searchable-memory",
+    "sqlite",
+    "sqlite-agent-memory",
+    "task-management",
 ]
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -44,7 +54,7 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/ellmos-ai/gardener"
+Homepage = "https://github.com/ellmos-ai/gardener#readme"
 Documentation = "https://github.com/ellmos-ai/gardener#readme"
 Repository = "https://github.com/ellmos-ai/gardener"
 "Source Code" = "https://github.com/ellmos-ai/gardener"
@@ -59,6 +69,9 @@ Umbrella = "https://github.com/open-bricks"
 "LLM Ready" = "https://github.com/ellmos-ai/gardener/blob/master/llms.txt"
 "Marketing Log" = "https://github.com/ellmos-ai/gardener/blob/master/MARKETING-LOG.txt"
 "Third-Party Licenses" = "https://github.com/ellmos-ai/gardener/blob/master/THIRD_PARTY_LICENSES.md"
+"Third-Party Licenses (Text)" = "https://github.com/ellmos-ai/gardener/blob/master/THIRD_PARTY_LICENSES.txt"
+"Level 1 SBOM" = "https://github.com/ellmos-ai/gardener/blob/master/THIRD_PARTY_LICENSES.txt"
+"Plain-Text License" = "https://github.com/ellmos-ai/gardener/blob/master/LICENSE"
 
 [project.scripts]
 gardener = "gardener:main"

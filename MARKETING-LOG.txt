@@ -286,3 +286,41 @@ Version: 0.4.2
     - Extended token and find assertions in `tests/test_gardener_core.py`.
     - Synchronized `tests/test_metadata.py` assertions to 206 passed.
     - All 206 tests passed with 35 subtests (100% green).
+
+================================================================================
+8. BILINGUAL 18-POINT NAVIGATION PARITY, ASCII TOPOLOGY & LEVEL 1 SBOM (2026-09-30)
+================================================================================
+Operator: Antigravity / Gemini (via GITHUBBOT Pfad B)
+Canonical Path: C:\_Local_DEV\repos\gardener
+Version: 0.4.2 (Frozen per T-20260920-167562623)
+
+[x] Level 1 Software Bill of Materials (SBOM) Plain-Text Companion:
+    - Authored canonical plain-text companion file THIRD_PARTY_LICENSES.txt Stand 2026-09-30.
+    - Encoded all 10 governance and runtime invariants (INV-LOCAL-01 through INV-SLA-10).
+    - Certified RunAsInvoker unprivileged execution guarantee and pure standard library runtime.
+    - Catalogued development tools: pytest (MIT), ruff (MIT/Apache-2.0), setuptools (MIT).
+    - Verified cross-links in NOTICE, THIRD_PARTY_LICENSES.md, README.md, README_de.md, and llms.txt.
+
+[x] ASCII Four-View Architectural Topology Projection:
+    - Designed and embedded high-clarity 4-view ASCII architectural projections in Section 2
+      across both English (README.md) and German (README_de.md) specifications:
+      * View 1: Layered System Topology (User Surfaces -> Core Engine -> SQLite Substrate -> Sources)
+      * View 2: Data Flow & Mutation Isolation (RunAsInvoker execution sandbox, zero cloud egress)
+      * View 3: Federated Ingestion vs. Curated Custody (Observe telescope vs. Absorb house)
+      * View 4: Everything Substrate Dual-Database Physical Layout (gardener.db vs. user.db)
+
+[x] Bilingual 18-Point Direct Anchor Navigation Parity:
+    - Standardized explicit HTML target anchors <a id="sec-01"> through <a id="sec-18"> across
+      all 18 numbered sections in both README.md and README_de.md.
+    - Updated Quick Navigation tables in both languages with [#sec-01](#sec-01) .. [#sec-18](#sec-18).
+
+[x] PEP 621 Standard Metadata & Discoverability Standardization (pyproject.toml):
+    - Added THIRD_PARTY_LICENSES.txt to project.license-files.
+    - Saturated project.keywords to 20 canonical topics aligning 1:1 with remote GitHub repository topics.
+    - Added [project.urls] entries for "Level 1 SBOM", "Third-Party Licenses (Text)", and "Plain-Text License".
+    - Preserved frozen version 0.4.2 per rule T-20260920-167562623.
+
+[x] Automated Contract Test Expansion (tests/test_metadata.py):
+    - Added comprehensive assertions for bilingual 18-point anchors, ASCII topology projections,
+      Level 1 SBOM plain-text companion existence, invariants, and PEP 621 metadata alignment.
+    - Verified full test suite at 224 passed with 35 subtests (100% green).

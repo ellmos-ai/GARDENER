@@ -18,6 +18,7 @@ class TestMetadataParity(unittest.TestCase):
         self.readme_de_path = ROOT / "README_de.md"
         self.security_path = ROOT / "SECURITY.md"
         self.third_party_licenses_path = ROOT / "THIRD_PARTY_LICENSES.md"
+        self.third_party_licenses_txt_path = ROOT / "THIRD_PARTY_LICENSES.txt"
         self.ci_workflow_path = ROOT / ".github" / "workflows" / "ci.yml"
         self.stale_workflow_path = ROOT / ".github" / "workflows" / "stale.yml"
         self.welcome_workflow_path = ROOT / ".github" / "workflows" / "welcome.yml"
@@ -34,6 +35,7 @@ class TestMetadataParity(unittest.TestCase):
         self.readme_de = self.readme_de_path.read_text(encoding="utf-8")
         self.security = self.security_path.read_text(encoding="utf-8")
         self.third_party_licenses = self.third_party_licenses_path.read_text(encoding="utf-8")
+        self.third_party_licenses_txt = self.third_party_licenses_txt_path.read_text(encoding="utf-8")
         self.ci_workflow = self.ci_workflow_path.read_text(encoding="utf-8")
         self.stale_workflow = self.stale_workflow_path.read_text(encoding="utf-8")
         self.welcome_workflow = self.welcome_workflow_path.read_text(encoding="utf-8")
@@ -57,17 +59,21 @@ class TestMetadataParity(unittest.TestCase):
         self.assertIn(f"[{version}]", self.changelog)
 
     def test_readme_badges_and_test_count(self):
-        # Assert test badges show 222 passed
-        self.assertIn("tests-222%20passed-brightgreen.svg", self.readme_en)
-        self.assertIn("tests-222%20passed-brightgreen.svg", self.readme_de)
+        # Assert test badges show 224 passed
+        self.assertIn("tests-224%20passed-brightgreen.svg", self.readme_en)
+        self.assertIn("tests-224%20passed-brightgreen.svg", self.readme_de)
+
+        # Assert Level 1 SBOM badge
+        self.assertIn("Level_1_SBOM-Plain_Text_Audited-brightgreen.svg", self.readme_en)
+        self.assertIn("Level_1_SBOM-Plain_Text_Audited-brightgreen.svg", self.readme_de)
 
         # Assert NOTICE attribution badge
         self.assertIn("Attribution-NOTICE-blue.svg", self.readme_en)
         self.assertIn("Attribution-NOTICE-blue.svg", self.readme_de)
 
         # Assert Verified badge
-        self.assertIn("verified-2026--09--29-blue.svg", self.readme_en)
-        self.assertIn("verified-2026--09--29-blue.svg", self.readme_de)
+        self.assertIn("verified-2026--09--30-blue.svg", self.readme_en)
+        self.assertIn("verified-2026--09--30-blue.svg", self.readme_de)
 
         # Assert code style Ruff
         self.assertIn("code%20style-ruff-000000.svg", self.readme_en)
@@ -95,14 +101,15 @@ class TestMetadataParity(unittest.TestCase):
         self.assertIn("actions/workflows/ci.yml/badge.svg", self.readme_de)
 
     def test_llms_txt_consistency(self):
-        self.assertIn("Last-checked: 2026-09-29", self.llms_txt)
-        self.assertIn("222 passing tests", self.llms_txt)
+        self.assertIn("Last-checked: 2026-09-30", self.llms_txt)
+        self.assertIn("224 passing tests", self.llms_txt)
         self.assertIn("https://github.com/ellmos-ai/gardener", self.llms_txt)
         self.assertIn("ellmos-ai/gardener", self.llms_txt)
         self.assertIn("NOTICE", self.llms_txt)
         self.assertIn("SECURITY.md", self.llms_txt)
         self.assertIn("MARKETING-LOG", self.llms_txt)
         self.assertIn("THIRD_PARTY_LICENSES", self.llms_txt)
+        self.assertIn("THIRD_PARTY_LICENSES.txt", self.llms_txt)
         self.assertIn("[PERSONA-01]", self.llms_txt)
 
     def test_mermaid_architecture_in_readmes(self):
@@ -125,6 +132,11 @@ class TestMetadataParity(unittest.TestCase):
         for i in range(1, 19):
             self.assertIn(f"## {i}.", self.readme_en, f"Section {i} missing in README.md")
             self.assertIn(f"## {i}.", self.readme_de, f"Section {i} missing in README_de.md")
+            sec_id = f"sec-{i:02d}"
+            self.assertIn(f'id="{sec_id}"', self.readme_en, f'Anchor id="{sec_id}" missing in README.md')
+            self.assertIn(f'id="{sec_id}"', self.readme_de, f'Anchor id="{sec_id}" missing in README_de.md')
+            self.assertIn(f"(#{sec_id})", self.readme_en, f'Nav jump (#{sec_id}) missing in README.md')
+            self.assertIn(f"(#{sec_id})", self.readme_de, f'Nav jump (#{sec_id}) missing in README_de.md')
 
         # Verify key reciprocal anchors exist in both READMEs
         key_anchors = [
@@ -290,14 +302,41 @@ class TestMetadataParity(unittest.TestCase):
         self.assertIn("Operating System :: OS Independent", self.pyproject)
         self.assertIn("Programming Language :: Python :: 3.10", self.pyproject)
         self.assertIn("Programming Language :: Python :: 3.13", self.pyproject)
-        self.assertIn('license-files = ["LICENSE", "NOTICE", "THIRD_PARTY_LICENSES.md"]', self.pyproject)
+        self.assertIn('"THIRD_PARTY_LICENSES.txt"', self.pyproject)
 
         for key in (
             "Homepage", "Documentation", "Repository", "Source Code", "Issues", "Bug Tracker",
             "Changelog", "Security", "Notice", "Parent Organization", "Umbrella", "Umbrella Ecosystem",
-            "LLM Ready", "Marketing Log", "Third-Party Licenses"
+            "LLM Ready", "Marketing Log", "Third-Party Licenses", "Level 1 SBOM",
+            "Third-Party Licenses (Text)", "Plain-Text License"
         ):
             self.assertIn(f'"{key}" = ' if " " in key else f"{key} = ", self.pyproject)
+
+    def test_ascii_architecture_topology_projections(self):
+        # Assert 4-view ASCII architectural diagrams in English README
+        self.assertIn("VIEW 1: CLIENT RUNTIMES, AGENT CLIENTS & USER INTERFACES", self.readme_en)
+        self.assertIn("VIEW 2: GARDENER SOVEREIGN CORE ENGINE & MEMORY ORCHESTRATOR", self.readme_en)
+        self.assertIn("VIEW 3: DUAL SQLITE SUBSTRATE, FTS5 BM25 ENGINE & FEDERATED INGESTION", self.readme_en)
+        self.assertIn("VIEW 4: AIR-GAP DEFENSE PERIMETER, ZERO-EGRESS & GOVERNANCE", self.readme_en)
+
+        # Assert 4-view ASCII architectural diagrams in German README
+        self.assertIn("SICHT 1: CLIENT-LAUFZEITEN, AGENTEN-SCHNITTSTELLEN & BENUTZEROBERFLÄCHEN", self.readme_de)
+        self.assertIn("SICHT 2: AUTONOME KERN-ENGINE, PRIMITIVE & SPEICHER-ORCHESTRIERER", self.readme_de)
+        self.assertIn("SICHT 3: DUALES SQLITE-SUBSTRAT, FTS5-BM25-ENGINE & FÖDERIERTE BEOBACHTUNG", self.readme_de)
+        self.assertIn("SICHT 4: AIR-GAP-SICHERHEITSGRENZE, ZERO-EGRESS & GOVERNANCE-PERIMETER", self.readme_de)
+
+    def test_third_party_licenses_plain_text_companion(self):
+        self.assertTrue(self.third_party_licenses_txt_path.is_file(), "THIRD_PARTY_LICENSES.txt must exist")
+        self.assertIn("Python Standard Library", self.third_party_licenses_txt)
+        self.assertIn("PSF-2.0", self.third_party_licenses_txt)
+        self.assertIn("pytest", self.third_party_licenses_txt)
+        self.assertIn("ruff", self.third_party_licenses_txt)
+        self.assertIn("setuptools", self.third_party_licenses_txt)
+        self.assertIn("MIT", self.third_party_licenses_txt)
+        self.assertIn("RunAsInvoker", self.third_party_licenses_txt)
+        self.assertIn("Zero-Copyleft", self.third_party_licenses_txt)
+        self.assertIn("INV-LOCAL-01", self.third_party_licenses_txt)
+        self.assertIn("INV-SLA-10", self.third_party_licenses_txt)
 
     def test_pyproject_pytest_and_ruff_config(self):
         self.assertIn("[tool.pytest.ini_options]", self.pyproject)
@@ -346,6 +385,7 @@ class TestMetadataParity(unittest.TestCase):
         self.assertIn("2026-09-18", self.marketing_log)
         self.assertIn("2026-09-26", self.marketing_log)
         self.assertIn("2026-09-28", self.marketing_log)
+        self.assertIn("2026-09-30", self.marketing_log)
         self.assertIn("Pfad A", self.marketing_log)
         self.assertIn("Pfad B", self.marketing_log)
         self.assertIn("ellmos-ai/gardener", self.marketing_log)
@@ -354,6 +394,7 @@ class TestMetadataParity(unittest.TestCase):
         self.assertIn("2026-09-18", self.changelog)
         self.assertIn("2026-09-26", self.changelog)
         self.assertIn("2026-09-28", self.changelog)
+        self.assertIn("2026-09-30", self.changelog)
 
     def test_license_and_liability_notice(self):
         license_path = ROOT / "LICENSE"

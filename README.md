@@ -13,8 +13,9 @@
 [![Platforms](https://img.shields.io/badge/platforms-Linux%20%7C%20Windows%20%7C%20macOS-lightgrey.svg)](https://github.com/ellmos-ai/gardener)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Attribution: NOTICE](https://img.shields.io/badge/Attribution-NOTICE-blue.svg)](NOTICE)
-[![Verified: 2026-09-29](https://img.shields.io/badge/verified-2026--09--29-blue.svg)](https://github.com/ellmos-ai/gardener)
-[![Tests: 222 passed](https://img.shields.io/badge/tests-222%20passed-brightgreen.svg)](https://github.com/ellmos-ai/gardener)
+[![Verified: 2026-09-30](https://img.shields.io/badge/verified-2026--09--30-blue.svg)](https://github.com/ellmos-ai/gardener)
+[![Tests: 224 passed](https://img.shields.io/badge/tests-224%20passed-brightgreen.svg)](https://github.com/ellmos-ai/gardener)
+[![Level 1 SBOM: Plain Text Audited](https://img.shields.io/badge/Level_1_SBOM-Plain_Text_Audited-brightgreen.svg)](THIRD_PARTY_LICENSES.txt)
 [![Execution: RunAsInvoker](https://img.shields.io/badge/execution-RunAsInvoker-success.svg)](THIRD_PARTY_LICENSES.md)
 [![Privacy: Local-First](https://img.shields.io/badge/privacy-Local--First%20%7C%20Zero--Egress-brightgreen.svg)](SECURITY.md)
 [![Security Policy](https://img.shields.io/badge/security-48h%20SLA-blue.svg)](SECURITY.md)
@@ -26,7 +27,7 @@
 > [!NOTE]
 > **LLM / Agent Integration**: Gardener provides a single-table FTS5 SQLite substrate (`gardener.db` / `user.db`) with `find`, `get`, `put`, and `run` primitives. See [`llms.txt`](llms.txt) for machine-readable context.
 
-**🇩🇪 [Deutsche Version](README_de.md)** | **⚖️ [Attribution NOTICE](NOTICE)** | **🛡️ [Security Policy](SECURITY.md)** | **📜 [Third-Party Licenses](THIRD_PARTY_LICENSES.md)** | **📝 [Changelog](CHANGELOG.md)** | **📋 [llms.txt](llms.txt)** | **📊 [Marketing Log](MARKETING-LOG.txt)**
+**🇩🇪 [Deutsche Version](README_de.md)** | **⚖️ [Attribution NOTICE](NOTICE)** | **🛡️ [Security Policy](SECURITY.md)** | **📜 [Third-Party Licenses (Markdown)](THIRD_PARTY_LICENSES.md)** | **📄 [Level 1 SBOM (Plain Text)](THIRD_PARTY_LICENSES.txt)** | **📝 [Changelog](CHANGELOG.md)** | **📋 [llms.txt](llms.txt)** | **📊 [Marketing Log](MARKETING-LOG.txt)**
 
 > Status: Prototype (v0.4.2) | Author: Lukas Geiger + Claude
 
@@ -36,28 +37,28 @@
 
 | # | Section (EN) | Abschnitt (DE) | Jump Link |
 |---|---|---|---|
-| 01 | [Features & Core Primitives](#1-features) | [Funktionen & Kernprimitive](#1-funktionen) | [`#1-features`](#1-features) |
-| 02 | [System Architecture](#2-architecture) | [Systemarchitektur](#2-architektur) | [`#2-architecture`](#2-architecture) |
-| 03 | [Target Personas & Discoverability](#3-target-personas--discoverability) | [Zielgruppen & Auffindbarkeit](#3-zielgruppen--auffindbarkeit) | [`#3-target-personas--discoverability`](#3-target-personas--discoverability) |
-| 04 | [Comparative Matrix vs. Alternatives](#4-comparative-matrix-vs-alternatives) | [Vergleichsmatrix vs. Alternativen](#4-vergleichsmatrix-vs-alternativen) | [`#4-comparative-matrix-vs-alternatives`](#4-comparative-matrix-vs-alternatives) |
-| 05 | [Dual Mermaid Diagrams](#5-dual-mermaid-diagrams) | [Duale Mermaid-Diagramme](#5-duale-mermaid-diagramme) | [`#5-dual-mermaid-diagrams`](#5-dual-mermaid-diagrams) |
-| 06 | [Governance & Runtime Invariants](#6-governance--runtime-invariants) | [Governance & Laufzeit-Invarianten](#6-governance--laufzeit-invarianten) | [`#6-governance--runtime-invariants`](#6-governance--runtime-invariants) |
-| 07 | [Data Model & Everything Substrate](#7-data-model--everything-substrate) | [Datenmodell & Everything-Substrat](#7-datenmodell--everything-substrat) | [`#7-data-model--everything-substrate`](#7-data-model--everything-substrate) |
-| 08 | [Dual SQLite Substrate & FTS5 BM25 Engine](#8-sqlite-substrate--fts5-engine) | [Duales SQLite-Substrat & FTS5-BM25](#8-sqlite-substrat--fts5-engine) | [`#8-sqlite-substrate--fts5-engine`](#8-sqlite-substrate--fts5-engine) |
-| 09 | [Search GUI & Web Companion](#9-search-gui--web-companion) | [Such-GUI & Web-Oberfläche](#9-such-gui--web-oberflaeche) | [`#9-search-gui--web-companion`](#9-search-gui--web-companion) |
-| 10 | [Installation & Quickstart](#10-installation--quickstart) | [Installation & Schnellstart](#10-installation--schnellstart) | [`#10-installation--quickstart`](#10-installation--quickstart) |
-| 11 | [CLI & Headless Automation](#11-cli--headless-automation) | [CLI & Headless-Automation](#11-cli--headless-automation) | [`#11-cli--headless-automation`](#11-cli--headless-automation) |
-| 12 | [Unified Task & Memory Management](#12-unified-task--memory-management) | [Einheitliches Task- & Memory-Management](#12-einheitliches-task--memory-management) | [`#12-unified-task--memory-management`](#12-unified-task--memory-management) |
-| 13 | [File Lifecycle: Absorb, Materialize & Sync](#13-file-lifecycle-absorb-materialize--sync) | [Dateilebenszyklus: Absorb, Materialize & Sync](#13-dateilebenszyklus-absorb-materialize--sync) | [`#13-file-lifecycle-absorb-materialize--sync`](#13-file-lifecycle-absorb-materialize--sync) |
-| 14 | [Federated Sources & Secret Redaction](#14-federated-sources--secret-redaction) | [Föderierte Quellen & Secret-Schwärzung](#14-foederierte-quellen--secret-schwaerzung) | [`#14-federated-sources--secret-redaction`](#14-federated-sources--secret-redaction) |
-| 15 | [Architectural Comparison: Gardener vs. Rinnsal](#15-gardener-vs-rinnsal) | [Architekturvergleich: Gardener vs. Rinnsal](#15-gardener-vs-rinnsal) | [`#15-gardener-vs-rinnsal`](#15-gardener-vs-rinnsal) |
-| 16 | [Testing & Quality Verification](#16-testing--quality-verification) | [Tests & Qualitätssicherung](#16-tests--qualitaetssicherung) | [`#16-testing--quality-verification`](#16-testing--quality-verification) |
-| 17 | [Third-Party Licenses & Software Inventory](#17-third-party-licenses--software-inventory) | [Drittanbieter-Lizenzen & Software-Inventar](#17-drittanbieter-lizenzen--software-inventar) | [`#17-third-party-licenses--software-inventory`](#17-third-party-licenses--software-inventory) |
-| 18 | [Security Policy, Sibling Ecosystem & Liability Notice](#18-security-policy-sibling-ecosystem--liability) | [Sicherheitsrichtlinie, Geschwister-Ökosystem & Haftungshinweis](#18-sicherheitsrichtlinie-geschwister-oekosystem--haftung) | [`#18-security-policy-sibling-ecosystem--liability`](#18-security-policy-sibling-ecosystem--liability) |
+| 01 | [Features & Core Primitives](#sec-01) | [Funktionen & Kernprimitive](#sec-01) | [`#sec-01`](#sec-01) |
+| 02 | [System Architecture & Topology](#sec-02) | [Systemarchitektur & Topologie](#sec-02) | [`#sec-02`](#sec-02) |
+| 03 | [Target Personas & Discoverability](#sec-03) | [Zielgruppen & Auffindbarkeit](#sec-03) | [`#sec-03`](#sec-03) |
+| 04 | [Comparative Matrix vs. Alternatives](#sec-04) | [Vergleichsmatrix vs. Alternativen](#sec-04) | [`#sec-04`](#sec-04) |
+| 05 | [Dual Mermaid Diagrams](#sec-05) | [Duale Mermaid-Diagramme](#sec-05) | [`#sec-05`](#sec-05) |
+| 06 | [Governance & Runtime Invariants](#sec-06) | [Governance & Laufzeit-Invarianten](#sec-06) | [`#sec-06`](#sec-06) |
+| 07 | [Data Model & Everything Substrate](#sec-07) | [Datenmodell & Everything-Substrat](#sec-07) | [`#sec-07`](#sec-07) |
+| 08 | [Dual SQLite Substrate & FTS5 BM25 Engine](#sec-08) | [Duales SQLite-Substrat & FTS5-BM25](#sec-08) | [`#sec-08`](#sec-08) |
+| 09 | [Search GUI & Web Companion](#sec-09) | [Such-GUI & Web-Oberfläche](#sec-09) | [`#sec-09`](#sec-09) |
+| 10 | [Installation & Quickstart](#sec-10) | [Installation & Schnellstart](#sec-10) | [`#sec-10`](#sec-10) |
+| 11 | [CLI & Headless Automation](#sec-11) | [CLI & Headless-Automation](#sec-11) | [`#sec-11`](#sec-11) |
+| 12 | [Unified Task & Memory Management](#sec-12) | [Einheitliches Task- & Memory-Management](#sec-12) | [`#sec-12`](#sec-12) |
+| 13 | [File Lifecycle: Absorb, Materialize & Sync](#sec-13) | [Dateilebenszyklus: Absorb, Materialize & Sync](#sec-13) | [`#sec-13`](#sec-13) |
+| 14 | [Federated Sources & Secret Redaction](#sec-14) | [Föderierte Quellen & Secret-Schwärzung](#sec-14) | [`#sec-14`](#sec-14) |
+| 15 | [Architectural Comparison: Gardener vs. Rinnsal](#sec-15) | [Architekturvergleich: Gardener vs. Rinnsal](#sec-15) | [`#sec-15`](#sec-15) |
+| 16 | [Testing & Quality Verification](#sec-16) | [Tests & Qualitätssicherung](#sec-16) | [`#sec-16`](#sec-16) |
+| 17 | [Third-Party Licenses & Software Inventory](#sec-17) | [Drittanbieter-Lizenzen & Software-Inventar](#sec-17) | [`#sec-17`](#sec-17) |
+| 18 | [Security Policy, Sibling Ecosystem & Liability Notice](#sec-18) | [Sicherheitsrichtlinie, Geschwister-Ökosystem & Haftungshinweis](#sec-18) | [`#sec-18`](#sec-18) |
 
 ---
 
-<a id="1-features"></a><a id="features"></a><a id="what-is-gardener"></a>
+<a id="sec-01"></a><a id="1-features"></a><a id="features"></a><a id="what-is-gardener"></a>
 ## 1. Features & Core Primitives
 
 An operating system built specifically for LLMs. Everything lives in a searchable SQLite database. Four functions are all you need:
@@ -73,10 +74,62 @@ An operating system built specifically for LLMs. Everything lives in a searchabl
 
 ---
 
-<a id="2-architecture"></a><a id="architecture"></a>
-## 2. System Architecture
+<a id="sec-02"></a><a id="2-architecture"></a><a id="architecture"></a>
+## 2. System Architecture & Topology
 
 Gardener replaces complex distributed memory microservices with a single, high-performance SQLite substrate:
+
+### ASCII Four-View Architectural Topology Projection
+
+```text
++========================================================================================+
+| [VIEW 1: CLIENT RUNTIMES, AGENT CLIENTS & USER INTERFACES]                             |
++========================================================================================+
+| - Autonomous AI Agents: Claude Code | Codex / GPT | Gemini Antigravity | Ollama Swarms |
+| - Terminal Cockpit: CLI Interface (`gardener find`, `get`, `put`, `run`, `observe`)    |
+| - Local Web Companion: Zero-Egress Search GUI (127.0.0.1:8765 / `search_gui.py`)       |
+| - Programmatic SDK: Direct Python Module Import (`from gardener import Gardener`)      |
++----------------------------------------------------------------------------------------+
+                                         |
+                                         v
++========================================================================================+
+| [VIEW 2: GARDENER SOVEREIGN CORE ENGINE & MEMORY ORCHESTRATOR]                         |
++========================================================================================+
+| - 4 Core Primitives: `find(query)` | `get(name)` | `put(name, content)` | `run(name)`  |
+| - Tokenizer & Filter Engine: Inline Extraction (`type:`, `tag:`, `source:`, `limit:`)  |
+| - Bilingual Natural Aliases: EN (`is:pinned`) <-> DE (`ist:gepinnt`, `typ:`, `quelle:`) |
+| - Lifecycle Engine: Transporter (`absorb`, `materialize`, `sync`)                      |
+| - Memory Maintenance: Hebbian Decay & Pruning (`consolidate`, `recall`, `sleep_union`) |
+| - Ephemeral Sandbox: Materialized Workspace Execution with Automatic Isolation Cleanup |
++----------------------------------------------------------------------------------------+
+                                         |
+                                         v
++========================================================================================+
+| [VIEW 3: DUAL SQLITE SUBSTRATE, FTS5 BM25 ENGINE & FEDERATED INGESTION]                |
++========================================================================================+
+| - Single-Table Schema: Unified `everything` Table (knowledge | tool | memory | task)   |
+| - Physical Separation: `gardener.db` (System Blueprints) <-> `user.db` (User Substrate)|
+| - Full-Text Search Engine: SQLite FTS5 with Native BM25 Ranking & Snippet Generation   |
+| - Federated Streaming Ingestion (Read-Only `mode=ro` External Observation):            |
+|   * `markdown_dir`: Incremental directory tracking with modification caching           |
+|   * `remember_files`: Ad-hoc `.remember` notes indexing without path pollution         |
+|   * `sqlite_table`: Cross-querying foreign database rows without data migration        |
+|   * `agent_transcripts`: High-throughput byte-offset tailing of multi-GB JSONL sessions|
++----------------------------------------------------------------------------------------+
+                                         |
+                                         v
++========================================================================================+
+| [VIEW 4: AIR-GAP DEFENSE PERIMETER, ZERO-EGRESS & GOVERNANCE]                          |
++========================================================================================+
+| - 100% Offline Standard Library: 0 External Runtime Dependencies (PSF-2.0 Runtime)     |
+| - Unprivileged User-Mode Operation (`RunAsInvoker`): Zero Root/Elevation Requirement   |
+| - Automated Pre-Index Secret Redaction: 13 Credential Families Scrubbed Before Indexing|
+| - Cloud Leak Defense: Real-Time Detection & Alerting in Synced Paths (`~/OneDrive`)    |
+| - Path Traversal Sanitization: Strict Rejection of `../` and Absolute Path Injections  |
+| - Level 1 Plain-Text SBOM: `THIRD_PARTY_LICENSES.txt` & Full SPDX Invariant Matrix     |
+| - Statutory Notice: § 521 BGB Gratuitous Loan Disclaimer & Committed 48h Security SLA  |
++========================================================================================+
+```
 
 ```
 Gardener/
@@ -91,6 +144,7 @@ Gardener/
   README.md            # Canonical English specification & documentation
   README_de.md         # Canonical German specification & documentation
   THIRD_PARTY_LICENSES.md # Comprehensive software inventory & SPDX SBOM
+  THIRD_PARTY_LICENSES.txt # Canonical Level 1 SBOM plain-text companion
 
 Local Storage (Local-First, Override with GARDENER_DATA):
   ~/.gardener/
@@ -108,7 +162,7 @@ User Sync Directory (Cloud-Ready, Override with GARDENER_HOME):
 
 ---
 
-<a id="3-target-personas--discoverability"></a><a id="target-personas"></a><a id="discovery-context"></a>
+<a id="sec-03"></a><a id="3-target-personas--discoverability"></a><a id="target-personas"></a><a id="discovery-context"></a>
 ## 3. Target Personas & Discoverability
 
 ### Target Personas
@@ -135,7 +189,7 @@ unprivileged agent tool workspace
 
 ---
 
-<a id="4-comparative-matrix-vs-alternatives"></a><a id="comparative-matrix"></a>
+<a id="sec-04"></a><a id="4-comparative-matrix-vs-alternatives"></a><a id="comparative-matrix"></a>
 ## 4. Comparative Matrix vs. Alternatives
 
 | Dimension | Invariant | Gardener OS (`ellmos-ai/gardener`) | MemGPT / Letta | LangChain / LlamaIndex | ChromaDB / Pinecone | Plain OS Filesystem + Grep |
@@ -153,7 +207,7 @@ unprivileged agent tool workspace
 
 ---
 
-<a id="5-dual-mermaid-diagrams"></a><a id="dual-mermaid-diagrams"></a><a id="end-to-end-query--execution-lifecycle"></a>
+<a id="sec-05"></a><a id="5-dual-mermaid-diagrams"></a><a id="dual-mermaid-diagrams"></a><a id="end-to-end-query--execution-lifecycle"></a>
 ## 5. Dual Mermaid Diagrams
 
 ### Architecture Topology Diagram
@@ -231,7 +285,7 @@ sequenceDiagram
 
 ---
 
-<a id="6-governance--runtime-invariants"></a><a id="governance--runtime-invariants"></a>
+<a id="sec-06"></a><a id="6-governance--runtime-invariants"></a><a id="governance--runtime-invariants"></a>
 ## 6. Governance & Runtime Invariants
 
 Gardener enforces 10 strict architectural guarantees for safe, predictable, and local-first LLM memory operations:
@@ -251,7 +305,7 @@ Gardener enforces 10 strict architectural guarantees for safe, predictable, and 
 
 ---
 
-<a id="7-data-model--everything-substrate"></a><a id="data-model"></a>
+<a id="sec-07"></a><a id="7-data-model--everything-substrate"></a><a id="data-model"></a>
 ## 7. Data Model & Everything Substrate
 
 One unified table for (almost) everything:
@@ -270,7 +324,7 @@ One unified table for (almost) everything:
 
 ---
 
-<a id="8-sqlite-substrate--fts5-engine"></a><a id="sqlite-substrate"></a>
+<a id="sec-08"></a><a id="8-sqlite-substrate--fts5-engine"></a><a id="sqlite-substrate"></a>
 ## 8. Dual SQLite Substrate & FTS5 BM25 Engine
 
 Gardener partitions system blueprints from user state using two distinct SQLite databases:
@@ -288,7 +342,7 @@ Pinned entries (`pinned = 1`) are promoted to the top at the SQL level, ensuring
 
 ---
 
-<a id="9-search-gui--web-companion"></a><a id="search-gui"></a>
+<a id="sec-09"></a><a id="9-search-gui--web-companion"></a><a id="search-gui"></a>
 ## 9. Search GUI & Web Companion
 
 `python gardener.py gui` starts a lightweight, zero-dependency local web companion:
@@ -308,7 +362,7 @@ python gardener.py gui --port 8080 --no-browser
 
 ---
 
-<a id="10-installation--quickstart"></a><a id="quickstart"></a>
+<a id="sec-10"></a><a id="10-installation--quickstart"></a><a id="quickstart"></a>
 ## 10. Installation & Quickstart
 
 Gardener requires Python 3.10 or newer and zero external dependencies:
@@ -346,7 +400,7 @@ with Gardener() as af:
 
 ---
 
-<a id="11-cli--headless-automation"></a><a id="cli"></a>
+<a id="sec-11"></a><a id="11-cli--headless-automation"></a><a id="cli"></a>
 ## 11. CLI & Headless Automation
 
 ```bash
@@ -392,7 +446,7 @@ CLI help defaults to German. Set `GARDENER_LANG=en` for English help text; unsup
 
 ---
 
-<a id="12-unified-task--memory-management"></a><a id="memory-no-separate-memory-system"></a><a id="tasks-no-separate-system"></a>
+<a id="sec-12"></a><a id="12-unified-task--memory-management"></a><a id="memory-no-separate-memory-system"></a><a id="tasks-no-separate-system"></a>
 ## 12. Unified Task & Memory Management
 
 ### Associative Memory Without Vector Databases
@@ -420,7 +474,7 @@ af.task_done("taxes-2025")     # Mark completed
 
 ---
 
-<a id="13-file-lifecycle-absorb-materialize--sync"></a><a id="three-relationships-with-files"></a>
+<a id="sec-13"></a><a id="13-file-lifecycle-absorb-materialize--sync"></a><a id="three-relationships-with-files"></a>
 ## 13. File Lifecycle: Absorb, Materialize & Sync
 
 Gardener supports three explicit relationships with files:
@@ -436,7 +490,7 @@ af.materialize("invoice.pdf")        # DB → File (rematerialize into workspace
 
 ---
 
-<a id="14-federated-sources--secret-redaction"></a><a id="cross-source-federated-index"></a>
+<a id="sec-14"></a><a id="14-federated-sources--secret-redaction"></a><a id="cross-source-federated-index"></a>
 ## 14. Federated Sources & Secret Redaction
 
 Observe sources extend read-only indexing to external tools: originals are never modified or copied into Gardener:
@@ -464,7 +518,7 @@ Text ingested through any adapter passes through `sources.scan()` where 13 crede
 
 ---
 
-<a id="15-gardener-vs-rinnsal"></a><a id="comparison-gardener-vs-rinnsal"></a>
+<a id="sec-15"></a><a id="15-gardener-vs-rinnsal"></a><a id="comparison-gardener-vs-rinnsal"></a>
 ## 15. Architectural Comparison: Gardener vs. Rinnsal
 
 Gardener and [Rinnsal](https://github.com/ellmos-ai/rinnsal) represent complementary agent operating system philosophies within the ellmos-ai ecosystem:
@@ -488,7 +542,7 @@ Gardener and [Rinnsal](https://github.com/ellmos-ai/rinnsal) represent complemen
 
 ---
 
-<a id="16-testing--quality-verification"></a><a id="testing"></a>
+<a id="sec-16"></a><a id="16-testing--quality-verification"></a><a id="testing"></a>
 ## 16. Testing & Quality Verification
 
 Gardener maintains a 100% green test suite with multi-OS and multi-version coverage:
@@ -513,12 +567,12 @@ python -m compileall -q .
 
 ---
 
-<a id="17-third-party-licenses--software-inventory"></a><a id="licenses"></a><a id="third-party-licenses"></a>
+<a id="sec-17"></a><a id="17-third-party-licenses--software-inventory"></a><a id="licenses"></a><a id="third-party-licenses"></a>
 ## 17. Third-Party Licenses & Software Inventory
 
 Gardener OS is licensed under the permissive [MIT License](LICENSE).
 
-Detailed license information, full dependency SBOM, SPDX identifiers, `RunAsInvoker` unprivileged execution guarantees, and Zero-Copyleft isolation certificates are documented in [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md).
+Detailed license information, full dependency SBOM, SPDX identifiers, `RunAsInvoker` unprivileged execution guarantees, and Zero-Copyleft isolation certificates are documented in [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md) and in the plain-text Level 1 SBOM companion [THIRD_PARTY_LICENSES.txt](THIRD_PARTY_LICENSES.txt).
 
 - **Runtime Dependencies**: Zero external dependencies (100% Python Standard Library).
 - **Development Tooling**: `pytest` (MIT), `ruff` (MIT/Apache-2.0), `setuptools` (MIT).
@@ -526,7 +580,7 @@ Detailed license information, full dependency SBOM, SPDX identifiers, `RunAsInvo
 
 ---
 
-<a id="18-security-policy-sibling-ecosystem--liability"></a><a id="security-model-read-this"></a><a id="sibling-projects--ecosystem"></a><a id="haftung--liability"></a>
+<a id="sec-18"></a><a id="18-security-policy-sibling-ecosystem--liability"></a><a id="security-model-read-this"></a><a id="sibling-projects--ecosystem"></a><a id="haftung--liability"></a>
 ## 18. Security Policy, Sibling Ecosystem & Liability Notice
 
 ### Security Model & SLA
