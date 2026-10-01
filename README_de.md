@@ -14,7 +14,7 @@
 [![Lizenz: MIT](https://img.shields.io/badge/Lizenz-MIT-yellow.svg)](LICENSE)
 [![Attribution: NOTICE](https://img.shields.io/badge/Attribution-NOTICE-blue.svg)](NOTICE)
 [![Verifiziert: 2026-09-30](https://img.shields.io/badge/verified-2026--09--30-blue.svg)](https://github.com/ellmos-ai/gardener)
-[![Tests: 224 bestanden](https://img.shields.io/badge/tests-224%20passed-brightgreen.svg)](https://github.com/ellmos-ai/gardener)
+[![Tests: 225 bestanden](https://img.shields.io/badge/tests-225%20passed-brightgreen.svg)](https://github.com/ellmos-ai/gardener)
 [![Level 1 SBOM: Plain-Text geprüft](https://img.shields.io/badge/Level_1_SBOM-Plain_Text_Audited-brightgreen.svg)](THIRD_PARTY_LICENSES.txt)
 [![Ausführung: RunAsInvoker](https://img.shields.io/badge/execution-RunAsInvoker-success.svg)](THIRD_PARTY_LICENSES.md)
 [![Datenschutz: Local-First](https://img.shields.io/badge/datenschutz-Local--First%20%7C%20Zero--Egress-brightgreen.svg)](SECURITY.md)

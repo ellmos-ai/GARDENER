@@ -2,6 +2,23 @@
  
 ## [Unreleased]
 
+### Multi-Type-Filterung & Negations-Suchsyntax (`-term`, `-"phrase"`) (2026-10-01)
+
+- **Multi-Type-Filterung (`gardener.py`)**:
+  - `Gardener._normalize_types(type_val)` und `Gardener._type_filter(type_val, column="e.type")` implementiert: Unterstützt kommaseparierte Strings (`"task,knowledge"`, `"typ:task,memo"`) und Listen/Iterables (`["task", "knowledge"]`), die zu parametrisierten `e.type IN (?, ...)` SQL-Klauseln aufgelöst werden.
+  - Nahtlos integriert über `_fts_query()`, `_like_query()`, `_source_listing()`, `find()` und `list()`.
+  - Type-Hints und Docstrings von `find()` und `list()` auf `Optional[Union[str, List[str]]] = None` aktualisiert.
+- **Negations- & Ausschluss-Suchsyntax (`-term`, `-"quoted phrase"`, `-tag:deprecated`) (`gardener.py`)**:
+  - `_TOKEN_PATTERN` Regex um Negations-Erkennung `(?P<neg>-(?!-))` erweitert, ohne Bindestrichwörter (`beleg-scanner`), isolierte Bindestriche (`python - c++`) oder CLI-Flags (`--help`) fälschlich als Negation zu erfassen.
+  - `_tokenize_query()` liefert FTS5-kompatible Token-Struktur und emittiert `("NOT", False, False)` vor negierten Token.
+  - `_build_fts_safe_operator_query()` erkennt Negations-Präfixe, beachtet die SQLite-FTS5-Invariante (strikter binärer `A NOT B` Operator), ordnet führende Negationen um (z. B. `-draft rechnung` -> `"rechnung" NOT "draft"`) und fängt isolierte `NOT`-Token syntaktisch sauber ab.
+  - `_like_query()` Fallback-Suche unterstützt Negationen über `(name NOT LIKE ? AND content NOT LIKE ? AND tags NOT LIKE ?)` und behält Browse-Modus und Wildcard-Suchen bei.
+- **Search-GUI Anpassung (`search_gui.py`)**:
+  - Platzhalter im Suchfeld um Multi-Type- und Negations-Beispiele (`type:task,tool`, `-draft`) ergänzt.
+- **Umfassende Vertragstests (`tests/test_gardener_core.py`, `tests/test_metadata.py`)**:
+  - Neuer Vertragstest `test_find_and_list_multi_type_and_negations_contract`, erweiterte Assertions in `test_tokenize_query_and_build_fts_and_query_helpers` und `test_find_with_inline_filters_and_column_aliases` (Abschnitte 11, 12, 13).
+  - Testsuite auf **225 passed, 35 subtests passed** (100% grün) erhöht; Badges und Metadaten in `README.md`, `README_de.md`, `llms.txt` und `test_metadata.py` synchronisiert.
+
 ### Bilingual 18-Point Navigation Parity, ASCII Architecture Topology & Level 1 SBOM Companion (2026-09-30)
 
 - **Level 1 Software Bill of Materials (SBOM) Companion (`THIRD_PARTY_LICENSES.txt`)**:

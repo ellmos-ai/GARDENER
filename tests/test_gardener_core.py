@@ -464,10 +464,59 @@ class TestGardenerCore(GardenerTempCase):
             ("task", None, None, None, "rechnung")
         )
         self.assertEqual(
+            extract_filters("type:task,knowledge rechnung"),
+            ("task,knowledge", None, None, None, "rechnung")
+        )
+        self.assertEqual(
+            extract_filters("typ:task,memo backup"),
+            ("task,memo", None, None, None, "backup")
+        )
+        self.assertEqual(
             build_safe_op("(python OR)"),
             '("python")'
         )
         self.assertIsNone(build_safe_op("()"))
+
+        # Negation tokenization & safe operator building
+        self.assertEqual(
+            tokenize("rechnung -draft"),
+            [("rechnung", False, False), ("NOT", False, False), ("draft", False, False)]
+        )
+        self.assertEqual(
+            tokenize('rechnung -"alter entwurf"'),
+            [("rechnung", False, False), ("NOT", False, False), ("alter entwurf", True, False)]
+        )
+        self.assertEqual(
+            tokenize("-tag:deprecated"),
+            [("NOT", False, False), ("tags:deprecated", False, False)]
+        )
+        self.assertEqual(
+            tokenize("python - c++"),
+            [("python", False, False), ("c++", False, False)]
+        )
+        self.assertEqual(
+            tokenize("beleg-scanner"),
+            [("beleg-scanner", False, False)]
+        )
+
+        self.assertEqual(build_safe_op("rechnung -draft"), '"rechnung" NOT "draft"')
+        self.assertEqual(build_safe_op("-draft rechnung"), '"rechnung" NOT "draft"')
+        self.assertEqual(build_safe_op('rechnung -"alter entwurf"'), '"rechnung" NOT "alter entwurf"')
+        self.assertEqual(build_safe_op("tag:python -tag:deprecated"), 'tags:"python" NOT tags:"deprecated"')
+        self.assertEqual(build_safe_op("(python OR rust) -draft"), '("python" OR "rust") NOT "draft"')
+
+        # Type normalization and type filter helpers
+        normalize_types = self.gardener.Gardener._normalize_types
+        type_filter = self.gardener.Gardener._type_filter
+        self.assertEqual(normalize_types(None), [])
+        self.assertEqual(normalize_types(""), [])
+        self.assertEqual(normalize_types("knowledge"), ["knowledge"])
+        self.assertEqual(normalize_types("knowledge, task"), ["knowledge", "task"])
+        self.assertEqual(normalize_types(["knowledge", "task", "knowledge"]), ["knowledge", "task"])
+        self.assertEqual(type_filter(None), (None, []))
+        self.assertEqual(type_filter("task"), ("e.type = ?", ["task"]))
+        self.assertEqual(type_filter("task,knowledge"), ("e.type IN (?, ?)", ["task", "knowledge"]))
+        self.assertEqual(type_filter(["task", "tool"], column="type"), ("type IN (?, ?)", ["task", "tool"]))
 
     def test_find_with_boolean_operators_and_special_chars(self):
         self.af.put(
@@ -846,6 +895,61 @@ class TestGardenerCore(GardenerTempCase):
         hits_max = self.af.find("type:tool backup max:1")
         self.assertEqual(len(hits_max), 1)
 
+        # 11. Multi-Type-Filter (type:tool,task, typ:task,knowledge, type="tool,task", type=["tool", "task"])
+        hits_multi_type = self.af.find("type:tool,task backup")
+        self.assertEqual(len(hits_multi_type), 3)
+        multi_names = {h["name"] for h in hits_multi_type}
+        self.assertEqual(multi_names, {"tool-py-backup", "tool-rust-backup", "task-do-backup"})
+
+        hits_multi_type_param = self.af.find("backup", type="tool,knowledge")
+        self.assertEqual(len(hits_multi_type_param), 3)
+        multi_param_names = {h["name"] for h in hits_multi_type_param}
+        self.assertEqual(multi_param_names, {"tool-py-backup", "tool-rust-backup", "doc-backup-policy"})
+
+        hits_multi_type_list = self.af.find("backup", type=["knowledge", "task"])
+        self.assertEqual(len(hits_multi_type_list), 2)
+        multi_list_names = {h["name"] for h in hits_multi_type_list}
+        self.assertEqual(multi_list_names, {"doc-backup-policy", "task-do-backup"})
+
+        hits_german_multi = self.af.find("typ:task,knowledge backup")
+        self.assertEqual(len(hits_german_multi), 2)
+        german_multi_names = {h["name"] for h in hits_german_multi}
+        self.assertEqual(german_multi_names, {"doc-backup-policy", "task-do-backup"})
+
+        # 12. Multi-Type-Filter in list()
+        list_multi = self.af.list(type="task,knowledge")
+        list_names = {e["name"] for e in list_multi}
+        self.assertIn("doc-backup-policy", list_names)
+        self.assertIn("task-do-backup", list_names)
+        self.assertNotIn("tool-py-backup", list_names)
+        self.assertNotIn("tool-rust-backup", list_names)
+
+        list_multi_list = self.af.list(type=["tool", "task"])
+        list_l_names = {e["name"] for e in list_multi_list}
+        self.assertIn("tool-py-backup", list_l_names)
+        self.assertIn("tool-rust-backup", list_l_names)
+        self.assertIn("task-do-backup", list_l_names)
+        self.assertNotIn("doc-backup-policy", list_l_names)
+
+        # 13. Negations im Suchstring (-rust, -"alter entwurf", -tag:deprecated)
+        hits_neg = self.af.find("type:tool backup -rust")
+        self.assertEqual(len(hits_neg), 1)
+        self.assertEqual(hits_neg[0]["name"], "tool-py-backup")
+
+        hits_neg_tag = self.af.find("tag:backup -tag:sqlite")
+        self.assertEqual(len(hits_neg_tag), 3)
+        neg_tag_names = {h["name"] for h in hits_neg_tag}
+        self.assertEqual(neg_tag_names, {"tool-rust-backup", "doc-backup-policy", "task-do-backup"})
+
+        hits_neg_phrase = self.af.find('backup -"Kompiliertes Rust"')
+        self.assertEqual(len(hits_neg_phrase), 3)
+        neg_phrase_names = {h["name"] for h in hits_neg_phrase}
+        self.assertEqual(neg_phrase_names, {"tool-py-backup", "doc-backup-policy", "task-do-backup"})
+
+        hits_neg_leading = self.af.find("-rust type:tool backup")
+        self.assertEqual(len(hits_neg_leading), 1)
+        self.assertEqual(hits_neg_leading[0]["name"], "tool-py-backup")
+
     def test_like_query_with_column_filters(self):
         """Testet den gezielten Spaltenabgleich des LIKE-Fallbacks bei Vorliegen von Spaltenfiltern."""
         self.af.put(
@@ -868,6 +972,57 @@ class TestGardenerCore(GardenerTempCase):
             # Falsche Spalte liefert 0 Treffer
             hits_none = self.af._like_query(conn, "content:custom-target-tag")
             self.assertEqual(len(hits_none), 0)
+
+            # Negation im LIKE-Fallback
+            hits_neg = self.af._like_query(conn, "custom-target-tag -doc-like-col")
+            self.assertEqual(len(hits_neg), 0)
+            hits_pos = self.af._like_query(conn, "custom-target-tag -unbekannt")
+            self.assertEqual(len(hits_pos), 1)
+
+    def test_find_and_list_multi_type_and_negations_contract(self):
+        """Vertragstest: Multi-Typ-Filterung (type:, typ:, type=[...]) und Negationen (-term, -"phrase")."""
+        self.af.put("t-contract-task", content="Kontoauszug abgleichen fuer die Buchhaltung.", type="task")
+        self.af.put("t-contract-know", content="Kontoauszug Richtlinie fuer Buchhaltung 2026.", type="knowledge")
+        self.af.put("t-contract-tool", content="Kontoauszug PDF Parser CLI Werkzeug.", type="tool")
+        self.af.put("t-contract-draft", content="Kontoauszug alter Entwurf verworfen.", type="knowledge")
+
+        # Multi-Type Filter über find()
+        h_both = self.af.find("type:task,tool Kontoauszug")
+        self.assertEqual({h["name"] for h in h_both}, {"t-contract-task", "t-contract-tool"})
+
+        h_param_str = self.af.find("Kontoauszug", type="knowledge,task")
+        self.assertEqual({h["name"] for h in h_param_str}, {"t-contract-task", "t-contract-know", "t-contract-draft"})
+
+        h_param_list = self.af.find("Kontoauszug", type=["tool", "knowledge"])
+        self.assertEqual({h["name"] for h in h_param_list}, {"t-contract-tool", "t-contract-know", "t-contract-draft"})
+
+        # Negationen über find()
+        h_no_draft = self.af.find("Kontoauszug -Entwurf")
+        self.assertEqual({h["name"] for h in h_no_draft}, {"t-contract-task", "t-contract-know", "t-contract-tool"})
+
+        h_no_draft_lead = self.af.find("-Entwurf Kontoauszug")
+        self.assertEqual({h["name"] for h in h_no_draft_lead}, {"t-contract-task", "t-contract-know", "t-contract-tool"})
+
+        h_no_phrase = self.af.find('Kontoauszug -"alter Entwurf"')
+        self.assertEqual({h["name"] for h in h_no_phrase}, {"t-contract-task", "t-contract-know", "t-contract-tool"})
+
+        h_type_and_neg = self.af.find("type:knowledge Kontoauszug -Entwurf")
+        self.assertEqual({h["name"] for h in h_type_and_neg}, {"t-contract-know"})
+
+        # Multi-Type Filter über list()
+        l_types = self.af.list(type="task,tool")
+        l_names = {e["name"] for e in l_types}
+        self.assertIn("t-contract-task", l_names)
+        self.assertIn("t-contract-tool", l_names)
+        self.assertNotIn("t-contract-know", l_names)
+        self.assertNotIn("t-contract-draft", l_names)
+
+        l_list = self.af.list(type=["knowledge", "task"])
+        l_list_names = {e["name"] for e in l_list}
+        self.assertIn("t-contract-task", l_list_names)
+        self.assertIn("t-contract-know", l_list_names)
+        self.assertIn("t-contract-draft", l_list_names)
+        self.assertNotIn("t-contract-tool", l_list_names)
 
     def test_find_with_hyphens_special_chars_and_snippets(self):
         self.af.put(

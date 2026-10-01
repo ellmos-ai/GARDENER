@@ -324,3 +324,29 @@ Version: 0.4.2 (Frozen per T-20260920-167562623)
     - Added comprehensive assertions for bilingual 18-point anchors, ASCII topology projections,
       Level 1 SBOM plain-text companion existence, invariants, and PEP 621 metadata alignment.
     - Verified full test suite at 224 passed with 35 subtests (100% green).
+
+================================================================================
+9. MULTI-TYPE FILTERING & NEGATION QUERY SYNTAX (2026-10-01)
+================================================================================
+Operator: Antigravity / Gemini (via Daily Maintenance [GARDENER])
+Canonical Path: C:\_Local_DEV\repos\gardener
+Version: 0.4.2
+
+[x] Multi-Type Filter Expansion (gardener.py):
+    - Added Gardener._normalize_types() and _type_filter() supporting comma-separated
+      type strings ("task,knowledge", "typ:task,memo") and list iterables.
+    - Integrated multi-type filtering across find(), list(), and observe queries.
+    - Updated type hints to Optional[Union[str, List[str]]] = None.
+
+[x] Negation Query Syntax (-term, -"quoted phrase", -tag:deprecated) (gardener.py):
+    - Extended _TOKEN_PATTERN regex with (?P<neg>-(?!-)) negative token lookahead.
+    - Updated _tokenize_query() to emit FTS5-compliant NOT tokens.
+    - Handled SQLite FTS5 strict binary NOT constraints and leading negation reordering.
+    - Implemented like_query fallback negation filtering.
+
+[x] Search GUI & Discoverability Enhancements:
+    - Extended input placeholder in search_gui.py with multi-type and negation examples.
+
+[x] Automated Contract Test Expansion & Verification:
+    - Added test_find_and_list_multi_type_and_negations_contract in tests/test_gardener_core.py.
+    - Expanded test suite to 225 passed tests with 35 subtests (100% green).

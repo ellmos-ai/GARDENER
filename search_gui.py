@@ -91,7 +91,7 @@ INDEX_HTML = """<!DOCTYPE html>
 </header>
 <main>
   <div class="searchbar">
-    <input type="text" id="q" placeholder="Suchbegriff oder Filter (z. B. type:task, tag:python, is:pinned, limit:10) …" autocomplete="off" autofocus>
+    <input type="text" id="q" placeholder="Suchbegriff oder Filter (z. B. type:task,tool, -draft, tag:python, is:pinned, limit:10) …" autocomplete="off" autofocus>
     <select id="type"><option value="">alle Typen</option></select>
     <select id="pinned">
       <option value="">alle Status</option>

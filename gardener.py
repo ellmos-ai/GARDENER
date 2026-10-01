@@ -158,7 +158,7 @@ class Gardener:
         "NICHT": "NOT",
     }
     _TOKEN_PATTERN = re.compile(
-        r'(?:(?P<col>name|title|content|body|tags|tag):\s*)?(?:\"(?P<qphrase>[^\"]*)\"(?P<qstar>\*)?|(?P<bare>\S+))',
+        r'(?P<neg>-(?!-))?(?:(?P<col>name|title|content|body|tags|tag):\s*)?(?:\"(?P<qphrase>[^\"]*)\"(?P<qstar>\*)?|(?P<bare>\S+))',
         re.IGNORECASE,
     )
     _FILTER_TOKEN_RE = re.compile(
@@ -313,7 +313,8 @@ class Gardener:
         tokens: List[Tuple[str, bool, bool]] = []
 
         for match in cls._TOKEN_PATTERN.finditer(query):
-            col, quoted_text, quoted_star, bare_text = (
+            neg, col, quoted_text, quoted_star, bare_text = (
+                match.group("neg"),
                 match.group("col"),
                 match.group("qphrase"),
                 match.group("qstar"),
@@ -326,13 +327,20 @@ class Gardener:
             if quoted_text is not None:
                 q_clean = quoted_text.strip()
                 if q_clean:
+                    if neg == "-":
+                        tokens.append(("NOT", False, False))
                     text = f"{col_prefix}{q_clean}" if col_prefix else q_clean
                     tokens.append((text, True, bool(quoted_star)))
             elif bare_text:
+                if bare_text in ("(", ")"):
+                    tokens.append((bare_text, False, False))
+                    continue
                 is_prefix = bare_text.endswith('*') and len(bare_text) > 1
                 text = bare_text[:-1] if is_prefix else bare_text
-                if not text.strip('*'):
+                if not text.strip('*-'):
                     continue
+                if neg == "-":
+                    tokens.append(("NOT", False, False))
                 if col_prefix:
                     text = f"{col_prefix}{text}"
                 tokens.append((text, False, is_prefix))
@@ -361,7 +369,8 @@ class Gardener:
         operators = set(cls.OPERATOR_MAP.keys())
         has_operator = any(w in operators for w in words)
         has_parens = "(" in query or ")" in query
-        if not (has_operator or has_parens):
+        has_negation = bool(re.search(r'(?:^|\s)-(?!-)(?:[a-zA-Z0-9_\":])', query))
+        if not (has_operator or has_parens or has_negation):
             return None
 
         tokens = cls._tokenize_query(query)
@@ -370,6 +379,7 @@ class Gardener:
 
         out: List[str] = []
         pending_ops: List[str] = []
+        leading_neg_terms: List[str] = []
         open_parens = 0
 
         for text, is_phrase, is_prefix in tokens:
@@ -397,6 +407,10 @@ class Gardener:
                 pending_ops.append(cls.OPERATOR_MAP[upper])
             else:
                 term_str = cls._format_fts_token(text, is_phrase, is_prefix)
+                if not out and open_parens == 0 and ("NOT" in pending_ops or (pending_ops and pending_ops[-1] == "NOT")):
+                    leading_neg_terms.append(term_str)
+                    pending_ops = []
+                    continue
                 if out and out[-1] not in ("(", "AND", "OR", "NOT"):
                     if pending_ops:
                         op = "NOT" if ("NOT" in pending_ops or pending_ops[-1] == "NOT") else (pending_ops[-1] if pending_ops[-1] in ("AND", "OR") else "AND")
@@ -413,6 +427,14 @@ class Gardener:
                 out.append(")")
             open_parens -= 1
 
+        for neg_term in leading_neg_terms:
+            if out:
+                if out[-1] not in ("AND", "OR", "NOT"):
+                    out.append("NOT")
+                out.append(neg_term)
+            else:
+                out.append(neg_term)
+
         # Bereinige etwaige nachlaufende Operatoren
         while out and out[-1] in ("AND", "OR", "NOT"):
             out.pop()
@@ -423,7 +445,7 @@ class Gardener:
 
         # Wenn die Query nur aus einem einzelnen Operand ohne echte Operatoren und ohne Klammern bestand,
         # soll sie nicht als Operator-Query behandelt werden
-        if len(out) == 1 and not has_operator and not has_parens:
+        if len(out) == 1 and not has_operator and not has_parens and not has_negation:
             return None
 
         res = " ".join(out)
@@ -539,6 +561,37 @@ class Gardener:
             params.extend([cls._like_escape(f"observed/{sid}/") + "%", f"observed/{sid}"])
         return "(" + " OR ".join(parts) + ")", params
 
+    @classmethod
+    def _normalize_types(cls, type_val) -> List[str]:
+        """Normalisiert eine Typ-Angabe zu einer Liste von bereinigten Typen.
+
+        Akzeptiert 'task', 'task,knowledge', ['task', 'knowledge'] oder Kommata mit Leerzeichen.
+        """
+        if type_val is None:
+            return []
+        raw = type_val.split(",") if isinstance(type_val, str) else list(type_val)
+        types = []
+        for t in raw:
+            clean = str(t).strip().lower()
+            if clean and clean not in types:
+                types.append(clean)
+        return types
+
+    @classmethod
+    def _type_filter(cls, type_val, column: str = "e.type") -> Tuple[Optional[str], List[str]]:
+        """Baut eine WHERE-Bedingung auf den Typ (einzeln oder mehrere).
+
+        Returns:
+            (sql_fragment, params) oder (None, []) wenn nichts zu filtern ist
+        """
+        types = cls._normalize_types(type_val)
+        if not types:
+            return None, []
+        if len(types) == 1:
+            return f"{column} = ?", [types[0]]
+        placeholders = ", ".join(["?"] * len(types))
+        return f"{column} IN ({placeholders})", types
+
     def _fts_query(self, conn: sqlite3.Connection, match_query: str,
                    type: Optional[str] = None, limit: int = 20,
                    with_snippets: bool = False,
@@ -562,9 +615,10 @@ class Gardener:
             """
             params = [match_query]
 
-            if type:
-                sql += " AND e.type = ?"
-                params.append(type)
+            type_sql, type_params = self._type_filter(type)
+            if type_sql:
+                sql += f" AND {type_sql}"
+                params.extend(type_params)
 
             if pinned is not None:
                 sql += " AND e.pinned = ?"
@@ -586,25 +640,71 @@ class Gardener:
     def _like_query(self, conn: sqlite3.Connection, query: str,
                     type: Optional[str] = None, limit: int = 20,
                     source=None, pinned: Optional[bool] = None) -> List[Dict]:
-        """Fallback-LIKE-Suche über beide Datenbanken unter Beachtung von Spaltenfiltern."""
+        """Fallback-LIKE-Suche über beide Datenbanken unter Beachtung von Spaltenfiltern und Negationen."""
         results = []
-        tokens = [
-            text for text, _, _ in self._tokenize_query(query)
-            if text and text not in ("(", ")") and text.upper() not in self.OPERATOR_MAP
-        ]
+        pos_tokens = []
+        neg_tokens = []
+        is_neg = False
+        for text, is_phrase, _is_prefix in self._tokenize_query(query):
+            if not is_phrase and text.upper() in self.OPERATOR_MAP:
+                if self.OPERATOR_MAP[text.upper()] == "NOT":
+                    is_neg = True
+                continue
+            if text in ("(", ")"):
+                continue
+            if is_neg:
+                neg_tokens.append(text)
+                is_neg = False
+            else:
+                pos_tokens.append(text)
+
         q_col, q_val = self._split_col(query.strip())
-        if "(" in query or ")" in query:
+        if "(" in query or ")" in query or neg_tokens:
             q_col = None
         q_val_clean = q_val.strip('"')
 
+        type_sql, type_params = self._type_filter(type)
+        src_sql, src_params = self._source_filter(source)
+
         for db_prefix, db_label in [("main", "user"), ("other", "system")]:
-            if q_col:
-                where_sql = f"e.{q_col} LIKE ?"
-                params = [f"%{q_val_clean}%"]
+            where_parts = []
+            params = []
+
+            if q_col and not neg_tokens:
+                where_parts.append(f"e.{q_col} LIKE ?")
+                params.append(f"%{q_val_clean}%")
+            elif not query.strip() and not neg_tokens:
+                where_parts.append("1=1")
+            elif pos_tokens:
+                for t in pos_tokens:
+                    c, v = self._split_col(t)
+                    v_clean = v.strip('"')
+                    like_param = f"%{v_clean}%"
+                    if c:
+                        where_parts.append(f"e.{c} LIKE ?")
+                        params.append(like_param)
+                    else:
+                        where_parts.append("(e.name LIKE ? OR e.content LIKE ? OR e.tags LIKE ?)")
+                        params.extend([like_param, like_param, like_param])
+            elif not pos_tokens and neg_tokens:
+                where_parts.append("1=1")
             else:
-                where_sql = "(e.name LIKE ? OR e.content LIKE ? OR e.tags LIKE ?)"
+                where_parts.append("(e.name LIKE ? OR e.content LIKE ? OR e.tags LIKE ?)")
                 like = f"%{query}%"
-                params = [like, like, like]
+                params.extend([like, like, like])
+
+            for nt in neg_tokens:
+                nc, nv = self._split_col(nt)
+                nv_clean = nv.strip('"')
+                not_like_param = f"%{nv_clean}%"
+                if nc:
+                    where_parts.append(f"e.{nc} NOT LIKE ?")
+                    params.append(not_like_param)
+                else:
+                    where_parts.append("(e.name NOT LIKE ? AND e.content NOT LIKE ? AND e.tags NOT LIKE ?)")
+                    params.extend([not_like_param, not_like_param, not_like_param])
+
+            where_sql = " AND ".join(where_parts) if where_parts else "1=1"
 
             sql = f"""
                 SELECT e.*, '{db_label}' as source
@@ -612,15 +712,14 @@ class Gardener:
                 WHERE {where_sql}
             """
 
-            if type:
-                sql += " AND e.type = ?"
-                params.append(type)
+            if type_sql:
+                sql += f" AND {type_sql}"
+                params.extend(type_params)
 
             if pinned is not None:
                 sql += " AND e.pinned = ?"
                 params.append(1 if pinned else 0)
 
-            src_sql, src_params = self._source_filter(source)
             if src_sql:
                 sql += f" AND {src_sql}"
                 params.extend(src_params)
@@ -632,35 +731,50 @@ class Gardener:
             for row in rows:
                 results.append(self._row_to_dict(row))
 
-        if not results and len(tokens) > 1:
+        if not results and len(pos_tokens) > 1:
             for db_prefix, db_label in [("main", "user"), ("other", "system")]:
-                conditions = []
+                or_conditions = []
                 params = []
-                for t in tokens:
+                for t in pos_tokens:
                     c, v = self._split_col(t)
                     v_clean = v.strip('"')
                     like_param = f"%{v_clean}%"
                     if c:
-                        conditions.append(f"e.{c} LIKE ?")
+                        or_conditions.append(f"e.{c} LIKE ?")
                         params.append(like_param)
                     else:
-                        conditions.append("(e.name LIKE ? OR e.content LIKE ? OR e.tags LIKE ?)")
+                        or_conditions.append("(e.name LIKE ? OR e.content LIKE ? OR e.tags LIKE ?)")
                         params.extend([like_param, like_param, like_param])
+
+                neg_conditions = []
+                for nt in neg_tokens:
+                    nc, nv = self._split_col(nt)
+                    nv_clean = nv.strip('"')
+                    not_like_param = f"%{nv_clean}%"
+                    if nc:
+                        neg_conditions.append(f"e.{nc} NOT LIKE ?")
+                        params.append(not_like_param)
+                    else:
+                        neg_conditions.append("(e.name NOT LIKE ? AND e.content NOT LIKE ? AND e.tags NOT LIKE ?)")
+                        params.extend([not_like_param, not_like_param, not_like_param])
+
+                where_sql = f"({' OR '.join(or_conditions)})"
+                if neg_conditions:
+                    where_sql += f" AND {' AND '.join(neg_conditions)}"
 
                 sql = f"""
                     SELECT e.*, '{db_label}' as source
                     FROM {db_prefix}.everything e
-                    WHERE ({' OR '.join(conditions)})
+                    WHERE {where_sql}
                 """
-                if type:
-                    sql += " AND e.type = ?"
-                    params.append(type)
+                if type_sql:
+                    sql += f" AND {type_sql}"
+                    params.extend(type_params)
 
                 if pinned is not None:
                     sql += " AND e.pinned = ?"
                     params.append(1 if pinned else 0)
 
-                src_sql, src_params = self._source_filter(source)
                 if src_sql:
                     sql += f" AND {src_sql}"
                     params.extend(src_params)
@@ -689,6 +803,7 @@ class Gardener:
         src_sql, src_params = self._source_filter(source)
         if not src_sql:
             return []
+        type_sql, type_params = self._type_filter(type)
         results = []
         for db_prefix, db_label in [("main", "user"), ("other", "system")]:
             sql = f"""
@@ -697,9 +812,9 @@ class Gardener:
                 WHERE {src_sql}
             """
             params = list(src_params)
-            if type:
-                sql += " AND e.type = ?"
-                params.append(type)
+            if type_sql:
+                sql += f" AND {type_sql}"
+                params.extend(type_params)
             if pinned is not None:
                 sql += " AND e.pinned = ?"
                 params.append(1 if pinned else 0)
@@ -778,7 +893,7 @@ class Gardener:
         cleaned = cleaned.strip()
         return extracted_type, extracted_source, extracted_pinned, extracted_limit, cleaned
 
-    def find(self, query: str, type: Optional[str] = None,
+    def find(self, query: str, type: Optional[Union[str, List[str]]] = None,
              limit: int = 20, with_snippets: bool = False,
              source=None, pinned: Optional[bool] = None) -> List[Dict]:
         """Durchsucht beide Datenbanken. Der primäre Zugang zu allem.
@@ -789,14 +904,16 @@ class Gardener:
         FTS5-BM25-Ranking (Treffer mit allen/mehreren Begriffen stehen höher).
 
         Unterstützt Inline-Filter direkt in der Suchanfrage (z. B. 'type:task rechnung',
-        'typ:task limit:5', 'source:usmc-working memory', 'ist:gepinnt zebra',
-        'tag:python-script', 'title:scanner', 'body:vertrag').
+        'type:task,knowledge', 'typ:task limit:5', 'source:usmc-working memory',
+        'ist:gepinnt zebra', 'rechnung -entwurf', 'tag:python -tag:deprecated',
+        'title:scanner', 'body:vertrag').
 
         Args:
             query: Suchbegriff (Volltextsuche). Leer erlaubt, wenn `source`
                 oder `type` gesetzt ist -- dann wird die Quelle bzw. der Typ
                 aufgelistet.
-            type: Optional filtern nach Typ (knowledge, tool, task, memory, ...)
+            type: Optional filtern nach Typ (z. B. 'knowledge', 'task,memo' oder
+                Liste ['task', 'knowledge'])
             limit: Max. Ergebnisse
             with_snippets: Bei True enthalten FTS-Treffer ein 'snippet'-Feld
                 mit Treffer-Kontext aus dem Inhalt (Marker '>>>'/'<<<',
@@ -1757,9 +1874,9 @@ class Gardener:
                     return True
         return False
 
-    def list(self, type: Optional[str] = None, limit: int = 50,
+    def list(self, type: Optional[Union[str, List[str]]] = None, limit: int = 50,
              pinned: Optional[bool] = None) -> List[Dict]:
-        """Listet alle Einträge. Optional nach Typ oder Pinned-Status filtern.
+        """Listet alle Einträge. Optional nach Typ (einzeln, 'a,b' oder Liste) oder Pinned-Status filtern.
 
         Ohne Suchbegriff -- einfach alles zeigen.
         """
@@ -1771,9 +1888,10 @@ class Gardener:
                 conditions = []
                 params = []
 
-                if type:
-                    conditions.append("type = ?")
-                    params.append(type)
+                type_sql, type_params = self._type_filter(type, column="type")
+                if type_sql:
+                    conditions.append(type_sql)
+                    params.extend(type_params)
                 if pinned is not None:
                     conditions.append("pinned = ?")
                     params.append(1 if pinned else 0)
