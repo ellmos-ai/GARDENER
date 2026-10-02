@@ -432,7 +432,7 @@ class Gardener:
                 if out[-1] not in ("AND", "OR", "NOT"):
                     out.append("NOT")
                 out.append(neg_term)
-            else:
+            elif not has_negation:
                 out.append(neg_term)
 
         # Bereinige etwaige nachlaufende Operatoren
@@ -465,6 +465,8 @@ class Gardener:
         q_upper = query.upper()
         if "NEAR(" in q_upper or "(" in query or ")" in query:
             return None
+        if bool(re.search(r'(?:^|\s)-(?!-)(?:[a-zA-Z0-9_\":])', query)):
+            return None
         words = [w.strip("()") for w in q_upper.split()]
         operators = set(cls.OPERATOR_MAP.keys()) | {"NEAR"}
         if any(w in operators for w in words):
@@ -493,6 +495,8 @@ class Gardener:
         """
         q_upper = query.upper()
         if "NEAR(" in q_upper or "(" in query or ")" in query:
+            return None
+        if bool(re.search(r'(?:^|\s)-(?!-)(?:[a-zA-Z0-9_\":])', query)):
             return None
         words = [w.strip("()") for w in q_upper.split()]
         operators = set(cls.OPERATOR_MAP.keys()) | {"NEAR"}
@@ -850,11 +854,13 @@ class Gardener:
 
             filt_lower = filt.lower() if filt else None
 
-            if filt_lower in ("type", "typ") and extracted_type is None:
-                extracted_type = qphrase if qphrase is not None else bare
+            if filt_lower in ("type", "typ"):
+                val = qphrase if qphrase is not None else bare
+                extracted_type = val if extracted_type is None else f"{extracted_type},{val}"
                 continue
-            elif filt_lower in ("source", "quelle") and extracted_source is None:
-                extracted_source = qphrase if qphrase is not None else bare
+            elif filt_lower in ("source", "quelle"):
+                val = qphrase if qphrase is not None else bare
+                extracted_source = val if extracted_source is None else f"{extracted_source},{val}"
                 continue
             elif filt_lower in ("pinned", "gepinnt") and extracted_pinned is None:
                 val = (qphrase if qphrase is not None else bare).lower()
@@ -960,6 +966,7 @@ class Gardener:
                 except Exception:
                     results = []
             else:
+                has_neg = bool(re.search(r'(?:^|\s)-(?!-)(?:[a-zA-Z0-9_\":])', query))
                 # 1. Abgesicherte Operator-Query: Falls boolesche Operatoren (AND, OR, NOT, UND, ODER, NICHT)
                 #    oder Gruppierungsklammern vorliegen, erzeuge eine FTS5-abgesicherte Query mit
                 #    gequoteten Operanden, normalisierten Operatoren und intakter Klammerung.
@@ -972,47 +979,57 @@ class Gardener:
                     except Exception:
                         results = []
 
-                # 1b. Exakte / Standard-FTS5-Suche (falls keine Operator-Query oder diese fehlschlug / 0 Treffer):
-                #     Erlaubt FTS-Spezialsyntax wie NEAR(...) oder unberührte Standard-FTS-Matches.
-                if not results:
-                    try:
-                        results = self._fts_query(conn, query, type=type, limit=limit,
-                                                  with_snippets=with_snippets,
-                                                  source=source, pinned=pinned)
-                    except Exception:
-                        results = []
-
-                # 1c. Abgesicherte AND-Query: Falls Roh-Query fehlschlug oder keine Treffer ergab
-                #     (z. B. wegen Bindestrichen wie 'beleg-scanner', Pfaden, Doppelpunkten
-                #     oder Sonderzeichen, die FTS5 als Spaltensubtraktion/Syntaxfehler abweist).
-                if not results:
-                    and_query = self._build_fts_and_query(query)
-                    if and_query and and_query != query:
-                        try:
-                            results = self._fts_query(conn, and_query, type=type, limit=limit,
-                                                      with_snippets=with_snippets,
-                                                      source=source, pinned=pinned)
-                        except Exception:
-                            results = []
-
-                # 2. Mehrwort-Fallback: Wenn 0 Treffer und Mehrwort-Query, OR-Verknüpfung in FTS5 versuchen
-                if not results:
-                    or_query = self._build_fts_or_query(query)
-                    if or_query:
-                        try:
-                            results = self._fts_query(conn, or_query, type=type, limit=limit,
-                                                      with_snippets=with_snippets,
-                                                      source=source, pinned=pinned)
-                        except Exception:
-                            results = []
-
-                # 3. Fallback auf LIKE-Suche, falls FTS (auch AND/OR) fehlschlug oder 0 Treffer ergab
-                if not results:
+                if has_neg and not safe_op_query:
+                    # Reine Negationssuche (kein positiver Begriff vorhanden, z. B. '-draft' oder '-draft -temp'):
+                    # SQLite FTS5 unterstützt keine unären NOT-Abfragen ohne positiven Term.
+                    # Direkt über LIKE-Suche ausführen, die NOT LIKE sauber anwendet.
                     try:
                         results = self._like_query(conn, query, type=type, limit=limit,
                                                    source=source, pinned=pinned)
                     except Exception:
                         results = []
+                else:
+                    # 1b. Exakte / Standard-FTS5-Suche (falls keine Operator-Query oder diese fehlschlug / 0 Treffer):
+                    #     Erlaubt FTS-Spezialsyntax wie NEAR(...) oder unberührte Standard-FTS-Matches.
+                    if not results:
+                        try:
+                            results = self._fts_query(conn, query, type=type, limit=limit,
+                                                      with_snippets=with_snippets,
+                                                      source=source, pinned=pinned)
+                        except Exception:
+                            results = []
+
+                    # 1c. Abgesicherte AND-Query: Falls Roh-Query fehlschlug oder keine Treffer ergab
+                    #     (z. B. wegen Bindestrichen wie 'beleg-scanner', Pfaden, Doppelpunkten
+                    #     oder Sonderzeichen, die FTS5 als Spaltensubtraktion/Syntaxfehler abweist).
+                    if not results:
+                        and_query = self._build_fts_and_query(query)
+                        if and_query and and_query != query:
+                            try:
+                                results = self._fts_query(conn, and_query, type=type, limit=limit,
+                                                          with_snippets=with_snippets,
+                                                          source=source, pinned=pinned)
+                            except Exception:
+                                results = []
+
+                    # 2. Mehrwort-Fallback: Wenn 0 Treffer und Mehrwort-Query, OR-Verknüpfung in FTS5 versuchen
+                    if not results:
+                        or_query = self._build_fts_or_query(query)
+                        if or_query:
+                            try:
+                                results = self._fts_query(conn, or_query, type=type, limit=limit,
+                                                          with_snippets=with_snippets,
+                                                          source=source, pinned=pinned)
+                            except Exception:
+                                results = []
+
+                    # 3. Fallback auf LIKE-Suche, falls FTS (auch AND/OR) fehlschlug oder 0 Treffer ergab
+                    if not results:
+                        try:
+                            results = self._like_query(conn, query, type=type, limit=limit,
+                                                       source=source, pinned=pinned)
+                        except Exception:
+                            results = []
 
         # Deduplizieren nach (id, source)
         seen = set()

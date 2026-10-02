@@ -59,9 +59,9 @@ class TestMetadataParity(unittest.TestCase):
         self.assertIn(f"[{version}]", self.changelog)
 
     def test_readme_badges_and_test_count(self):
-        # Assert test badges show 225 passed
-        self.assertIn("tests-225%20passed-brightgreen.svg", self.readme_en)
-        self.assertIn("tests-225%20passed-brightgreen.svg", self.readme_de)
+        # Assert test badges show 227 passed
+        self.assertIn("tests-227%20passed-brightgreen.svg", self.readme_en)
+        self.assertIn("tests-227%20passed-brightgreen.svg", self.readme_de)
 
         # Assert Level 1 SBOM badge
         self.assertIn("Level_1_SBOM-Plain_Text_Audited-brightgreen.svg", self.readme_en)
@@ -72,8 +72,8 @@ class TestMetadataParity(unittest.TestCase):
         self.assertIn("Attribution-NOTICE-blue.svg", self.readme_de)
 
         # Assert Verified badge
-        self.assertIn("verified-2026--09--30-blue.svg", self.readme_en)
-        self.assertIn("verified-2026--09--30-blue.svg", self.readme_de)
+        self.assertIn("verified-2026--10--02-blue.svg", self.readme_en)
+        self.assertIn("verified-2026--10--02-blue.svg", self.readme_de)
 
         # Assert code style Ruff
         self.assertIn("code%20style-ruff-000000.svg", self.readme_en)
@@ -101,8 +101,8 @@ class TestMetadataParity(unittest.TestCase):
         self.assertIn("actions/workflows/ci.yml/badge.svg", self.readme_de)
 
     def test_llms_txt_consistency(self):
-        self.assertIn("Last-checked: 2026-09-30", self.llms_txt)
-        self.assertIn("225 passing tests", self.llms_txt)
+        self.assertIn("Last-checked: 2026-10-02", self.llms_txt)
+        self.assertIn("227 passing tests", self.llms_txt)
         self.assertIn("https://github.com/ellmos-ai/gardener", self.llms_txt)
         self.assertIn("ellmos-ai/gardener", self.llms_txt)
         self.assertIn("NOTICE", self.llms_txt)
@@ -387,6 +387,7 @@ class TestMetadataParity(unittest.TestCase):
         self.assertIn("2026-09-28", self.marketing_log)
         self.assertIn("2026-09-30", self.marketing_log)
         self.assertIn("2026-10-01", self.marketing_log)
+        self.assertIn("2026-10-02", self.marketing_log)
         self.assertIn("Pfad A", self.marketing_log)
         self.assertIn("Pfad B", self.marketing_log)
         self.assertIn("ellmos-ai/gardener", self.marketing_log)
@@ -397,6 +398,7 @@ class TestMetadataParity(unittest.TestCase):
         self.assertIn("2026-09-28", self.changelog)
         self.assertIn("2026-09-30", self.changelog)
         self.assertIn("2026-10-01", self.changelog)
+        self.assertIn("2026-10-02", self.changelog)
 
     def test_license_and_liability_notice(self):
         license_path = ROOT / "LICENSE"

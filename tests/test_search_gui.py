@@ -166,6 +166,21 @@ class TestSearchGuiHttp(SearchGuiTempCase):
         self.assertEqual(status, 200)
         self.assertEqual(len(data["results"]), 1)
 
+    def test_api_search_pure_negation_and_repeated_filters(self):
+        # 1. Reine Negation via GUI-API schließt Dokumente aus
+        status, data = self._get_json("/api/search?q=-belege")
+        self.assertEqual(status, 200)
+        names = [r["name"] for r in data["results"]]
+        self.assertNotIn("beleg-scanner", names)
+        self.assertIn("notiz-einkauf", names)
+
+        # 2. Wiederholte Inline-Typfilter via GUI-API
+        status, data = self._get_json("/api/search?q=" + urllib.parse.quote("type:knowledge type:memory"))
+        self.assertEqual(status, 200)
+        names = [r["name"] for r in data["results"]]
+        self.assertIn("beleg-scanner", names)
+        self.assertIn("notiz-einkauf", names)
+
     def test_api_entry_detail_and_404(self):
         status, data = self._get_json("/api/entry?name=beleg-scanner")
         self.assertEqual(status, 200)

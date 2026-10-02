@@ -464,6 +464,14 @@ class TestGardenerCore(GardenerTempCase):
             ("task", None, None, None, "rechnung")
         )
         self.assertEqual(
+            extract_filters("type:task type:tool rechnung"),
+            ("task,tool", None, None, None, "rechnung")
+        )
+        self.assertEqual(
+            extract_filters("source:usmc-working source:github memo"),
+            (None, "usmc-working,github", None, None, "memo")
+        )
+        self.assertEqual(
             extract_filters("type:task,knowledge rechnung"),
             ("task,knowledge", None, None, None, "rechnung")
         )
@@ -504,6 +512,20 @@ class TestGardenerCore(GardenerTempCase):
         self.assertEqual(build_safe_op('rechnung -"alter entwurf"'), '"rechnung" NOT "alter entwurf"')
         self.assertEqual(build_safe_op("tag:python -tag:deprecated"), 'tags:"python" NOT tags:"deprecated"')
         self.assertEqual(build_safe_op("(python OR rust) -draft"), '("python" OR "rust") NOT "draft"')
+
+        # Reine Negation liefert None bei FTS-Operator-Query (wird an LIKE delegiert)
+        self.assertIsNone(build_safe_op("-draft"))
+        self.assertIsNone(build_safe_op("-draft -temp"))
+        self.assertIsNone(build_safe_op('-"alter entwurf"'))
+        self.assertIsNone(build_safe_op("-tag:deprecated"))
+
+        # FTS AND/OR Helper weisen Negations-Queries ebenfalls ab
+        build_fts_and = self.gardener.Gardener._build_fts_and_query
+        build_fts_or = self.gardener.Gardener._build_fts_or_query
+        self.assertIsNone(build_fts_and("-draft"))
+        self.assertIsNone(build_fts_and("-draft -temp"))
+        self.assertIsNone(build_fts_or("-draft"))
+        self.assertIsNone(build_fts_or("-draft -temp"))
 
         # Type normalization and type filter helpers
         normalize_types = self.gardener.Gardener._normalize_types
@@ -676,6 +698,76 @@ class TestGardenerCore(GardenerTempCase):
         # 8. Präfix-Wildcard am Spaltenwert
         hits_wild = self.af.find("tags:python-script*")
         self.assertEqual(len(hits_wild), 2)
+
+    def test_find_with_pure_negations_and_inline_filters(self):
+        """Testet reine Negationssuchen (-draft, type:knowledge -draft, -tag:deprecated, etc.)
+        und wiederholte Inline-Filter (type:task type:tool)."""
+        self.af.put(
+            "doc-contract-final",
+            content="Gültiger finaler Vertrag über Cloud-Dienstleistungen.",
+            tags="vertrag,prod",
+            type="knowledge",
+        )
+        self.af.put(
+            "doc-contract-draft",
+            content="Vorläufiger Entwurf für einen Dienstleistungsvertrag.",
+            tags="vertrag,draft,temp",
+            type="knowledge",
+        )
+        self.af.put(
+            "task-contract-review",
+            content="Prüfung des finalen Vertragsentwurfs.",
+            tags="vertrag,draft",
+            type="task",
+        )
+        self.af.put(
+            "tool-backup-script",
+            content="Automatisches Backup Skript für die Postgres Datenbank.",
+            tags="devops,backup",
+            type="tool",
+        )
+
+        # 1. Reine Negation: find("-Entwurf") schließt Dokumente mit "Entwurf" aus
+        # und invertiert NICHT die Suche (vorher gab es fälschlicherweise nur Treffer MIT Entwurf!)
+        hits_neg1 = self.af.find("-Entwurf")
+        hit_names1 = [h["name"] for h in hits_neg1]
+        self.assertNotIn("doc-contract-draft", hit_names1)
+        self.assertIn("doc-contract-final", hit_names1)
+        self.assertIn("tool-backup-script", hit_names1)
+
+        # 2. Reine Negation mit explizitem type-Filter: find("-Entwurf", type="knowledge")
+        hits_neg_type = self.af.find("-Entwurf", type="knowledge")
+        hit_names_type = [h["name"] for h in hits_neg_type]
+        self.assertIn("doc-contract-final", hit_names_type)
+        self.assertNotIn("doc-contract-draft", hit_names_type)
+        self.assertNotIn("task-contract-review", hit_names_type)
+        self.assertNotIn("tool-backup-script", hit_names_type)
+
+        # 3. Reine Negation mit Inline-Typfilter: find("type:knowledge -Entwurf")
+        hits_inline_neg = self.af.find("type:knowledge -Entwurf")
+        hit_names_inline = [h["name"] for h in hits_inline_neg]
+        self.assertEqual(hit_names_inline, ["doc-contract-final"])
+
+        # 4. Spalten-Negation: find("-tag:draft")
+        hits_neg_tag = self.af.find("-tag:draft")
+        hit_names_tag = [h["name"] for h in hits_neg_tag]
+        self.assertIn("doc-contract-final", hit_names_tag)
+        self.assertIn("tool-backup-script", hit_names_tag)
+        self.assertNotIn("doc-contract-draft", hit_names_tag)
+        self.assertNotIn("task-contract-review", hit_names_tag)
+
+        # 5. Mehrfache Negationen: find("-draft -temp")
+        hits_multi_neg = self.af.find("-draft -temp")
+        hit_names_multi = [h["name"] for h in hits_multi_neg]
+        self.assertIn("doc-contract-final", hit_names_multi)
+        self.assertNotIn("doc-contract-draft", hit_names_multi)
+
+        # 6. Wiederholte Inline-Typfilter: find("type:task type:tool")
+        hits_multi_type = self.af.find("type:task type:tool")
+        hit_names_mt = [h["name"] for h in hits_multi_type]
+        self.assertIn("task-contract-review", hit_names_mt)
+        self.assertIn("tool-backup-script", hit_names_mt)
+        self.assertNotIn("doc-contract-final", hit_names_mt)
 
     def test_find_with_grouping_parentheses_and_normalized_operators(self):
         """Testet FTS5-Gruppierungsklammern und normalisierte Operatoren (Klein-/deutsche Schreibung)."""

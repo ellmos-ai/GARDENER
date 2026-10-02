@@ -350,3 +350,32 @@ Version: 0.4.2
 [x] Automated Contract Test Expansion & Verification:
     - Added test_find_and_list_multi_type_and_negations_contract in tests/test_gardener_core.py.
     - Expanded test suite to 225 passed tests with 35 subtests (100% green).
+
+================================================================================
+10. FTS5/LIKE PURE NEGATION ROUTING & REPEATED INLINE FILTER ACCUMULATION (2026-10-02)
+================================================================================
+Operator: Antigravity / Gemini (via Daily Maintenance [GARDENER])
+Canonical Path: C:\_Local_DEV\repos\gardener
+Version: 0.4.2
+
+[x] Pure Negation Query Routing & Inversion Fix (gardener.py):
+    - Resolved UX inversion where queries consisting purely of negated terms (-draft, -draft -temp)
+      were stripped of minus signs in _build_fts_safe_operator_query and returned only documents
+      containing the excluded terms.
+    - Pure negations in _build_fts_safe_operator_query now cleanly yield None, delegating
+      execution directly to _like_query().
+    - Added negation guards in _build_fts_and_query() and _build_fts_or_query() to avoid
+      generating invalid FTS token strings ("NOT" "draft").
+    - Added fast-path routing in find() directly to _like_query() when has_neg and not safe_op_query,
+      enforcing strict SQL NOT LIKE conditions with type, source, and pinned filters.
+
+[x] Repeated Inline Filter Accumulation (gardener.py):
+    - Fixed filter extraction in _extract_inline_filters(): repeated type/typ and source/quelle
+      filters are now accumulated with commas (e.g., "type:task type:tool" -> type="task,tool")
+      instead of discarding subsequent filters and leaking tokens into text search.
+
+[x] GUI Search API & Contract Test Expansion:
+    - Added test_api_search_pure_negation_and_repeated_filters in tests/test_search_gui.py.
+    - Added test_find_with_pure_negations_and_inline_filters in tests/test_gardener_core.py.
+    - Expanded test suite to 227 passed tests with 35 subtests (100% green).
+

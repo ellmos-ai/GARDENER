@@ -2,6 +2,20 @@
  
 ## [Unreleased]
 
+### FTS5/LIKE Reines Negations-Routing & Wiederholte Inline-Filter Akkumulierung (2026-10-02)
+
+- **Behebung der Negations-Invertierung (`gardener.py`)**:
+  - `_build_fts_safe_operator_query`: Behebt Fehler, bei dem reine Negationsqueries (`-draft`, `-draft -temp`) durch Umwandlung führender negierter Tokens in positive FTS-Tokens die Suche invertierten und nur Treffer MIT den ausgeschlossenen Begriffen lieferten. Reine Negationsanfragen liefern nun `None`, damit sie sauber an die LIKE-Ebene delegiert werden.
+  - `_build_fts_and_query` & `_build_fts_or_query`: Negations-Guard hinzugefügt, sodass Queries mit Minus-Negation abgewiesen werden (`return None`), anstatt ungültige Tokens wie `"NOT" "draft"` zu erzeugen.
+  - `find()`: Schneller Direktpfad für reine Negationssuchen (`has_neg and not safe_op_query`) direkt zu `_like_query()`, wo negative SQL-Bedingungen (`WHERE 1=1 AND (e.name NOT LIKE ? AND e.content NOT LIKE ? AND e.tags NOT LIKE ?)`) mit Typ-, Quell- und Pinned-Filtern ausgeführt werden.
+- **Akkumulierung wiederholter Inline-Filter (`gardener.py`)**:
+  - `_extract_inline_filters`: Wiederholte `type:`/`typ:`- sowie `source:`/`quelle:`-Filter werden jetzt mit Kommas akkumuliert (`task,tool` bzw. `usmc-working,github`), statt nach dem ersten Token ignoriert zu werden und in den Freitextsuchbegriff zu lecken.
+- **Search-GUI & API Parität (`tests/test_search_gui.py`)**:
+  - Neuer API-Test `test_api_search_pure_negation_and_repeated_filters`: Verifiziert `/api/search?q=-belege` und `/api/search?q=type:knowledge%20type:memory`.
+- **Vertragstests & Metadaten (`tests/test_gardener_core.py`, `tests/test_metadata.py`, `README.md`, `README_de.md`, `llms.txt`)**:
+  - Neue Tests `test_find_with_pure_negations_and_inline_filters` und Assertions in `test_find_and_list_multi_type_and_negations_contract`.
+  - Testsuite von 225 auf **227 passed, 35 subtests passed** (100% grün) erhöht; Badges und `llms.txt` Stand 2026-10-02 synchronisiert.
+
 ### Multi-Type-Filterung & Negations-Suchsyntax (`-term`, `-"phrase"`) (2026-10-01)
 
 - **Multi-Type-Filterung (`gardener.py`)**:
