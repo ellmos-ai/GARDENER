@@ -1042,6 +1042,32 @@ class TestGardenerCore(GardenerTempCase):
         self.assertEqual(len(hits_neg_leading), 1)
         self.assertEqual(hits_neg_leading[0]["name"], "tool-py-backup")
 
+        # 14. Deutsche Spaltenaliase (titel: -> name, inhalt:/text: -> content, schlagwort:/schlagworte: -> tags)
+        hits_titel = self.af.find("titel:tool-py-backup")
+        self.assertEqual(len(hits_titel), 1)
+        self.assertEqual(hits_titel[0]["name"], "tool-py-backup")
+
+        hits_inhalt = self.af.find("inhalt:Richtlinie")
+        self.assertEqual(len(hits_inhalt), 1)
+        self.assertEqual(hits_inhalt[0]["name"], "doc-backup-policy")
+
+        hits_text = self.af.find("text:Richtlinie")
+        self.assertEqual(len(hits_text), 1)
+        self.assertEqual(hits_text[0]["name"], "doc-backup-policy")
+
+        hits_schlagwort = self.af.find("schlagwort:python-script")
+        self.assertEqual(len(hits_schlagwort), 1)
+        self.assertEqual(hits_schlagwort[0]["name"], "tool-py-backup")
+
+        hits_schlagworte = self.af.find("schlagworte:rust-crate")
+        self.assertEqual(len(hits_schlagworte), 1)
+        self.assertEqual(hits_schlagworte[0]["name"], "tool-rust-backup")
+
+        # 15. Plus-Operator (+term, +titel:term)
+        hits_plus = self.af.find("+backup +titel:tool-py-backup")
+        self.assertEqual(len(hits_plus), 1)
+        self.assertEqual(hits_plus[0]["name"], "tool-py-backup")
+
     def test_like_query_with_column_filters(self):
         """Testet den gezielten Spaltenabgleich des LIKE-Fallbacks bei Vorliegen von Spaltenfiltern."""
         self.af.put(
@@ -1115,6 +1141,85 @@ class TestGardenerCore(GardenerTempCase):
         self.assertIn("t-contract-know", l_list_names)
         self.assertIn("t-contract-draft", l_list_names)
         self.assertNotIn("t-contract-tool", l_list_names)
+
+    def test_german_column_aliases_and_plus_operator_contract(self):
+        """Vertragstest: Vollständige deutsche Spaltenfilter (titel:, inhalt:, text:, schlagwort:, schlagworte:)
+        sowie Plus-Präfix (+term, +titel:term) für Pflichtbegriffe."""
+        self.af.put(
+            "rechnung-2026-final",
+            content="Jahresabschluss mit Belegen fuer das Finanzamt.",
+            tags="finanzen,steuer,abschluss",
+            type="document",
+        )
+        self.af.put(
+            "rechnung-2026-draft",
+            content="Vorlaeufiger Entwurf ohne Freigabe.",
+            tags="finanzen,entwurf",
+            type="document",
+        )
+        self.af.put(
+            "notiz-privat",
+            content="Einkaufszettel und private Notiz.",
+            tags="privat",
+            type="memory",
+        )
+
+        # 1. titel: Filter
+        hits = self.af.find("titel:rechnung-2026-final")
+        self.assertEqual(len(hits), 1)
+        self.assertEqual(hits[0]["name"], "rechnung-2026-final")
+
+        # 2. inhalt: und text: Filter
+        hits_inhalt = self.af.find("inhalt:Finanzamt")
+        self.assertEqual(len(hits_inhalt), 1)
+        self.assertEqual(hits_inhalt[0]["name"], "rechnung-2026-final")
+
+        hits_text = self.af.find("text:Vorlaeufiger")
+        self.assertEqual(len(hits_text), 1)
+        self.assertEqual(hits_text[0]["name"], "rechnung-2026-draft")
+
+        # 3. schlagwort: und schlagworte: Filter
+        hits_sw = self.af.find("schlagwort:steuer")
+        self.assertEqual(len(hits_sw), 1)
+        self.assertEqual(hits_sw[0]["name"], "rechnung-2026-final")
+
+        hits_sw_multi = self.af.find("schlagworte:finanzen")
+        self.assertEqual(len(hits_sw_multi), 2)
+        names = {h["name"] for h in hits_sw_multi}
+        self.assertEqual(names, {"rechnung-2026-final", "rechnung-2026-draft"})
+
+        # 4. Kombinierte Spaltenfilter: titel: + inhalt: + schlagwort:
+        hits_combo = self.af.find("titel:final inhalt:Belegen schlagwort:finanzen")
+        self.assertEqual(len(hits_combo), 1)
+        self.assertEqual(hits_combo[0]["name"], "rechnung-2026-final")
+
+        # 5. Negierte deutsche Spaltenfilter: -schlagwort:entwurf, -titel:draft
+        hits_neg = self.af.find("schlagwort:finanzen -schlagwort:entwurf")
+        self.assertEqual(len(hits_neg), 1)
+        self.assertEqual(hits_neg[0]["name"], "rechnung-2026-final")
+
+        hits_neg_title = self.af.find("schlagwort:finanzen -titel:draft")
+        self.assertEqual(len(hits_neg_title), 1)
+        self.assertEqual(hits_neg_title[0]["name"], "rechnung-2026-final")
+
+        # 6. Plus-Präfix für Pflichtbegriffe (+titel:final, +Finanzamt)
+        hits_plus = self.af.find("+titel:final +Finanzamt")
+        self.assertEqual(len(hits_plus), 1)
+        self.assertEqual(hits_plus[0]["name"], "rechnung-2026-final")
+
+        # 7. LIKE-Fallback für deutsche Spaltenfilter
+        with self.af.connection("user") as conn:
+            hits_like_titel = self.af._like_query(conn, "titel:rechnung-2026-final")
+            self.assertEqual(len(hits_like_titel), 1)
+            self.assertEqual(hits_like_titel[0]["name"], "rechnung-2026-final")
+
+            hits_like_inhalt = self.af._like_query(conn, "inhalt:Finanzamt")
+            self.assertEqual(len(hits_like_inhalt), 1)
+            self.assertEqual(hits_like_inhalt[0]["name"], "rechnung-2026-final")
+
+            hits_like_sw = self.af._like_query(conn, "schlagwort:steuer")
+            self.assertEqual(len(hits_like_sw), 1)
+            self.assertEqual(hits_like_sw[0]["name"], "rechnung-2026-final")
 
     def test_find_with_hyphens_special_chars_and_snippets(self):
         self.af.put(

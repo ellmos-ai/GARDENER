@@ -144,10 +144,15 @@ class Gardener:
     COLUMN_ALIASES = {
         "tag": "tags",
         "tags": "tags",
+        "schlagwort": "tags",
+        "schlagworte": "tags",
         "title": "name",
         "name": "name",
+        "titel": "name",
         "body": "content",
         "content": "content",
+        "inhalt": "content",
+        "text": "content",
     }
     OPERATOR_MAP = {
         "AND": "AND",
@@ -158,11 +163,11 @@ class Gardener:
         "NICHT": "NOT",
     }
     _TOKEN_PATTERN = re.compile(
-        r'(?P<neg>-(?!-))?(?:(?P<col>name|title|content|body|tags|tag):\s*)?(?:\"(?P<qphrase>[^\"]*)\"(?P<qstar>\*)?|(?P<bare>\S+))',
+        r'(?P<neg>-(?!-))?(?P<pos>\+(?!\+))?(?:(?P<col>name|title|titel|content|body|inhalt|text|tags|tag|schlagwort|schlagworte):\s*)?(?:\"(?P<qphrase>[^\"]*)\"(?P<qstar>\*)?|(?P<bare>\S+))',
         re.IGNORECASE,
     )
     _FILTER_TOKEN_RE = re.compile(
-        r'(?:(?P<filter>type|typ|source|quelle|pinned|gepinnt|is|ist|not|nicht|limit|max):\s*)?(?:\"(?P<qphrase>[^\"]*)\"(?P<qstar>\*)?|(?P<bare>\S+))',
+        r'(?P<neg>-(?!-))?(?P<pos>\+(?!\+))?(?:(?P<filter>[a-zA-Z0-9_\-]+):\s*)?(?:\"(?P<qphrase>[^\"]*)\"(?P<qstar>\*)?|(?P<bare>\S+))',
         re.IGNORECASE,
     )
 
@@ -254,7 +259,8 @@ class Gardener:
     def _split_col(cls, token_text: str) -> Tuple[Optional[str], str]:
         """Trennt ein Token in kanonischen FTS-Spaltennamen (name, content, tags) und Wert.
 
-        Unterstützt Spalten-Aliase: tag -> tags, title -> name, body -> content.
+        Unterstützt Spalten-Aliase: tag/tags/schlagwort/schlagworte -> tags,
+        title/titel/name -> name, body/content/inhalt/text -> content.
         """
         if ":" in token_text:
             prefix, val = token_text.split(":", 1)
@@ -313,8 +319,9 @@ class Gardener:
         tokens: List[Tuple[str, bool, bool]] = []
 
         for match in cls._TOKEN_PATTERN.finditer(query):
-            neg, col, quoted_text, quoted_star, bare_text = (
+            neg, _pos, col, quoted_text, quoted_star, bare_text = (
                 match.group("neg"),
+                match.group("pos"),
                 match.group("col"),
                 match.group("qphrase"),
                 match.group("qstar"),
@@ -337,7 +344,7 @@ class Gardener:
                     continue
                 is_prefix = bare_text.endswith('*') and len(bare_text) > 1
                 text = bare_text[:-1] if is_prefix else bare_text
-                if not text.strip('*-'):
+                if not text.strip('*-+'):
                     continue
                 if neg == "-":
                     tokens.append(("NOT", False, False))
@@ -845,6 +852,8 @@ class Gardener:
         remaining_tokens = []
 
         for m in cls._FILTER_TOKEN_RE.finditer(query):
+            neg = m.group("neg")
+            pos = m.group("pos")
             filt, qphrase, qstar, bare = (
                 m.group("filter"),
                 m.group("qphrase"),
@@ -886,12 +895,13 @@ class Gardener:
                     extracted_limit = max(1, int(val))
                     continue
 
+            neg_prefix = "-" if neg else ("+" if pos else "")
             col_prefix = f"{filt}:" if filt else ""
             if qphrase is not None:
                 star = "*" if qstar else ""
-                remaining_tokens.append(f'{col_prefix}"{qphrase}"{star}')
+                remaining_tokens.append(f'{neg_prefix}{col_prefix}"{qphrase}"{star}')
             elif bare:
-                remaining_tokens.append(f'{col_prefix}{bare}')
+                remaining_tokens.append(f'{neg_prefix}{col_prefix}{bare}')
 
         cleaned = " ".join(remaining_tokens)
         cleaned = re.sub(r'^\s*(?:AND|OR|UND|ODER)\s+', '', cleaned, flags=re.IGNORECASE)
@@ -911,8 +921,9 @@ class Gardener:
 
         Unterstützt Inline-Filter direkt in der Suchanfrage (z. B. 'type:task rechnung',
         'type:task,knowledge', 'typ:task limit:5', 'source:usmc-working memory',
-        'ist:gepinnt zebra', 'rechnung -entwurf', 'tag:python -tag:deprecated',
-        'title:scanner', 'body:vertrag').
+        'ist:gepinnt zebra', 'rechnung -entwurf', '+rechnung', 'tag:python -tag:deprecated',
+        'titel:scanner', 'title:scanner', 'inhalt:vertrag', 'text:bericht',
+        'schlagwort:python', 'body:vertrag').
 
         Args:
             query: Suchbegriff (Volltextsuche). Leer erlaubt, wenn `source`

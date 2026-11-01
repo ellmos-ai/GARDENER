@@ -2,6 +2,24 @@
  
 ## [Unreleased]
 
+### Deutsche Spalten-Aliase (titel, inhalt, text, schlagwort), Plus-Operator (+term) & Search-GUI-Erweiterung (2026-10-03)
+
+- **Deutsche Spalten-Aliase & Spaltenfilterung (`gardener.py`)**:
+  - `Gardener.COLUMN_ALIASES`: Um deutsche Spaltennamen erweitert (`"titel": "name"`, `"inhalt": "content"`, `"text": "content"`, `"schlagwort": "tags"`, `"schlagworte": "tags"`).
+  - Regex-Erweiterung in `_TOKEN_PATTERN` und `_FILTER_TOKEN_RE`: Erkennt deutsche Spaltenfilter (`titel:`, `inhalt:`, `text:`, `schlagwort:`, `schlagworte:`) und schützt mehrwortige Strings in Anführungszeichen (z. B. `title:"mein beleg"`, `titel:"bericht quartal"`), ohne sie in Einzel-Tokens zu zerlegen.
+  - Abfrage-Routing in `_split_col()` und `_extract_inline_filters()`: Unterstützt Spalteneinschränkungen sowohl in FTS5-Syntax als auch nahtlos im LIKE-Fallback.
+- **Unterstützung für expliziten Plus-Operator (`+term`, `+"phrase"`) (`gardener.py`)**:
+  - Regex-Erkennung für führende Plus-Präfixe `(?P<pos>\+(?!\+))` in `_TOKEN_PATTERN` und `_FILTER_TOKEN_RE`.
+  - Bereinigung in `_tokenize_query()`: Entfernt führendes `+` vor der Übergabe an SQLite FTS5, um `sqlite3.OperationalError: fts5: syntax error near "+"` zu verhindern, während der Begriff als erforderlicher Suchterm erhalten bleibt.
+  - Integration in `_extract_inline_filters()`: Behält Plus-Terme (`+rechnung`) im bereinigten Freitextfilter bei.
+- **Search-GUI & Web Companion (`search_gui.py`, `tests/test_search_gui.py`)**:
+  - HTML/UX-Erweiterung: Platzhalter im Suchfeld um deutsche Spaltenfilter und Plus-Operator (`titel:rechnung`, `schlagwort:python`, `limit:10`) ergänzt.
+  - Neuer API-Test `test_api_search_german_column_aliases`: Prüft `/api/search` mit deutschen Spaltenfiltern und Negationen (`titel:rechnung -draft`).
+- **Vertragstests & Metadaten-Parität (`tests/test_gardener_core.py`, `tests/test_metadata.py`, `README.md`, `README_de.md`, `llms.txt`, `MARKETING-LOG.txt`)**:
+  - Neuer Vertragstest `test_german_column_aliases_and_plus_operator_contract` sowie Erweiterung von `test_find_with_inline_filters_and_column_aliases` in `tests/test_gardener_core.py`.
+  - Testsuite von 227 auf **229 passed, 35 subtests passed** (100% grün) erhöht; Badges und Dokumentation auf Stand 2026-10-03 aktualisiert.
+  - Test-Härtung (	ests/test_sleep_union.py): Pfadauflösung zu gardener.py über Path(__file__) gegen CWD-Abweichungen abgesichert.
+
 ### FTS5/LIKE Reines Negations-Routing & Wiederholte Inline-Filter Akkumulierung (2026-10-02)
 
 - **Behebung der Negations-Invertierung (`gardener.py`)**:

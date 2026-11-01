@@ -181,6 +181,30 @@ class TestSearchGuiHttp(SearchGuiTempCase):
         self.assertIn("beleg-scanner", names)
         self.assertIn("notiz-einkauf", names)
 
+    def test_api_search_german_column_aliases(self):
+        # 1. Deutsche Spaltenfilter (titel:, inhalt:, schlagwort:) über GUI-API
+        status, data = self._get_json("/api/search?q=" + urllib.parse.quote("titel:beleg"))
+        self.assertEqual(status, 200)
+        names = [r["name"] for r in data["results"]]
+        self.assertIn("beleg-scanner", names)
+
+        status, data = self._get_json("/api/search?q=" + urllib.parse.quote("inhalt:Rechnungen"))
+        self.assertEqual(status, 200)
+        names = [r["name"] for r in data["results"]]
+        self.assertIn("beleg-scanner", names)
+
+        status, data = self._get_json("/api/search?q=" + urllib.parse.quote("schlagwort:privat"))
+        self.assertEqual(status, 200)
+        names = [r["name"] for r in data["results"]]
+        self.assertIn("notiz-einkauf", names)
+
+        # 2. Negierter Spaltenfilter über GUI-API
+        status, data = self._get_json("/api/search?q=" + urllib.parse.quote("-schlagwort:privat"))
+        self.assertEqual(status, 200)
+        names = [r["name"] for r in data["results"]]
+        self.assertIn("beleg-scanner", names)
+        self.assertNotIn("notiz-einkauf", names)
+
     def test_api_entry_detail_and_404(self):
         status, data = self._get_json("/api/entry?name=beleg-scanner")
         self.assertEqual(status, 200)

@@ -379,3 +379,38 @@ Version: 0.4.2
     - Added test_find_with_pure_negations_and_inline_filters in tests/test_gardener_core.py.
     - Expanded test suite to 227 passed tests with 35 subtests (100% green).
 
+================================================================================
+11. GERMAN COLUMN ALIASES (TITEL, INHALT, TEXT, SCHLAGWORT) & PLUS OPERATOR (2026-10-03)
+================================================================================
+Operator: Antigravity / Gemini (via Daily Maintenance [GARDENER])
+Canonical Path: C:\_Local_DEV\repos\gardener
+Version: 0.4.2
+
+[x] German Column Aliases & Phrase Protection (gardener.py):
+    - Expanded Gardener.COLUMN_ALIASES with German column synonyms:
+      "titel" -> "name", "inhalt" -> "content", "text" -> "content",
+      "schlagwort" -> "tags", "schlagworte" -> "tags".
+    - Extended _TOKEN_PATTERN and _FILTER_TOKEN_RE to recognize German column identifiers
+      and preserve quoted phrases intact (e.g. title:"mein beleg", titel:"quartal q3").
+    - Enabled column-specific scoping across both FTS5 BM25 queries and LIKE fallbacks.
+
+[x] Explicit Plus Operator (+term, +"phrase") Support (gardener.py):
+    - Added positive lookahead regex (?P<pos>\+(?!\+)) in _TOKEN_PATTERN and _FILTER_TOKEN_RE.
+    - Sanitized leading '+' in _tokenize_query() before passing to SQLite FTS5 engine,
+      preventing syntax errors (sqlite3.OperationalError near "+") while retaining terms
+      as mandatory search criteria.
+    - Preserved '+' tokens in _extract_inline_filters() cleaned text search.
+
+[x] Search GUI UX & API Enhancements (search_gui.py, tests/test_search_gui.py):
+    - Updated search box placeholder in GUI to showcase German column filters and plus operators:
+      "z. B. type:task,tool, -draft, titel:rechnung, schlagwort:python, is:pinned, limit:10".
+    - Added test_api_search_german_column_aliases verifying /api/search with German column
+      filters and negations.
+
+[x] Automated Contract Test Expansion & Parity Synchronization:
+    - Added test_german_column_aliases_and_plus_operator_contract and expanded
+      test_find_with_inline_filters_and_column_aliases in tests/test_gardener_core.py.
+    - Synchronized tests/test_metadata.py, README.md, README_de.md, and llms.txt.
+    - Full test suite verified at 229 passed tests with 35 subtests (100% green).
+
+

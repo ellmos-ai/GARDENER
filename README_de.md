@@ -13,8 +13,8 @@
 [![Plattformen](https://img.shields.io/badge/plattformen-Linux%20%7C%20Windows%20%7C%20macOS-lightgrey.svg)](https://github.com/ellmos-ai/gardener)
 [![Lizenz: MIT](https://img.shields.io/badge/Lizenz-MIT-yellow.svg)](LICENSE)
 [![Attribution: NOTICE](https://img.shields.io/badge/Attribution-NOTICE-blue.svg)](NOTICE)
-[![Verifiziert: 2026-10-02](https://img.shields.io/badge/verified-2026--10--02-blue.svg)](https://github.com/ellmos-ai/gardener)
-[![Tests: 227 bestanden](https://img.shields.io/badge/tests-227%20passed-brightgreen.svg)](https://github.com/ellmos-ai/gardener)
+[![Verifiziert: 2026-10-03](https://img.shields.io/badge/verified-2026--10--03-blue.svg)](https://github.com/ellmos-ai/gardener)
+[![Tests: 229 bestanden](https://img.shields.io/badge/tests-229%20passed-brightgreen.svg)](https://github.com/ellmos-ai/gardener)
 [![Level 1 SBOM: Plain-Text geprüft](https://img.shields.io/badge/Level_1_SBOM-Plain_Text_Audited-brightgreen.svg)](THIRD_PARTY_LICENSES.txt)
 [![Ausführung: RunAsInvoker](https://img.shields.io/badge/execution-RunAsInvoker-success.svg)](THIRD_PARTY_LICENSES.md)
 [![Datenschutz: Local-First](https://img.shields.io/badge/datenschutz-Local--First%20%7C%20Zero--Egress-brightgreen.svg)](SECURITY.md)
@@ -63,7 +63,7 @@
 
 Ein Betriebssystem, das speziell für LLMs entwickelt wurde. Alles lebt in einer durchsuchbaren SQLite-Datenbank. Vier Grundfunktionen genügen für die gesamte Agenten-Interaktion:
 
-- **`find(query, ...)`**: Volltextsuche mit deterministischem FTS5-BM25-Ranking, Snippet-Extraktion und Namensraum-Filtern über Erinnerungen, Aufgaben, Wissen und Werkzeuge. Unterstützt intuitive Inline-Filter (`type:task`, `type:tool`, `source:<id>`, `is:pinned`, `not:pinned`) und Spalten-Aliase (`tag:`, `title:`, `body:`).
+- **`find(query, ...)`**: Volltextsuche mit deterministischem FTS5-BM25-Ranking, Snippet-Extraktion und Namensraum-Filtern über Erinnerungen, Aufgaben, Wissen und Werkzeuge. Unterstützt intuitive Inline-Filter (`type:task`, `type:tool`, `source:<id>`, `is:pinned`, `not:pinned`), Spalten-Aliase (`tag:`, `title:`, `body:` sowie deutsche `titel:`, `inhalt:`, `text:`, `schlagwort:`, `schlagworte:`), Negationen (`-term`) und explizite Term-Einschlüsse (`+term`).
 - **`get(name)`**: Abruf von Einträgen anhand von Schlüssel oder Pfad zur Inspektion von Metadaten und Nutzlasten.
 - **`put(name, content, ...)`**: Dauerhafte Speicherung von Notizen, Lektionen, Aufgaben, Dokumenten oder Werkzeugen direkt in SQLite.
 - **`run(name, input=...)`**: Flüchtige Materialisierung und Ausführung von Python-Tools im unprivilegierten Benutzerraum.
@@ -406,6 +406,7 @@ with Gardener() as af:
 ```bash
 # Kernoperationen
 python gardener.py find <query>
+python gardener.py find "titel:rechnung +2026 -draft"
 python gardener.py find --pinned <query>
 python gardener.py find --source <source_id> <query>
 python gardener.py get <name>

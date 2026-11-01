@@ -6,6 +6,7 @@ import sqlite3
 import subprocess
 import sys
 from datetime import datetime
+from pathlib import Path
 
 import pytest
 
@@ -155,7 +156,8 @@ def test_cli_dry_run_uses_only_selected_database(db):
     env = os.environ.copy()
     env["GARDENER_SLEEP_CONFIG"] = str(db.with_suffix(".toml"))
     env["GARDENER_DATA"] = str(db.parent / "must_not_be_created")
-    command = [sys.executable, "gardener.py", "sleep", "--db", str(db),
+    gardener_py = Path(__file__).resolve().parent.parent / "gardener.py"
+    command = [sys.executable, str(gardener_py), "sleep", "--db", str(db),
                "--agent", "a", "--dry-run", "--no-decay"]
     result = subprocess.run(command, capture_output=True, text=True, env=env, check=False)
     assert result.returncode == 0, result.stderr
