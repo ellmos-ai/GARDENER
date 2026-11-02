@@ -2,6 +2,21 @@
  
 ## [Unreleased]
 
+### Pfad B: Bilinguale Query-Syntax-Architektur, Sequenzdiagramm-Präzisierung & Badges-Währung (2026-11-02)
+
+- **Bilinguale Abfrage- und Filtersyntax-Architektur (Section 8 in `README.md` & `README_de.md`)**:
+  - Neue strukturierte Matrix für natürliche Abfragefilter und -operatoren (`Natural Filter & Query Syntax Matrix` / `Bilinguale Filter- & Abfragesyntax-Matrix`).
+  - Dokumentation aller kanonischen Spalten-Präfixe und deutscher Aliase (`titel:` / `title:` / `name:`, `inhalt:` / `text:` / `body:` / `content:`, `schlagwort:` / `schlagworte:` / `tag:` / `tags:`).
+  - Dokumentation der Multi-Typ-Filterung (`type:task,knowledge`, `typ:aufgabe,notiz`), Inklusions- (`+term`) und Exklusionsoperatoren (`-term`, `-tag:deprecated`), boolescher Operatoren (`AND`/`OR`/`NOT` bzw. `UND`/`ODER`/`NICHT`), Inline-Limits (`limit:N`, `max:N`), Anheftungs-Filter (`is:pinned`/`ist:gepinnt`) und der automatischen Graceful-Fallback-Routing-Architektur für reine Negationsqueries.
+- **Duale Mermaid-Sequenzdiagramm-Präzisierung (Section 5 in `README.md` & `README_de.md`)**:
+  - Präzisierung des End-to-End Query- und Tool-Materialisierungs-Ablaufs mit Hervorhebung der Filter- & Tokenizer-Engine zur Zerlegung von Spalten-Aliasen, Inklusions-/Exklusions-Präfixen und Inline-Grenzen vor der SQLite-FTS5-Kompilierung.
+- **Dokumentations-Harmonisierung & Konsistenz**:
+  - Vereinheitlichung des Search-GUI-Standardports in beiden READMEs auf Port `8765` (entspricht `DEFAULT_PORT = 8765` in `search_gui.py` und der ASCII-Topologie in Section 2).
+- **Badges, RAG-Kontext & Vertragstests (`README.md`, `README_de.md`, `llms.txt`, `tests/test_metadata.py`)**:
+  - Badges-Währung Stand 2026-11-02 (`Verified: 2026-11-02` / `Verifiziert: 2026-11-02`), RAG-Kontext in `llms.txt` Stand 2026-11-02.
+  - Empirisch gemessene Testsuite-Bestätigung (229 passed, 100% grün).
+  - Erweiterung der automatisierten Vertragstests in `tests/test_metadata.py` zur Absicherung der Syntaxmatrix, Port-Harmonisierung und 2026-11-02 Recency.
+
 ### Deutsche Spalten-Aliase (titel, inhalt, text, schlagwort), Plus-Operator (+term) & Search-GUI-Erweiterung (2026-10-03)
 
 - **Deutsche Spalten-Aliase & Spaltenfilterung (`gardener.py`)**:
