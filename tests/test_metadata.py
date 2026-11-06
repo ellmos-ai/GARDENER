@@ -60,8 +60,8 @@ class TestMetadataParity(unittest.TestCase):
 
     def test_readme_badges_and_test_count(self):
         # Assert test badges show 229 passed
-        self.assertIn("tests-229%20passed-brightgreen.svg", self.readme_en)
-        self.assertIn("tests-229%20passed-brightgreen.svg", self.readme_de)
+        self.assertIn("tests-233%20passed-brightgreen.svg", self.readme_en)
+        self.assertIn("tests-233%20passed-brightgreen.svg", self.readme_de)
 
         # Assert Level 1 SBOM badge
         self.assertIn("Level_1_SBOM-Plain_Text_Audited-brightgreen.svg", self.readme_en)
@@ -72,8 +72,8 @@ class TestMetadataParity(unittest.TestCase):
         self.assertIn("Attribution-NOTICE-blue.svg", self.readme_de)
 
         # Assert Verified badge
-        self.assertIn("verified-2026--10--03-blue.svg", self.readme_en)
-        self.assertIn("verified-2026--10--03-blue.svg", self.readme_de)
+        self.assertIn("verified-2026--11--02-blue.svg", self.readme_en)
+        self.assertIn("verified-2026--11--02-blue.svg", self.readme_de)
 
         # Assert code style Ruff
         self.assertIn("code%20style-ruff-000000.svg", self.readme_en)
@@ -101,8 +101,8 @@ class TestMetadataParity(unittest.TestCase):
         self.assertIn("actions/workflows/ci.yml/badge.svg", self.readme_de)
 
     def test_llms_txt_consistency(self):
-        self.assertIn("Last-checked: 2026-10-03", self.llms_txt)
-        self.assertIn("229 passing tests", self.llms_txt)
+        self.assertIn("Last-checked: 2026-11-02", self.llms_txt)
+        self.assertIn("233 passing tests", self.llms_txt)
         self.assertIn("https://github.com/ellmos-ai/gardener", self.llms_txt)
         self.assertIn("ellmos-ai/gardener", self.llms_txt)
         self.assertIn("NOTICE", self.llms_txt)
@@ -401,6 +401,7 @@ class TestMetadataParity(unittest.TestCase):
         self.assertIn("2026-10-01", self.changelog)
         self.assertIn("2026-10-02", self.changelog)
         self.assertIn("2026-10-03", self.changelog)
+        self.assertIn("2026-11-02", self.changelog)
 
     def test_license_and_liability_notice(self):
         license_path = ROOT / "LICENSE"
@@ -465,6 +466,29 @@ class TestMetadataParity(unittest.TestCase):
         self.assertIn("Telescope", design)
         self.assertIn("Briefkasten", konzept)
         self.assertIn("Fernrohr", konzept)
+
+
+    def test_natural_filter_and_query_syntax_matrix_parity(self):
+        for doc in (self.readme_en, self.readme_de):
+            self.assertIn("Natural Filter & Query Syntax Matrix" if doc is self.readme_en else "Bilinguale Filter- & Abfragesyntax-Matrix", doc)
+            self.assertIn("title:<term>", doc)
+            self.assertIn("titel:<term>", doc)
+            self.assertIn("inhalt:<term>", doc)
+            self.assertIn("schlagwort:<term>", doc)
+            self.assertIn("+<term>", doc)
+            self.assertIn("-<term>", doc)
+            self.assertIn("type:<t1>,<t2>", doc)
+            self.assertIn("limit:<N>", doc)
+            self.assertIn("is:pinned", doc)
+
+    def test_gui_default_port_harmonization(self):
+        # Both READMEs must document port 8765 matching search_gui.py DEFAULT_PORT
+        self.assertIn("python gardener.py gui", self.readme_en)
+        self.assertIn("python gardener.py gui", self.readme_de)
+        self.assertIn("8765", self.readme_en)
+        self.assertIn("8765", self.readme_de)
+        self.assertNotIn("8420", self.readme_en)
+        self.assertNotIn("8420", self.readme_de)
 
 
 if __name__ == "__main__":

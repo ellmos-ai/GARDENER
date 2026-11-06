@@ -13,8 +13,8 @@
 [![Plattformen](https://img.shields.io/badge/plattformen-Linux%20%7C%20Windows%20%7C%20macOS-lightgrey.svg)](https://github.com/ellmos-ai/gardener)
 [![Lizenz: MIT](https://img.shields.io/badge/Lizenz-MIT-yellow.svg)](LICENSE)
 [![Attribution: NOTICE](https://img.shields.io/badge/Attribution-NOTICE-blue.svg)](NOTICE)
-[![Verifiziert: 2026-10-03](https://img.shields.io/badge/verified-2026--10--03-blue.svg)](https://github.com/ellmos-ai/gardener)
-[![Tests: 229 bestanden](https://img.shields.io/badge/tests-229%20passed-brightgreen.svg)](https://github.com/ellmos-ai/gardener)
+[![Verifiziert: 2026-11-02](https://img.shields.io/badge/verified-2026--11--02-blue.svg)](https://github.com/ellmos-ai/gardener)
+[![Tests: 233 bestanden](https://img.shields.io/badge/tests-233%20passed-brightgreen.svg)](https://github.com/ellmos-ai/gardener)
 [![Level 1 SBOM: Plain-Text geprüft](https://img.shields.io/badge/Level_1_SBOM-Plain_Text_Audited-brightgreen.svg)](THIRD_PARTY_LICENSES.txt)
 [![Ausführung: RunAsInvoker](https://img.shields.io/badge/execution-RunAsInvoker-success.svg)](THIRD_PARTY_LICENSES.md)
 [![Datenschutz: Local-First](https://img.shields.io/badge/datenschutz-Local--First%20%7C%20Zero--Egress-brightgreen.svg)](SECURITY.md)
@@ -260,10 +260,10 @@ sequenceDiagram
     participant DB as gardener.db / user.db
     participant WS as Lokaler Arbeitsbereich
 
-    Agent->>CLI: find("steuer rechnung", source="usmc-working")
+    Agent->>CLI: find("titel:rechnung +2026 -entwurf", source="usmc-working")
     CLI->>Core: Leite Suchanfrage mit Quellfilter weiter
-    Core->>Filter: Wende Vorfilter auf Namensraum an
-    Filter->>FTS: Führe BM25-Abfrage auf everything-Tabelle aus
+    Core->>Filter: Extrahiere Inline-Filter (Spalten-Aliase, +/-, Typ, Limit)
+    Filter->>FTS: Kompiliere bereinigte BM25-Abfrage auf everything-Tabelle
     FTS->>DB: Frage indizierte Zeilen ab (mode=ro für Fremddaten)
     DB-->>FTS: Trefferzeilen mit Text-Snippets
     FTS-->>Core: Sortierte Trefferliste mit source_ref-Metadaten
@@ -340,6 +340,24 @@ SELECT ... FROM everything WHERE ... ORDER BY pinned DESC, rank LIMIT ?
 ```
 Angeheftete Einträge (`pinned = 1`) werden direkt auf Datenbankebene an die Spitze gereiht, sodass kritische Kontextinformationen niemals durch Trefferüberhänge abgeschnitten werden.
 
+### Bilinguale Filter- & Abfragesyntax-Matrix
+
+Bei gewöhnlichen Mehrwortanfragen versucht die Suche zunächst gemeinsame Treffer aller Suchwörter. Gibt es keine, kann der Mehrwort-OR-Fallback Einträge mit nur einem Suchwort liefern, auch ohne den mit `+` markierten Begriff. Nur Filterschlüssel haben deutsche Aliase; Typwerte bleiben wörtlich: `typ:task,knowledge` entspricht `type:task,knowledge`. `aufgabe,wissen` sind keine Wert-Aliase.
+
+Gardener kompiliert komplexe Abfragen von KI-Agenten ohne externe DSL-Parser direkt in optimierte SQLite-FTS5- oder LIKE-Befehle:
+
+| Filter / Operator | Kanonische Syntax | Deutscher / Alternativer Alias | Verhalten & SQLite-Kompilierung |
+|---|---|---|---|
+| **Titel- / Name-Ziel** | `title:<term>` / `name:<term>` | `titel:<term>` | Begrenzt die Suche auf Spalte `name`: `titel:rechnung` |
+| **Inhalts- / Text-Ziel** | `body:<term>` / `content:<term>` | `inhalt:<term>` / `text:<term>` | Begrenzt die Suche auf Spalte `content`: `inhalt:vertrag` |
+| **Schlagwort-Ziel** | `tag:<term>` / `tags:<term>` | `schlagwort:<term>` / `schlagworte:<term>` | Filtert gezielt Schlagworte: `schlagwort:python` |
+| **Führendes Plus (Kompatibilität)** | `+<term>` | `+<term>` | Entfernt das führende Plus und behandelt den Begriff als gewöhnliches Suchwort: `+rechnung`. Der Begriff wird dadurch nicht verpflichtend. |
+| **Ausschluss / Negation** | `-<term>` / `-tag:<term>` | `-<term>` / `-titel:<term>` | Schließt Begriffe aus (`NOT "term"`): `rechnung -entwurf` |
+| **Multi-Typ-Filter** | `type:<t1>,<t2>` | `typ:<t1>,<t2>` | Filtert auf mehrere Entitätstypen: `typ:task,knowledge` |
+| **Inline-Trefferlimit** | `limit:<N>` | `max:<N>` | Überschreibt das Trefferlimit: `limit:5` |
+| **Anheftungs-Filter** | `is:pinned` / `not:pinned` | `ist:gepinnt` / `nicht:gepinnt` | Filtert nach Anheftungsstatus |
+| **Reine Negationssuche** | `-<term>` ohne Positivterm | `-<term>` | Delegiert nahtlos an LIKE-Ebene (`WHERE name NOT LIKE ...`) |
+
 ---
 
 <a id="sec-09"></a><a id="9-such-gui--web-oberflaeche"></a><a id="9-search-gui--web-companion"></a><a id="such-gui"></a><a id="search-gui"></a>
@@ -353,7 +371,7 @@ Angeheftete Einträge (`pinned = 1`) werden direkt auf Datenbankebene an die Spi
 - **Interaktive Inspektion**: Volltext-Suchfeld mit Inline-Filter-Unterstützung (`type:`, `typ:`, `tag:`, `source:`, `quelle:`, `is:pinned`, `ist:gepinnt`, `limit:`, `max:`), Typ- und Anheft-Status-Filterauswahl, quellenspezifische Eingrenzung, Treffer-Snippet-Hervorhebung und JSON-Detailansicht.
 
 ```bash
-# Startet die lokale GUI auf Standardport 8420
+# Startet die lokale GUI auf Standardport 8765
 python gardener.py gui
 
 # Start auf eigenem Port ohne automatisches Browser-Öffnen
