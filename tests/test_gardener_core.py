@@ -43,6 +43,24 @@ class GardenerTempCase(unittest.TestCase):
 
 
 class TestGardenerCore(GardenerTempCase):
+    def test_leading_plus_does_not_survive_as_mandatory_or_fallback_term(self):
+        self.af.put("fixture-alpha", content="synthalpha", type="knowledge")
+        self.af.put("fixture-beta", content="synthbeta", type="knowledge")
+        names = {row["name"] for row in self.af.find("+synthalpha synthbeta")}
+        self.assertEqual(names, {"fixture-alpha", "fixture-beta"})
+        self.assertEqual(names, {row["name"] for row in self.af.find("synthalpha synthbeta")})
+        # The beta-only result proves that + is not an enforced inclusion filter.
+        self.assertNotIn("synthalpha", self.af.get("fixture-beta")["content"])
+
+    def test_german_type_filter_localizes_key_but_not_literal_values(self):
+        self.af.put("fixture-task", content="synthtypevalue", type="task")
+        self.af.put("fixture-knowledge", content="synthtypevalue", type="knowledge")
+        expected = {"fixture-task", "fixture-knowledge"}
+        for key in ("type", "typ"):
+            self.assertEqual({row["name"] for row in self.af.find(
+                key + ":task,knowledge synthtypevalue")}, expected)
+        self.assertEqual(self.af.find("typ:aufgabe,wissen synthtypevalue"), [])
+
     def test_put_get_and_find_round_trip(self):
         self.af.put(
             "beleg-scanner",

@@ -13,8 +13,8 @@
 [![Platforms](https://img.shields.io/badge/platforms-Linux%20%7C%20Windows%20%7C%20macOS-lightgrey.svg)](https://github.com/ellmos-ai/gardener)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Attribution: NOTICE](https://img.shields.io/badge/Attribution-NOTICE-blue.svg)](NOTICE)
-[![Verified: 2026-10-03](https://img.shields.io/badge/verified-2026--10--03-blue.svg)](https://github.com/ellmos-ai/gardener)
-[![Tests: 231 passed](https://img.shields.io/badge/tests-231%20passed-brightgreen.svg)](https://github.com/ellmos-ai/gardener)
+[![Verified: 2026-11-02](https://img.shields.io/badge/verified-2026--11--02-blue.svg)](https://github.com/ellmos-ai/gardener)
+[![Tests: 233 passed](https://img.shields.io/badge/tests-233%20passed-brightgreen.svg)](https://github.com/ellmos-ai/gardener)
 [![Level 1 SBOM: Plain Text Audited](https://img.shields.io/badge/Level_1_SBOM-Plain_Text_Audited-brightgreen.svg)](THIRD_PARTY_LICENSES.txt)
 [![Execution: RunAsInvoker](https://img.shields.io/badge/execution-RunAsInvoker-success.svg)](THIRD_PARTY_LICENSES.md)
 [![Privacy: Local-First](https://img.shields.io/badge/privacy-Local--First%20%7C%20Zero--Egress-brightgreen.svg)](SECURITY.md)
@@ -260,10 +260,10 @@ sequenceDiagram
     participant DB as gardener.db / user.db
     participant WS as Local Workspace
 
-    Agent->>CLI: find("tax invoice", source="usmc-working")
+    Agent->>CLI: find("titel:rechnung +2026 -draft", source="usmc-working")
     CLI->>Core: Dispatch query with source scope
-    Core->>Filter: Apply pre-ranking namespace constraint
-    Filter->>FTS: Execute BM25 ranked match on everything table
+    Core->>Filter: Parse inline filters (col aliases, +/- operators, type, limit)
+    Filter->>FTS: Compile cleaned query with BM25 ranking on everything table
     FTS->>DB: Query indexed rows (mode=ro for foreign)
     DB-->>FTS: Matching records with snippets
     FTS-->>Core: Ranked hits with source_ref metadata
@@ -340,6 +340,24 @@ SELECT ... FROM everything WHERE ... ORDER BY pinned DESC, rank LIMIT ?
 ```
 Pinned entries (`pinned = 1`) are promoted to the top at the SQL level, ensuring critical context is never truncated regardless of BM25 score volume.
 
+### Natural Filter & Query Syntax Matrix
+
+For ordinary multi-word input, search first attempts conjunctive matches. If none are found, the multi-word OR fallback may return entries containing only one token, including entries without a `+`-prefixed term. Type filter keys have aliases, but values remain literal: `typ:task,knowledge` equals `type:task,knowledge`; translated values such as `aufgabe,wissen` are not aliases.
+
+Gardener compiles complex agent queries directly into optimized SQLite FTS5 or LIKE statements without external query compilers:
+
+| Filter / Operator | Canonical Syntax | German / Alternative Alias | Behavior & SQLite Compilation |
+|---|---|---|---|
+| **Title / Name Target** | `title:<term>` / `name:<term>` | `titel:<term>` | Restricts matching to the `name` column: `name:invoice` |
+| **Body / Content Target** | `body:<term>` / `content:<term>` | `inhalt:<term>` / `text:<term>` | Restricts matching to the `content` column: `inhalt:vertrag` |
+| **Tag Target** | `tag:<term>` / `tags:<term>` | `schlagwort:<term>` / `schlagworte:<term>` | Matches tags specifically: `schlagwort:python` |
+| **Leading Plus (Compatibility)** | `+<term>` | `+<term>` | Strips the leading plus, treating the term as an ordinary query token: `+rechnung`. It does not make the term mandatory. |
+| **Exclusion / Negation** | `-<term>` / `-tag:<term>` | `-<term>` / `-titel:<term>` | Excludes terms (`NOT "term"`): `rechnung -draft` |
+| **Multi-Type Scope** | `type:<t1>,<t2>` | `typ:<t1>,<t2>` | Matches multiple entity types: `type:task,tool` |
+| **Inline Result Limit** | `limit:<N>` | `max:<N>` | Overrides query hit limit: `limit:5` |
+| **Pinned Constraint** | `is:pinned` / `not:pinned` | `ist:gepinnt` / `nicht:gepinnt` | Filter by pinned priority state |
+| **Pure Negation Fallback** | `-<term>` without positive | `-<term>` | Gracefully routes to LIKE fallback (`WHERE name NOT LIKE ...`) |
+
 ---
 
 <a id="sec-09"></a><a id="9-search-gui--web-companion"></a><a id="search-gui"></a>
@@ -353,7 +371,7 @@ Pinned entries (`pinned = 1`) are promoted to the top at the SQL level, ensuring
 - **Interactive Inspection**: Full-text search box with inline filter support (`type:`, `tag:`, `source:`, `is:pinned`, `limit:`), type and pinned status dropdown filters, source-aware filtering, match snippet highlights, and JSON detail viewer.
 
 ```bash
-# Launch the local GUI on default port 8420
+# Launch the local GUI on default port 8765
 python gardener.py gui
 
 # Launch on a custom port without auto-opening a browser
