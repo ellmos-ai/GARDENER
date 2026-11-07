@@ -29,6 +29,7 @@ class TestMetadataParity(unittest.TestCase):
         self.changelog_path = ROOT / "CHANGELOG.md"
         self.marketing_log_path = ROOT / "MARKETING-LOG.txt"
         self.gitignore_path = ROOT / ".gitignore"
+        self.manifest_in_path = ROOT / "MANIFEST.in"
 
         self.pyproject = self.pyproject_path.read_text(encoding="utf-8")
         self.readme_en = self.readme_en_path.read_text(encoding="utf-8")
@@ -467,6 +468,23 @@ class TestMetadataParity(unittest.TestCase):
         self.assertIn("Briefkasten", konzept)
         self.assertIn("Fernrohr", konzept)
 
+
+    def test_pep621_explicit_dependencies_contract(self):
+        self.assertIn("dependencies = []", self.pyproject)
+        self.assertIn("[project.optional-dependencies]", self.pyproject)
+        self.assertIn('"pytest>=7.0"', self.pyproject)
+        self.assertIn('"ruff>=0.5"', self.pyproject)
+        self.assertIn("python -m pip check", self.ci_workflow)
+
+    def test_manifest_in_and_package_data_integrity(self):
+        self.assertTrue(self.manifest_in_path.is_file(), "MANIFEST.in must exist")
+        manifest = self.manifest_in_path.read_text(encoding="utf-8")
+        self.assertIn("recursive-include locales *.json", manifest)
+        self.assertIn("include LICENSE", manifest)
+        self.assertIn("include NOTICE", manifest)
+        self.assertIn("include THIRD_PARTY_LICENSES.md", manifest)
+        self.assertIn("include THIRD_PARTY_LICENSES.txt", manifest)
+        self.assertIn("[tool.setuptools.package-data]", self.pyproject)
 
     def test_natural_filter_and_query_syntax_matrix_parity(self):
         for doc in (self.readme_en, self.readme_de):

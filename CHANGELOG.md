@@ -2,6 +2,23 @@
  
 ## [Unreleased]
 
+### Repository-Hygiene, CI-Matrix-Härtung (pip check), PEP 621 Metadaten & MANIFEST.in Packaging (2026-11-07)
+
+- **PEP 621 Metadaten-Härtung (`pyproject.toml`)**:
+  - Explizites `dependencies = []` zur Bestätigung des Zero-External-Dependencies-Architekturstandards (Standardbibliothek only) deklariert.
+  - `[project.optional-dependencies]` für Entwicklung und Tests (`dev = ["pytest>=7.0", "ruff>=0.5"]`, `test = ["pytest>=7.0"]`) nach PEP 621 spezifiziert.
+  - Setuptools Package-Data (`locales/*.json`) zur Sicherstellung vollständiger Übersetzungsdaten in Distributionen hinzugefügt.
+- **Packaging & Source-Distribution (`MANIFEST.in`)**:
+  - `MANIFEST.in` angelegt: Garantiert die vollständige Einbindung von Lizenzdateien (`LICENSE`, `NOTICE`, `THIRD_PARTY_LICENSES.*`), Modulmanifest (`ellmos-module.v2.json`), Referenzquellen (`sources.reference.json`), Lokalisierungen (`locales/*.json`) und Dokumentation in Source-Tarballs (sdist).
+- **CI-Matrix-Härtung (`.github/workflows/ci.yml`)**:
+  - `python -m pip check` als deterministischen Konsistenzprüfschritt nach der Paketinstallation über alle Betriebssysteme (Ubuntu, Windows, macOS) und Python-Versionen (3.10-3.13) integriert.
+- **Git-Hygiene (`.gitignore`)**:
+  - Dateimuster für Type-Checker-Caches (`.mypy_cache/`), kompilierte Windows-Binärmodule (`*.pyd`) und IDE-Verzeichnisse (`.idea/`, `.vscode/`, `*.sublime-*`) gehärtet.
+- **Vertragstests & Metadaten-Parität (`tests/test_metadata.py`, `README.md`, `README_de.md`, `llms.txt`)**:
+  - Neue Vertragstests `test_pep621_explicit_dependencies_contract` und `test_manifest_in_and_package_data_integrity` implementiert.
+  - Formatierungsartefakt (Tab-Zeichen) im Changelog behoben.
+  - Testsuite von 229 auf 231 Tests erweitert (100% bestanden).
+
 ### Pfad B: Bilinguale Query-Syntax-Architektur, Sequenzdiagramm-Präzisierung & Badges-Währung (2026-11-02)
 
 - **Bilinguale Abfrage- und Filtersyntax-Architektur (Section 8 in `README.md` & `README_de.md`)**:
@@ -33,7 +50,7 @@
 - **Vertragstests & Metadaten-Parität (`tests/test_gardener_core.py`, `tests/test_metadata.py`, `README.md`, `README_de.md`, `llms.txt`, `MARKETING-LOG.txt`)**:
   - Neuer Vertragstest `test_german_column_aliases_and_plus_operator_contract` sowie Erweiterung von `test_find_with_inline_filters_and_column_aliases` in `tests/test_gardener_core.py`.
   - Testsuite von 227 auf **229 passed, 35 subtests passed** (100% grün) erhöht; Badges und Dokumentation auf Stand 2026-10-03 aktualisiert.
-  - Test-Härtung (	ests/test_sleep_union.py): Pfadauflösung zu gardener.py über Path(__file__) gegen CWD-Abweichungen abgesichert.
+  - Test-Härtung (tests/test_sleep_union.py): Pfadauflösung zu gardener.py über Path(__file__) gegen CWD-Abweichungen abgesichert.
 
 ### FTS5/LIKE Reines Negations-Routing & Wiederholte Inline-Filter Akkumulierung (2026-10-02)
 
