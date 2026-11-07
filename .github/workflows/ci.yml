@@ -39,6 +39,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install ruff pytest
           pip install -e .
+          python -m pip check
 
       - name: Lint with Ruff
         run: ruff check .

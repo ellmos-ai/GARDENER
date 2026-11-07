@@ -14,6 +14,17 @@ license = "MIT"
 license-files = ["LICENSE", "NOTICE", "THIRD_PARTY_LICENSES.md", "THIRD_PARTY_LICENSES.txt"]
 authors = [{ name = "Lukas Geiger" }]
 requires-python = ">=3.10"
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "ruff>=0.5",
+]
+test = [
+    "pytest>=7.0",
+]
+
 keywords = [
     "agent-framework",
     "ai-agent",
@@ -78,6 +89,9 @@ gardener = "gardener:main"
 
 [tool.setuptools]
 py-modules = ["gardener", "i18n", "seed", "sources", "search_gui", "sleep_union"]
+
+[tool.setuptools.package-data]
+"*" = ["locales/*.json"]
 
 [tool.pytest.ini_options]
 pythonpath = "."

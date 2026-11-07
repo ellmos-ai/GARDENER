@@ -1,0 +1,8 @@
+include LICENSE
+include NOTICE
+include THIRD_PARTY_LICENSES.md
+include THIRD_PARTY_LICENSES.txt
+include ellmos-module.v2.json
+include sources.reference.json
+recursive-include locales *.json
+recursive-include docs *.md

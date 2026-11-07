@@ -29,6 +29,7 @@ class TestMetadataParity(unittest.TestCase):
         self.changelog_path = ROOT / "CHANGELOG.md"
         self.marketing_log_path = ROOT / "MARKETING-LOG.txt"
         self.gitignore_path = ROOT / ".gitignore"
+        self.manifest_in_path = ROOT / "MANIFEST.in"
 
         self.pyproject = self.pyproject_path.read_text(encoding="utf-8")
         self.readme_en = self.readme_en_path.read_text(encoding="utf-8")
@@ -60,8 +61,8 @@ class TestMetadataParity(unittest.TestCase):
 
     def test_readme_badges_and_test_count(self):
         # Assert test badges show 229 passed
-        self.assertIn("tests-229%20passed-brightgreen.svg", self.readme_en)
-        self.assertIn("tests-229%20passed-brightgreen.svg", self.readme_de)
+        self.assertIn("tests-231%20passed-brightgreen.svg", self.readme_en)
+        self.assertIn("tests-231%20passed-brightgreen.svg", self.readme_de)
 
         # Assert Level 1 SBOM badge
         self.assertIn("Level_1_SBOM-Plain_Text_Audited-brightgreen.svg", self.readme_en)
@@ -102,7 +103,7 @@ class TestMetadataParity(unittest.TestCase):
 
     def test_llms_txt_consistency(self):
         self.assertIn("Last-checked: 2026-10-03", self.llms_txt)
-        self.assertIn("229 passing tests", self.llms_txt)
+        self.assertIn("231 passing tests", self.llms_txt)
         self.assertIn("https://github.com/ellmos-ai/gardener", self.llms_txt)
         self.assertIn("ellmos-ai/gardener", self.llms_txt)
         self.assertIn("NOTICE", self.llms_txt)
@@ -465,6 +466,24 @@ class TestMetadataParity(unittest.TestCase):
         self.assertIn("Telescope", design)
         self.assertIn("Briefkasten", konzept)
         self.assertIn("Fernrohr", konzept)
+
+
+    def test_pep621_explicit_dependencies_contract(self):
+        self.assertIn("dependencies = []", self.pyproject)
+        self.assertIn("[project.optional-dependencies]", self.pyproject)
+        self.assertIn('"pytest>=7.0"', self.pyproject)
+        self.assertIn('"ruff>=0.5"', self.pyproject)
+        self.assertIn("python -m pip check", self.ci_workflow)
+
+    def test_manifest_in_and_package_data_integrity(self):
+        self.assertTrue(self.manifest_in_path.is_file(), "MANIFEST.in must exist")
+        manifest = self.manifest_in_path.read_text(encoding="utf-8")
+        self.assertIn("recursive-include locales *.json", manifest)
+        self.assertIn("include LICENSE", manifest)
+        self.assertIn("include NOTICE", manifest)
+        self.assertIn("include THIRD_PARTY_LICENSES.md", manifest)
+        self.assertIn("include THIRD_PARTY_LICENSES.txt", manifest)
+        self.assertIn("[tool.setuptools.package-data]", self.pyproject)
 
 
 if __name__ == "__main__":
