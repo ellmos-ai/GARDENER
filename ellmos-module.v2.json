@@ -40,7 +40,7 @@
   "source_of_truth": {
     "type": "local-directory",
     "path": ".",
-    "repository": "https://github.com/ellmos-ai/GARDENER"
+    "repository": "https://github.com/ellmos-ai/gardener"
   },
   "adapters": []
 }
